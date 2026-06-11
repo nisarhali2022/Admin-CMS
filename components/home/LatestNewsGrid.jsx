@@ -12,7 +12,7 @@ export default function LatestNewsGrid({ posts }) {
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {posts.map((post) => {
+        {posts.map((post, index) => {
           const img = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
           const category = post._embedded?.['wp:term']?.[0]?.[0] || null;
           return (
@@ -27,6 +27,7 @@ export default function LatestNewsGrid({ posts }) {
                     src={img}
                     alt={stripHtml(post.title?.rendered || '')}
                     fill
+                    priority={index === 0}
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />

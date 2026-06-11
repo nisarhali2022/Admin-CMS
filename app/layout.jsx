@@ -43,6 +43,17 @@ export const metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  link: [
+    {
+      rel: 'preconnect',
+      href: 'https://fonts.googleapis.com',
+    },
+    {
+      rel: 'preconnect',
+      href: 'https://fonts.gstatic.com',
+      crossOrigin: 'anonymous',
+    },
+  ],
 }
 
 export default function RootLayout({ children }) {

@@ -54,6 +54,7 @@ export default function StepsSection() {
                     src={step.img}
                     alt={step.title}
                     fill
+                    loading="lazy"
                     className="object-cover"
                     sizes="160px"
                   />
