@@ -9,6 +9,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import AdBanner from '@/components/ads/AdBanner';
 import AdInArticle from '@/components/ads/AdInArticle';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LCPPreloader from '@/components/ui/LCPPreloader';
 
 import QuizAnswerCards from '@/components/home/QuizAnswerCards';
 import LatestNewsGrid from '@/components/home/LatestNewsGrid';
@@ -62,12 +63,22 @@ export default async function HomePage() {
   const faqs = parseFaqs(quizPost?.content?.rendered || '');
   const postTitle = quizPost?.title?.rendered || '';
 
+  // Extract first news post image for LCP preloading
+  const firstNewsImage = newsPosts?.[0]?._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
+
   const todayLabel = new Intl.DateTimeFormat('en-PK', {
     day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date());
 
   return (
     <main id="main">
+      {/* Preload the first news image with high priority for LCP optimization */}
+      {firstNewsImage && (
+        <LCPPreloader
+          imageUrl={firstNewsImage}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        />
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
 
