@@ -75,18 +75,18 @@ async function saveQuizToWordPress(questions, date) {
 }
 
 // Format questions in the exact format parseQuizTables expects
+// Each question gets its own <table> so the parser processes them independently
 function formatQuizContent(questions) {
-  let html = '<table><tbody>';
+  let html = '';
   
   questions.forEach((q, i) => {
-    html += `<tr><td>Question ${i + 1}: ${q.question}</td></tr>`;
+    html += `<table><tbody><tr><td>Question ${i + 1}: ${q.question}</td></tr>`;
     q.options.forEach((opt) => {
       html += `<tr><td>– ${opt}</td></tr>`;
     });
-    html += `<tr><td>Answer 👉 ${q.answer}</td></tr><tr><td></td></tr>`;
+    html += `<tr><td>Answer 👉 ${q.answer}</td></tr></tbody></table>`;
   });
   
-  html += '</tbody></table>';
   return html;
 }
 
