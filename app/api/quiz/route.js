@@ -10,22 +10,21 @@ function createAuthHeader(user, pass) {
   return `Basic ${credentials}`;
 }
 
-// Helper: Get today's quiz post
-async function getTodayQuizPost() {
+// Helper: Get the main quiz post (always the same one, slug: daily-quiz)
+async function getMainQuizPost() {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const res = await fetch(`${WP_API_URL}/posts?search=quiz-${today}&per_page=1`, {
+    const res = await fetch(`${WP_API_URL}/posts?slug=daily-quiz&per_page=1`, {
       headers: { 'Accept': 'application/json' },
     });
     const posts = await res.json();
     return posts?.length > 0 ? posts[0] : null;
   } catch (err) {
-    console.error('Error fetching quiz post:', err);
+    console.error('Error fetching main quiz post:', err);
     return null;
   }
 }
 
-// Helper: Create or update quiz post in WordPress
+// Helper: Create or update the main quiz post (always same post)
 async function saveQuizToWordPress(questions, date) {
   if (!WP_USER || !WP_PASS) {
     throw new Error('WordPress credentials not configured. Set WP_ADMIN_USER and WP_ADMIN_PASS.');
@@ -33,18 +32,18 @@ async function saveQuizToWordPress(questions, date) {
 
   const authHeader = createAuthHeader(WP_USER, WP_PASS);
   const quizContent = formatQuizContent(questions);
-  const title = `Quiz - ${date}`;
-  const slug = `quiz-${date}`;
+  const title = `Daily Quiz - ${new Intl.DateTimeFormat('en-PK', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}`;
+  const slug = 'daily-quiz'; // Always same slug - overwrite daily
 
-  // Check if quiz already exists
-  const existing = await getTodayQuizPost();
+  // Check if main quiz post already exists
+  const existing = await getMainQuizPost();
 
   const postData = {
     title,
     content: quizContent,
     slug,
     status: 'publish',
-    categories: [], // Customize as needed
+    categories: [],
   };
 
   const method = existing ? 'PUT' : 'POST';
@@ -127,7 +126,7 @@ function parseQuizContent(content) {
 
 export async function GET(request) {
   try {
-    const post = await getTodayQuizPost();
+    const post = await getMainQuizPost();
     if (!post) {
       return NextResponse.json({ questions: [], date: new Date().toISOString().split('T')[0] });
     }
@@ -135,7 +134,7 @@ export async function GET(request) {
     const questions = parseQuizContent(post.content.rendered);
     return NextResponse.json({
       questions,
-      date: post.slug.replace('quiz-', ''),
+      date: post.modified,
       id: post.id,
     });
   } catch (err) {
@@ -194,12 +193,12 @@ export async function POST(request) {
     console.log('Formatted Content for WordPress:', quizContent);
     console.log('=====================');
 
-    // Save to WordPress
-    const post = await saveQuizToWordPress(questions, date || new Date().toISOString().split('T')[0]);
+    // Save to WordPress (will create if doesn't exist, or update if exists)
+    const post = await saveQuizToWordPress(questions, null);
 
     return NextResponse.json({
-      message: 'Quiz saved successfully to WordPress',
-      data: { questions, date: post.slug.replace('quiz-', ''), id: post.id },
+      message: 'Quiz saved successfully to WordPress (single post, overwritten daily)',
+      data: { questions, date: new Date().toISOString().split('T')[0], id: post.id },
     });
   } catch (err) {
     console.error('Error in POST /api/quiz:', err.message);
