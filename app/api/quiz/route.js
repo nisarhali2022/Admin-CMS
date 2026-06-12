@@ -187,6 +187,13 @@ export async function POST(request) {
       );
     }
 
+    // Log quiz content before saving
+    const quizContent = formatQuizContent(questions);
+    console.log('=== QUIZ SAVE LOG ===');
+    console.log('Input Questions:', JSON.stringify(questions, null, 2));
+    console.log('Formatted Content for WordPress:', quizContent);
+    console.log('=====================');
+
     // Save to WordPress
     const post = await saveQuizToWordPress(questions, date || new Date().toISOString().split('T')[0]);
 
