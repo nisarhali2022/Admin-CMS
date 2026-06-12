@@ -12,6 +12,12 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/(.*)\\.(css|css\\.map)$',
+        headers: [
+          { key: 'Content-Type', value: 'text/css' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options', value: 'DENY' },

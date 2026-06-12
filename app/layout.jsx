@@ -2,7 +2,6 @@ import { Inter, Merriweather } from 'next/font/google'
 import Script from 'next/script'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
-import CSSPreloader from '@/components/ui/CSSPreloader'
 import { SITE_CONFIG } from '@/lib/constants'
 import '@/styles/globals.css'
 
@@ -61,7 +60,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${merriweather.variable}`}>
       <body className="font-body bg-white text-text-primary">
-        <CSSPreloader />
         <Header />
         <main id="main" className="min-h-screen">
           {children}
