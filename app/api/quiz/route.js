@@ -74,20 +74,19 @@ async function saveQuizToWordPress(questions, date) {
   }
 }
 
-// Format questions as HTML table (WordPress content)
+// Format questions in the exact format parseQuizTables expects
 function formatQuizContent(questions) {
-  let html = '<table border="1" cellpadding="10"><tr><th>Q</th><th>Question</th><th>Options</th><th>Answer</th></tr>';
+  let html = '<table><tbody>';
   
   questions.forEach((q, i) => {
-    html += `<tr>
-      <td>${i + 1}</td>
-      <td>${q.question}</td>
-      <td>${q.options.join(', ')}</td>
-      <td><strong>${q.answer}</strong></td>
-    </tr>`;
+    html += `<tr><td>Question ${i + 1}: ${q.question}</td></tr>`;
+    q.options.forEach((opt) => {
+      html += `<tr><td>– ${opt}</td></tr>`;
+    });
+    html += `<tr><td>Answer 👉 ${q.answer}</td></tr><tr><td></td></tr>`;
   });
   
-  html += '</table>';
+  html += '</tbody></table>';
   return html;
 }
 
