@@ -20,7 +20,10 @@ import {
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import FeaturedImage from '@/components/posts/FeaturedImage';
 import PostMeta from '@/components/posts/PostMeta';
+import PostCard from '@/components/posts/PostCard';
 import PostGrid from '@/components/posts/PostGrid';
+import TableOfContents from '@/components/posts/TableOfContents';
+import { generateTocAndInjectIds } from '@/lib/toc';
 import AdBanner from '@/components/ads/AdBanner';
 import AdInArticle from '@/components/ads/AdInArticle';
 import ShareButtons from '@/components/ui/ShareButtons';
@@ -101,10 +104,13 @@ export default async function SlugPage({ params }) {
   const postUrl = `${SITE_CONFIG.siteUrl}/${slug}`;
   const readingTime = calculateReadingTime(post.content?.rendered || '');
 
+  // Generate TOC and inject IDs
+  const { modifiedHtml, toc } = generateTocAndInjectIds(post.content?.rendered || '');
+
   // Inject ad placeholder marker after first paragraph
   const adMarker = '<!--AD_IN_ARTICLE-->';
   const contentWithAd = injectAdAfterFirstParagraph(
-    post.content?.rendered || '',
+    modifiedHtml,
     adMarker
   );
   // Split on the marker so we can render the React component in between
@@ -151,10 +157,10 @@ export default async function SlugPage({ params }) {
             <Breadcrumbs items={breadcrumbItems} />
 
             {/* Title */}
-            <h1
+            {/* <h1
               className="font-merriweather font-bold text-2xl sm:text-4xl text-text-primary leading-tight mt-2 mb-4"
               dangerouslySetInnerHTML={{ __html: post.title?.rendered }}
-            />
+            /> */}
 
             {/* Meta */}
             <PostMeta post={post} />
@@ -162,12 +168,13 @@ export default async function SlugPage({ params }) {
             {/* Featured Image */}
             <div className="mt-5 mb-6">
               <FeaturedImage
-                src={imageUrl}
-                alt={imageAlt}
+                post={post}
                 priority
-                categorySlug={category?.slug}
               />
             </div>
+
+            {/* Table of Contents */}
+            <TableOfContents toc={toc} />
 
             {/* Content with ad injection */}
             <div
@@ -209,15 +216,13 @@ export default async function SlugPage({ params }) {
                   Related Posts
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <PostGrid posts={relatedPosts} />
+                  {relatedPosts.map((p) => (
+                    <PostCard key={p.id} post={p} />
+                  ))}
                 </div>
               </section>
             )}
 
-            {/* Comments */}
-            <Suspense fallback={<LoadingSpinner className="py-8" />}>
-              <CommentsSection postId={post.id} />
-            </Suspense>
           </article>
 
           {/* ── Sidebar ── */}
@@ -227,64 +232,5 @@ export default async function SlugPage({ params }) {
         </div>
       </div>
     </>
-  );
-}
-
-// Dynamically imported comments to avoid blocking initial render
-async function CommentsSection({ postId }) {
-  const { getComments } = await import('@/lib/wordpress');
-  const comments = await getComments(postId);
-
-  return (
-    <section className="mt-10 border-t border-border pt-8">
-      <h2 className="font-merriweather font-bold text-xl text-text-primary mb-5">
-        Comments {comments.length > 0 && `(${comments.length})`}
-      </h2>
-
-      {comments.length === 0 ? (
-        <p className="text-text-secondary text-sm">No comments yet.</p>
-      ) : (
-        <ul className="space-y-5">
-          {comments.map((comment) => (
-            <li
-              key={comment.id}
-              className="flex gap-4 bg-surface rounded-lg p-4 border border-border"
-            >
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                {comment.author_name?.charAt(0).toUpperCase() || '?'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-sm text-text-primary">
-                    {comment.author_name}
-                  </span>
-                  <span className="text-xs text-text-secondary">
-                    {formatDate(comment.date)}
-                  </span>
-                </div>
-                <div
-                  className="text-sm text-text-primary prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: comment.content?.rendered }}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <p className="mt-6 text-sm text-text-secondary bg-surface border border-border rounded p-3">
-        💬 To leave a comment, please visit the{' '}
-        
-        <a
-  href="YOUR_LINK_HERE"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="text-accent underline"
->
-  original post
-</a>.
-        .
-      </p>
-    </section>
   );
 }

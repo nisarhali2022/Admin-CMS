@@ -23,7 +23,7 @@ module.exports = {
         'text-muted': '#94a3b8',
       },
       fontFamily: {
-        heading: ['var(--font-merriweather)', 'Georgia', 'serif'],
+        heading: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       typography: {
@@ -31,8 +31,8 @@ module.exports = {
           css: {
             color: '#0f172a',
             a: { color: '#004f9f', '&:hover': { color: '#003d7a' } },
-            h2: { fontFamily: 'var(--font-merriweather)', color: '#0f172a' },
-            h3: { fontFamily: 'var(--font-merriweather)', color: '#0f172a' },
+            h2: { fontFamily: 'var(--font-inter)', color: '#0f172a' },
+            h3: { fontFamily: 'var(--font-inter)', color: '#0f172a' },
             strong: { color: '#0f172a' },
           },
         },
