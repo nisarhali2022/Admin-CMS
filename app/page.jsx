@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import { stripHtml, truncateText } from '@/lib/utils';
-import { parseQuizTables, parseFaqs } from '@/lib/quizParser';
+import quizData from '@/data/quiz.json';
 
 import Sidebar from '@/components/layout/Sidebar';
 import AdBanner from '@/components/ads/AdBanner';
@@ -52,16 +52,11 @@ export async function generateMetadata() {
 }
 
 export default async function HomePage() {
-  const [quizData, newsData] = await Promise.all([
-    getPosts({ page: 1, perPage: 1 }),
-    getPosts({ page: 1, perPage: 6 }),
-  ]);
+  const newsData = await getPosts({ page: 1, perPage: 6 });
 
-  const quizPost = quizData?.posts?.[0] || null;
   const newsPosts = newsData?.posts || [];
-  const quizQuestions = parseQuizTables(quizPost?.content?.rendered || '');
-  const faqs = parseFaqs(quizPost?.content?.rendered || '');
-  const postTitle = quizPost?.title?.rendered || '';
+  const quizQuestions = quizData?.questions || [];
+  const faqs = [];
 
   // Extract first news post image for LCP preloading
   const firstNewsImage = newsPosts?.[0]?._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
@@ -85,10 +80,9 @@ export default async function HomePage() {
           {/* ── Main Content ── */}
           <article>
             {/* Title */}
-            <h1
-              className="font-merriweather font-bold text-2xl sm:text-3xl text-text-primary leading-tight mb-4"
-              dangerouslySetInnerHTML={{ __html: postTitle }}
-            />
+      
+            <h1 className="font-merriweather font-bold text-2xl sm:text-3xl text-text-primary leading-tight mb-4">
+              Telenor Quiz today {todayLabel} – Latest My Telenor Answer Today</h1>
 
             {/* Intro */}
             <div className="text-text-secondary text-sm sm:text-base leading-relaxed space-y-3 mb-6">
@@ -96,13 +90,13 @@ export default async function HomePage() {
                 <strong>
                   <Link href="/" className="text-accent hover:underline">Telenor quiz today</Link>
                 </strong>{' '}
-                is a popular daily feature inside the My Telenor app. It gives Telenor users a simple
-                way to earn free internet MBs, balance, and bonus rewards by answering a few quick
-                questions each day.
+              is a popular daily feature inside the today My Telenor app question answer. It gives Telenor users a simple way to earn free internet MBs, balance, and bonus rewards. You just answer a few quick questions and enjoy instant benefits while learning something new.
               </p>
               <p>
-                We update the today Telenor 5 question answer every day so you never miss a winning
-                chance. Even if you use a dual SIM phone with{' '}
+                Telenor Answer Today suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.
+              </p>
+              <p>
+                We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with{' '}
                 <a href="https://jazz.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Jazz</a>,{' '}
                 <a href="https://www.zong.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Zong</a>, or{' '}
                 <a href="https://www.ufone.com/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Ufone</a>{' '}
@@ -126,6 +120,23 @@ export default async function HomePage() {
 
             {/* Latest News */}
             <LatestNewsGrid posts={newsPosts} />
+
+            {/* Detailed Intro Section */}
+            <section className="my-8 bg-white border border-border rounded-lg p-6 shadow-sm">
+              <p className="text-text-secondary text-sm sm:text-base leading-relaxed mb-4">
+                <strong className="text-text-primary">
+                  <a href="/" className="text-accent hover:underline">Telenor Answer Today</a>
+                </strong>{' '}
+                suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.
+              </p>
+              <p className="text-text-secondary text-sm sm:text-base leading-relaxed">
+                We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with{' '}
+                <a href="https://jazz.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Jazz</a>,{' '}
+                <a href="https://www.zong.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Zong</a>, or{' '}
+                <a href="https://www.ufone.com/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Ufone</a>{' '}
+                as your main number, you can still participate using your Telenor SIM in the second slot. This makes the Telenor daily quiz accessible, fast, and convenient for everyone.
+              </p>
+            </section>
 
             {/* Static info sections */}
             <QuizInfoSections />
