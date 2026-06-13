@@ -12,7 +12,7 @@ export default function PostMeta({ post, showAuthor = true, size = 'default' }) 
     <div className={`flex flex-wrap items-center gap-2 ${isSmall ? 'text-xs' : 'text-sm'} text-text-secondary`}>
       {category && (
         <Link
-          href={`/category/${category.slug}`}
+          href={`/${category.slug}`}
           className={`category-badge ${color} hover:opacity-90 transition-opacity`}
         >
           {category.name}

@@ -16,7 +16,7 @@ export default async function CategoryMenu() {
         {categories.map((cat) => (
           <Link
             key={cat.id}
-            href={`/category/${cat.slug}`}
+            href={`/${cat.slug}`}
             className={`flex-shrink-0 flex flex-col items-center justify-center px-5 py-4 rounded-xl text-white shadow-sm hover:shadow-md transition-all min-w-[120px] ${getCategoryColor(cat.slug)}`}
           >
             <span className="font-semibold text-sm text-center leading-tight">

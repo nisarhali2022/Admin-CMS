@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getLatestPosts } from '@/lib/wordpress';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getFirstCategory } from '@/lib/utils';
 
 export default async function RecentPosts({ count = 5 }) {
   const posts = await getLatestPosts(count);
@@ -17,10 +17,11 @@ export default async function RecentPosts({ count = 5 }) {
         {posts.map((post) => {
           const imageUrl =
             post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
+          const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
           return (
             <li key={post.id}>
               <Link
-                href={`/${post.slug}`}
+                href={`/${categorySlug}/${post.slug}`}
                 className="flex gap-3 group"
               >
                 <div className="relative w-16 h-14 flex-shrink-0 rounded overflow-hidden bg-surface">

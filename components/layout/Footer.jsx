@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { getLatestPosts } from '@/lib/wordpress'
 import { SITE_CONFIG, NAV_LINKS } from '@/lib/constants'
-import { formatDate } from '@/lib/utils'
+import { formatDate, getFirstCategory } from '@/lib/utils'
 
 export default async function Footer() {
   const recentPosts = await getLatestPosts(5)
@@ -120,7 +120,9 @@ export default async function Footer() {
             </h3>
 
             <ul className="space-y-4">
-              {recentPosts.map((post) => (
+              {recentPosts.map((post) => {
+                const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
+                return (
                 <li key={post.id} className="flex gap-3 group">
                   <span className="text-accent font-bold text-lg leading-none mt-0.5 flex-shrink-0">
                     ›
@@ -128,7 +130,7 @@ export default async function Footer() {
 
                   <div>
                     <Link
-                      href={`/${post.slug}`}
+                      href={`/${categorySlug}/${post.slug}`}
                       className="text-gray-300 group-hover:text-white text-sm leading-snug transition-colors line-clamp-2"
                     >
                       <span
@@ -143,7 +145,8 @@ export default async function Footer() {
                     </span>
                   </div>
                 </li>
-              ))}
+              );
+              })}
             </ul>
           </div>
         </div>

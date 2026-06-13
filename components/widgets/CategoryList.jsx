@@ -18,7 +18,7 @@ export default async function CategoryList() {
           return (
             <li key={cat.id}>
               <Link
-                href={`/category/${cat.slug}`}
+                href={`/${cat.slug}`}
                 className={`flex items-center justify-between px-3 py-2 rounded hover:bg-surface transition-colors group border-l-4 ${colorClass.replace('bg-', 'border-')}`}
               >
                 <span className="text-sm text-text-primary group-hover:text-accent transition-colors font-medium">

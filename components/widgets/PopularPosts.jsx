@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPosts } from '@/lib/wordpress';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getFirstCategory } from '@/lib/utils';
 import { SITE_CONFIG } from '@/lib/constants';
 
 export default async function PopularPosts({ count = 5 }) {
@@ -21,9 +21,10 @@ export default async function PopularPosts({ count = 5 }) {
         {posts.map((post, index) => {
           const imageUrl =
             post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
+          const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
           return (
             <li key={post.id}>
-              <Link href={`/${post.slug}`} className="flex gap-3 group">
+              <Link href={`/${categorySlug}/${post.slug}`} className="flex gap-3 group">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center mt-1">
                   {index + 1}
                 </span>

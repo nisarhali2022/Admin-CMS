@@ -15,10 +15,11 @@ export default function LatestNewsGrid({ posts }) {
         {posts.map((post, index) => {
           const img = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
           const category = post._embedded?.['wp:term']?.[0]?.[0] || null;
+          const categorySlug = category?.slug || 'uncategorized';
           return (
             <Link
               key={post.id}
-              href={`/${post.slug}`}
+              href={`/${categorySlug}/${post.slug}`}
               className="group flex flex-col bg-white border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
             >
               <div className="relative w-full aspect-video overflow-hidden bg-surface">
@@ -55,7 +56,7 @@ export default function LatestNewsGrid({ posts }) {
 
       <div className="mt-6 text-center">
         <Link
-          href="/category/blog"
+          href="/blog"
           className="inline-block px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded hover:bg-[#2a5298] transition-colors"
         >
           👉 Explore Today Top News &amp; Blog – Click Here
