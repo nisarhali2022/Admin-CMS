@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import { stripHtml, truncateText } from '@/lib/utils';
-import quizData from '@/data/quiz.json';
+import { parseQuizTables, parseFaqs } from '@/lib/quizParser';
 
 import Sidebar from '@/components/layout/Sidebar';
 import AdBanner from '@/components/ads/AdBanner';
@@ -52,11 +52,15 @@ export async function generateMetadata() {
 }
 
 export default async function HomePage() {
-  const newsData = await getPosts({ page: 1, perPage: 6 });
+  const [quizData, newsData] = await Promise.all([
+    getPosts({ page: 1, perPage: 1, tag: 'quiz' }),
+    getPosts({ page: 1, perPage: 6, excludeSlugs: ['daily-quiz'], tag: 'news' }),
+  ]);
 
+  const quizPost = quizData?.posts?.[0] || null;
   const newsPosts = newsData?.posts || [];
-  const quizQuestions = quizData?.questions || [];
-  const faqs = [];
+  const quizQuestions = parseQuizTables(quizPost?.content?.rendered || '');
+  const faqs = parseFaqs(quizPost?.content?.rendered || '');
 
   // Extract first news post image for LCP preloading
   const firstNewsImage = newsPosts?.[0]?._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;

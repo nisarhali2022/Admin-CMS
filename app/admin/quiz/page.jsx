@@ -116,6 +116,14 @@ export default function AdminQuizPage() {
     }
   };
 
+  const handleClear = () => {
+    if (window.confirm('Clear all questions? This will erase all unsaved data.')) {
+      setQuestions(DEFAULT_QUESTIONS);
+      setDate(getTodayISO());
+      setMessage(null);
+    }
+  };
+
   // ── Login Screen ──────────────────────────────────────────────────────────
   if (!authed) {
     return (
@@ -300,15 +308,10 @@ export default function AdminQuizPage() {
             {saving ? 'Saving…' : '💾 Save Quiz for Today'}
           </button>
           <button
-            onClick={() => {
-              setQuestions(DEFAULT_QUESTIONS.map(() => ({
-                question: '', options: ['', '', '', ''], answer: '',
-              })));
-              setMessage(null);
-            }}
-            className="px-5 py-3 border border-border text-text-secondary rounded-xl hover:bg-surface transition-colors text-sm"
+            onClick={handleClear}
+            className="px-5 py-3 border border-red-300 text-red-600 rounded-xl hover:bg-red-50 transition-colors text-sm font-semibold"
           >
-            Clear
+            🗑️ Clear All
           </button>
         </div>
 

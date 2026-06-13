@@ -46,6 +46,7 @@ export default async function TagPage({ params, searchParams }) {
     page: currentPage,
     perPage: SITE_CONFIG.postsPerPage,
     tagId: tag.id,
+    excludeSlugs: ['daily-quiz'],
   });
 
   const breadcrumbItems = [

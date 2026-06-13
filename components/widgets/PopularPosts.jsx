@@ -7,7 +7,7 @@ import { SITE_CONFIG } from '@/lib/constants';
 export default async function PopularPosts({ count = 5 }) {
   // WordPress REST API doesn't expose view counts natively;
   // we use most-commented posts as a popularity proxy.
-  const data = await getPosts({ perPage: count, orderby: 'comment_count' });
+  const data = await getPosts({ perPage: count, orderby: 'comment_count', excludeSlugs: ['daily-quiz'] });
   const posts = data?.posts || [];
 
   if (posts.length === 0) return null;
