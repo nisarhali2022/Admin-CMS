@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { getPosts } from '@/lib/wordpress';
+import { getDailyQuizPost, getPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import { stripHtml, truncateText } from '@/lib/utils';
 import { parseQuizTables, parseFaqs } from '@/lib/quizParser';
@@ -20,8 +20,7 @@ import QuizInfoSections from '@/components/home/QuizInfoSections';
 export const revalidate = 3600;
 
 export async function generateMetadata() {
-  const data = await getPosts({ page: 1, perPage: 1 });
-  const post = data?.posts?.[0];
+  const post = await getDailyQuizPost();
   const yoast = post?.yoast_head_json;
 
   const title =
@@ -52,13 +51,12 @@ export async function generateMetadata() {
 }
 
 export default async function HomePage() {
-  const [quizData, newsData] = await Promise.all([
-    getPosts({ page: 1, perPage: 1, tag: 'quiz' }),
-    getPosts({ page: 1, perPage: 6, excludeSlugs: ['daily-quiz'], tag: 'news' }),
+  const [quizPost, newsData] = await Promise.all([
+    getDailyQuizPost(),
+    getPosts({ page: 1, perPage: 7, excludeSlugs: ['daily-quiz'], tag: 'news' }),
   ]);
 
-  const quizPost = quizData?.posts?.[0] || null;
-  const newsPosts = newsData?.posts || [];
+  const newsPosts = (newsData?.posts || []).slice(0, 6);
   const quizQuestions = parseQuizTables(quizPost?.content?.rendered || '');
   const faqs = parseFaqs(quizPost?.content?.rendered || '');
 
@@ -124,23 +122,6 @@ export default async function HomePage() {
 
             {/* Latest News */}
             <LatestNewsGrid posts={newsPosts} />
-
-            {/* Detailed Intro Section */}
-            <section className="my-8 bg-white border border-border rounded-lg p-6 shadow-sm">
-              <p className="text-text-secondary text-sm sm:text-base leading-relaxed mb-4">
-                <strong className="text-text-primary">
-                  <a href="/" className="text-accent hover:underline">Telenor Answer Today</a>
-                </strong>{' '}
-                suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.
-              </p>
-              <p className="text-text-secondary text-sm sm:text-base leading-relaxed">
-                We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with{' '}
-                <a href="https://jazz.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Jazz</a>,{' '}
-                <a href="https://www.zong.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Zong</a>, or{' '}
-                <a href="https://www.ufone.com/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Ufone</a>{' '}
-                as your main number, you can still participate using your Telenor SIM in the second slot. This makes the Telenor daily quiz accessible, fast, and convenient for everyone.
-              </p>
-            </section>
 
             {/* Static info sections */}
             <QuizInfoSections />
