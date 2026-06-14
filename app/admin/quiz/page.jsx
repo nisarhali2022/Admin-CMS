@@ -341,9 +341,8 @@ export default function AdminQuizPage() {
         </div>
 
         <p className="mt-4 text-xs text-text-secondary text-center">
-          After saving, the homepage will show the new quiz within 1 hour (ISR revalidation).
-          <br />
-          To force immediate update, visit <code className="bg-surface px-1 rounded">/api/revalidate</code>.
+          Saving invalidates the quiz cache so the homepage can refresh with
+          the latest answers.
         </p>
       </div>
     </div>

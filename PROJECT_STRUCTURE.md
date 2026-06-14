@@ -6,7 +6,6 @@
 telenor-quiz/
 |-- app/                 Next.js routes, layouts, metadata, and API handlers
 |-- components/          Reusable server and client UI components
-|-- data/                Legacy/local quiz JSON
 |-- hooks/               Client-side React hooks
 |-- lib/                 WordPress, parsing, TOC, constants, and utility logic
 |-- public/              Static public assets (currently empty)
@@ -78,7 +77,6 @@ The server-side WordPress REST client.
 | `getTagBySlug` | `/tags?slug=` | Tag archive |
 | `getPageBySlug` | `/pages?slug=` | Static and dynamic WP pages |
 | `searchPosts` | `/posts?search=` | Search route |
-| `getComments` | `/comments` | Currently unused |
 | `getAllPostSlugs` | paginated `/posts` | Sitemap |
 | `getAllCategorySlugs` | `/categories` | Static params and sitemap |
 
@@ -115,6 +113,11 @@ and returns both modified HTML and table-of-contents entries.
 Provides canonical `Asia/Karachi` ISO and display-date helpers for the
 homepage, quiz API, admin panel, parser compatibility exports, and cron route.
 
+### `lib/wordpressConfig.js`
+
+Provides one WordPress REST API URL resolver for public reads, sitemap
+generation, and authenticated quiz writes. It prefers `WORDPRESS_API_URL`.
+
 ### `hooks/useSearch.js`
 
 A reusable search form hook used by `Header` and `SearchWidget`. It owns query
@@ -150,7 +153,6 @@ callback/clearing behavior.
 | `FeaturedImage.jsx` | post | WordPress image or color fallback |
 | `PostMeta.jsx` | post | Category, author, date, reading time |
 | `TableOfContents.jsx` | TOC entries | Expandable client TOC |
-| `PostContent.jsx` | HTML | Legacy/unused content renderer |
 
 ### Widgets
 
@@ -165,15 +167,12 @@ callback/clearing behavior.
 
 - `Pagination.jsx`: builds previous, numbered, and next links while preserving
   route-specific query parameters such as search terms.
-- `CategoryMenu.jsx`: horizontal category cards; currently unused.
 - `Breadcrumbs.jsx`: visual breadcrumbs plus JSON-LD.
 - `AdSenseUnit.jsx`: client-side AdSense unit.
 - `AdBanner.jsx`: horizontal wrapper around `AdSenseUnit`.
 - `AdInArticle.jsx`: fluid in-article ad.
 - `ShareButtons.jsx`: WhatsApp, Facebook, X, and clipboard sharing.
 - `LCPPreloader.jsx`: injects an image preload link; used by the homepage.
-- `CSSPreloader.jsx`: unused CSS preload helper.
-- `ErrorBoundary.jsx`: unused client error boundary.
 - `LoadingSpinner.jsx`: Suspense fallback.
 
 ## 5. Detailed Call Flows
@@ -327,11 +326,6 @@ Optional body:
 
 The homepage is always revalidated.
 
-### `GET /api/revalidate?secret=...`
-
-Convenience endpoint that revalidates only the homepage. Putting a secret in a
-URL can leak it through browser history and logs; POST headers are preferred.
-
 ## 7. Route and Link Conventions
 
 The UI generally uses:
@@ -343,16 +337,3 @@ The UI generally uses:
 
 Any code producing `/category/<slug>` or a one-segment post URL is inconsistent
 with the implemented routes.
-
-## 8. Unused or Legacy Files
-
-- `data/quiz.json`
-- `hooks/useSearch.js`
-- `components/navigation/CategoryMenu.jsx`
-- `components/posts/PostContent.jsx`
-- `components/ui/CSSPreloader.jsx`
-- `components/ui/ErrorBoundary.jsx`
-- `getComments` in `lib/wordpress.js`
-
-These may be retained for planned work, but they should not be treated as part
-of the active runtime flow.

@@ -29,8 +29,6 @@ the fixed slug `daily-quiz`.
 | Language | JavaScript and JSX |
 
 The project has no database of its own. WordPress is the production data store.
-`data/quiz.json` is legacy/local data and is not read by the current
-application.
 
 ## 3. Main User Features
 
@@ -140,7 +138,8 @@ Server environment variables used by the application:
 
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_WORDPRESS_API_URL` | WordPress API used by the quiz write route |
+| `WORDPRESS_API_URL` | Preferred server-side WordPress REST API URL |
+| `NEXT_PUBLIC_WORDPRESS_API_URL` | Backward-compatible WordPress URL fallback |
 | `WP_ADMIN_USER` | WordPress API username |
 | `WP_ADMIN_PASS` | WordPress application password |
 | `ADMIN_SECRET` | Validates admin login and signs admin sessions |

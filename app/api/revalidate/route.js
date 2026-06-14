@@ -20,14 +20,3 @@ export async function POST(request) {
     return NextResponse.json({ message: err.message }, { status: 400 });
   }
 }
-
-// Also allow GET for easy browser-triggered revalidation
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get('secret');
-  if (secret !== process.env.REVALIDATE_SECRET) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-  revalidatePath('/');
-  return NextResponse.json({ revalidated: true, timestamp: new Date().toISOString() });
-}

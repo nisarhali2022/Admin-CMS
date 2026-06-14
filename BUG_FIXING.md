@@ -22,6 +22,8 @@ and maintainability problems found by tracing the code.
 
 **Severity:** High
 
+**Status:** Resolved on June 14, 2026.
+
 **Files:** `app/page.jsx`, `lib/wordpress.js`
 
 **Problem:** The homepage calls:
@@ -48,6 +50,13 @@ Add cache-tag support to `getPostBySlug`, or create a dedicated
 
 **Test:** Publish a normal article newer than `daily-quiz`; the homepage must
 still display the daily quiz.
+
+**Implemented result:** The homepage and homepage metadata now call
+`getDailyQuizPost()`. This helper explicitly requests
+`/posts?_embed&slug=daily-quiz`, caches the response with the `quiz` tag, and
+returns only that fixed post. Saving through the quiz API calls
+`revalidateTag('quiz')`, so publishing a newer normal article cannot replace
+the homepage quiz.
 
 ### BF-02: Sitemap generates invalid category and post URLs
 
@@ -476,6 +485,8 @@ closes and resets after a successful search.
 
 ### BF-22: TOC slug generation can create empty or invalid duplicate IDs
 
+**Status:** Resolved on June 14, 2026.
+
 **File:** `lib/toc.js`
 
 Headings containing only non-ASCII characters can normalize to an empty ID.
@@ -484,7 +495,14 @@ Existing duplicate IDs are not corrected.
 **Fix:** Use a robust slug library or fallback such as `section-1`, track all
 generated and existing IDs, and HTML-escape the injected ID.
 
+**Implemented result:** TOC IDs are normalized to safe ASCII slugs, empty
+results receive `section-N` fallbacks, and all generated or existing IDs are
+tracked in one set. Duplicates receive stable numeric suffixes such as `-2`,
+and existing invalid/duplicate `id` attributes are replaced.
+
 ### BF-23: `GET /api/revalidate` puts a secret in the URL
+
+**Status:** Resolved on June 14, 2026.
 
 Query-string secrets can appear in browser history, analytics, proxy logs, and
 referrer data.
@@ -492,7 +510,13 @@ referrer data.
 **Fix:** Remove the GET handler in production and use only authenticated POST
 requests with the secret in a header.
 
+**Implemented result:** The GET handler was removed. Revalidation is now
+available only through `POST /api/revalidate` with
+`x-revalidate-secret: REVALIDATE_SECRET`.
+
 ### BF-24: Quiz API configuration has two WordPress URL sources
+
+**Status:** Resolved on June 14, 2026.
 
 Public reads use the hardcoded `SITE_CONFIG.wpApiUrl`; quiz writes use
 `NEXT_PUBLIC_WORDPRESS_API_URL`.
@@ -503,7 +527,14 @@ and write to another.
 **Fix:** Use one validated server configuration source. A write credential/API
 URL should not need the `NEXT_PUBLIC_` prefix.
 
+**Implemented result:** Public reads, sitemap generation, and quiz writes now
+use `lib/wordpressConfig.js`. It prefers the server-only `WORDPRESS_API_URL`,
+supports the existing public variable for backward compatibility, and falls
+back to the configured site URL.
+
 ### BF-25: Legacy files and dead code increase confusion
+
+**Status:** Resolved on June 14, 2026.
 
 Currently unused:
 
@@ -518,13 +549,23 @@ Currently unused:
 **Fix:** Remove them after confirming they are not planned, or document their
 future purpose and add usage tests.
 
+**Implemented result:** Removed `data/quiz.json`, `CategoryMenu`,
+`PostContent`, `CSSPreloader`, `ErrorBoundary`, and the unused `getComments`
+helper. `useSearch` was retained because it is now used by both search forms.
+
 ### BF-26: `PostContent` does not place the React ad at its marker
+
+**Status:** Resolved on June 14, 2026.
 
 The unused component injects an empty HTML ad placeholder, then renders the
 actual React ad after the entire HTML block rather than replacing the marker.
 
 **Fix:** Delete the component if obsolete, or split content on a marker as the
 active post routes already do.
+
+**Implemented result:** The unused flawed `PostContent` component was deleted.
+Active post routes already split content at the marker and render
+`AdInArticle` in the correct position.
 
 ### BF-27: Admin input validation is incomplete
 

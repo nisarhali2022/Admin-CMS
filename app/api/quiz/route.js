@@ -3,8 +3,9 @@ import { revalidateTag } from 'next/cache';
 import { hasAdminSession } from '@/lib/adminAuth';
 import { getKarachiDateISO, getKarachiDateLabel } from '@/lib/date';
 import { decodeHtmlEntities } from '@/lib/utils';
+import { WORDPRESS_API_URL } from '@/lib/wordpressConfig';
 
-const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
+const WP_API_URL = WORDPRESS_API_URL;
 const WP_USER = process.env.WP_ADMIN_USER;
 const WP_PASS = process.env.WP_ADMIN_PASS;
 const MAX_QUESTION_LENGTH = 300;
