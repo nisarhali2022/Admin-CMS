@@ -1,24 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearch } from '@/hooks/useSearch';
 
 export default function SearchWidget() {
-  const [query, setQuery] = useState('');
-  const router = useRouter();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (q) router.push(`/search?q=${encodeURIComponent(q)}`);
-  };
+  const { query, setQuery, handleSearch } = useSearch();
 
   return (
     <div>
       <h3 className="font-merriweather font-bold text-base text-text-primary mb-3 pb-2 border-b border-border">
         Search
       </h3>
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSearch} className="flex gap-2">
         <input
           type="search"
           value={query}

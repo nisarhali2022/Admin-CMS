@@ -3,16 +3,23 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { NAV_LINKS, SITE_CONFIG } from '@/lib/constants'
+import { useSearch } from '@/hooks/useSearch'
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const pathname = usePathname()
-  const router = useRouter()
+  const {
+    query: searchQuery,
+    setQuery: setSearchQuery,
+    handleSearch,
+  } = useSearch({
+    clearOnSearch: true,
+    onSearch: () => setSearchOpen(false),
+  })
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80)
@@ -24,16 +31,6 @@ export default function Header() {
     setMenuOpen(false)
     setSearchOpen(false)
   }, [pathname])
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    const q = searchQuery.trim()
-    if (q) {
-      router.push(`/search?q=${encodeURIComponent(q)}`)
-      setSearchOpen(false)
-      setSearchQuery('')
-    }
-  }
 
   const isActive = (href) => {
     if (href === '/') return pathname === '/'

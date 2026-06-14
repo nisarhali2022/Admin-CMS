@@ -71,7 +71,7 @@ The server-side WordPress REST client.
 | `getPostsByCategory` | `/posts?categories=` | `[slug]` category archive |
 | `getPostBySlug` | `/posts?slug=` | Post detail |
 | `getLatestPosts` | `/posts?orderby=date` | Footer, sidebar/recent widget |
-| `getMostCommentedPosts` | `/posts?orderby=comment_count` | Sidebar |
+| `getMostCommentedPosts` | `/comments`, then `/posts?orderby=include` | Sidebar |
 | `getRelatedPosts` | `/posts?categories=&exclude=` | Post detail |
 | `getCategories` | `/categories` | Sidebar, menus |
 | `getCategoryBySlug` | `/categories?slug=` | `[slug]` |
@@ -117,8 +117,9 @@ homepage, quiz API, admin panel, parser compatibility exports, and cron route.
 
 ### `hooks/useSearch.js`
 
-A reusable search form hook. It is currently unused because `Header` and
-`SearchWidget` each implement their own search state and submission logic.
+A reusable search form hook used by `Header` and `SearchWidget`. It owns query
+state, trimming, URL encoding, search navigation, and optional post-submit
+callback/clearing behavior.
 
 ## 4. Component Map
 

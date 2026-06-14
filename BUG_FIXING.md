@@ -309,7 +309,10 @@ that result is ignored due to BF-10.
 
 **Implemented result:** `Sidebar` passes the result of
 `getMostCommentedPosts()` directly to the presentational `PopularPosts`
-widget, so the displayed ranking now uses WordPress comment-count ordering.
+widget. Because WordPress REST does not support `orderby=comment_count`, the
+helper now ranks posts by activity in the latest 100 approved comments, fetches
+those posts with supported `orderby=include`, and fills any remaining slots
+with latest posts.
 
 ### BF-12: Post route accepts an incorrect category prefix
 
@@ -459,10 +462,17 @@ longer written to production build or render logs.
 
 ### BF-21: Duplicate search implementations and unused hook
 
+**Status:** Resolved on June 14, 2026.
+
 `Header`, `SearchWidget`, and `hooks/useSearch.js` contain overlapping search
 logic, but the hook is unused.
 
 **Fix:** Reuse the hook in client search forms or remove it.
+
+**Implemented result:** `Header` and `SearchWidget` now both use
+`hooks/useSearch.js` for query state, trimming, encoding, and navigation. The
+hook supports an optional callback and clearing behavior so the header still
+closes and resets after a successful search.
 
 ### BF-22: TOC slug generation can create empty or invalid duplicate IDs
 
