@@ -90,6 +90,8 @@ URLs use `/<page-slug>/`, and `robots.txt` points to the sitemap index.
 
 **Severity:** High
 
+**Status:** Resolved on June 14, 2026.
+
 **Files:** `app/search/page.jsx`, `components/navigation/Pagination.jsx`
 
 **Problem:** Search passes `basePath="/search"`. Page 2 becomes
@@ -110,6 +112,11 @@ Build URLs with `URLSearchParams`, adding or replacing `page`.
 
 **Test:** From `/search?q=telenor`, click page 2 and confirm the URL contains
 both `q=telenor` and `page=2`.
+
+**Implemented result:** `Pagination` now accepts query parameters and builds
+links with `URLSearchParams`. Search pagination passes the active `q` value, so
+page 2 uses `/search?q=telenor&page=2`, while returning to page 1 keeps
+`/search?q=telenor`.
 
 ### BF-04: Admin login is only a client-side visual gate
 

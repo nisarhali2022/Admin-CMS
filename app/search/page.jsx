@@ -81,7 +81,8 @@ export default async function SearchPage({ searchParams }) {
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
-              basePath={`/search`}
+              basePath="/search"
+              query={{ q: query }}
             />
           </section>
 

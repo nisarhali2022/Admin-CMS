@@ -149,7 +149,8 @@ A reusable search form hook. It is currently unused because `Header` and
 
 ### Navigation, Ads, and UI
 
-- `Pagination.jsx`: builds previous, numbered, and next links.
+- `Pagination.jsx`: builds previous, numbered, and next links while preserving
+  route-specific query parameters such as search terms.
 - `CategoryMenu.jsx`: horizontal category cards; currently unused.
 - `Breadcrumbs.jsx`: visual breadcrumbs plus JSON-LD.
 - `AdSenseUnit.jsx`: client-side AdSense unit.

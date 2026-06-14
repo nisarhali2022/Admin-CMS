@@ -1,10 +1,27 @@
 import Link from 'next/link';
 
-export default function Pagination({ currentPage, totalPages, basePath }) {
+export default function Pagination({
+  currentPage,
+  totalPages,
+  basePath,
+  query = {},
+}) {
   if (!totalPages || totalPages <= 1) return null;
 
-  const getPageUrl = (page) =>
-    page === 1 ? basePath : `${basePath}?page=${page}`;
+  const getPageUrl = (page) => {
+    const params = new URLSearchParams();
+
+    Object.entries(query).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value) !== '') {
+        params.set(key, String(value));
+      }
+    });
+
+    if (page > 1) params.set('page', String(page));
+
+    const queryString = params.toString();
+    return queryString ? `${basePath}?${queryString}` : basePath;
+  };
 
   // Build page number array (max 5 around current)
   const pages = [];
