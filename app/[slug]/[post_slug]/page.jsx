@@ -1,8 +1,13 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { getPostBySlug, getRelatedPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
-import { stripHtml, truncateText, injectAdAfterFirstParagraph } from '@/lib/utils';
+import {
+  getFirstCategory,
+  stripHtml,
+  truncateText,
+  injectAdAfterFirstParagraph,
+} from '@/lib/utils';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import FeaturedImage from '@/components/posts/FeaturedImage';
 import PostMeta from '@/components/posts/PostMeta';
@@ -18,15 +23,16 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }) {
-  const { slug, post_slug } = await params;
+  const { post_slug } = await params;
   const post = await getPostBySlug(post_slug);
   if (!post) return { title: 'Not Found | ' + SITE_CONFIG.siteName };
 
+  const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
   const yoast = post.yoast_head_json;
   const title = yoast?.title || `${post.title?.rendered} | ${SITE_CONFIG.siteName}`;
   const description = yoast?.description || truncateText(stripHtml(post.excerpt?.rendered || post.content?.rendered || ''), 160);
   const imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
-  const canonical = `${SITE_CONFIG.siteUrl}/${slug}/${post_slug}`;
+  const canonical = `${SITE_CONFIG.siteUrl}/${categorySlug}/${post_slug}`;
 
   return {
     title, description, alternates: { canonical },
@@ -41,10 +47,16 @@ export default async function PostPage({ params }) {
   const post = await getPostBySlug(post_slug);
   if (!post) notFound();
 
-  const category = post._embedded?.['wp:term']?.[0]?.[0] || null;
+  const category = getFirstCategory(post);
+  const categorySlug = category?.slug || 'uncategorized';
+
+  if (slug !== categorySlug) {
+    permanentRedirect(`/${categorySlug}/${post_slug}`);
+  }
+
   const relatedPosts = category ? await getRelatedPosts(category.id, post.id, 3) : [];
 
-  const postUrl = `${SITE_CONFIG.siteUrl}/${slug}/${post_slug}`;
+  const postUrl = `${SITE_CONFIG.siteUrl}/${categorySlug}/${post_slug}`;
 
   const { modifiedHtml, toc } = generateTocAndInjectIds(post.content?.rendered || '');
   const adMarker = '<!--AD_IN_ARTICLE-->';
@@ -63,7 +75,7 @@ export default async function PostPage({ params }) {
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
-    ...(category ? [{ label: category.name, href: `/${slug}` }] : []),
+    ...(category ? [{ label: category.name, href: `/${categorySlug}` }] : []),
     { label: stripHtml(post.title?.rendered || '') },
   ];
 

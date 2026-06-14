@@ -269,6 +269,8 @@ the requested number of normal posts when enough posts exist.
 
 **Severity:** Medium
 
+**Status:** Resolved on June 14, 2026.
+
 **Files:** `components/layout/Sidebar.jsx`, `components/widgets/*.jsx`
 
 The sidebar fetches categories, recent posts, and popular posts. It passes them
@@ -283,9 +285,16 @@ hidden by Next fetch deduplication/caching.
 - Preferred: fetch once in `Sidebar` and make all three widgets presentational.
 - Alternative: remove the parent fetches and let widgets own their requests.
 
+**Implemented result:** `Sidebar` now performs the three WordPress requests
+once in parallel and passes the results to presentational category, recent,
+and popular widgets. The widgets no longer import or call WordPress helpers,
+and duplicate widget headings were removed.
+
 ### BF-11: Popular-post query is not actually sorted by popularity
 
 **Severity:** Medium
+
+**Status:** Resolved on June 14, 2026.
 
 **Files:** `components/widgets/PopularPosts.jsx`, `lib/wordpress.js`
 
@@ -298,9 +307,15 @@ that result is ignored due to BF-10.
 **Fix:** Pass the sidebar result into a presentational widget, or add validated
 `orderby` and `order` options to `getPosts`.
 
+**Implemented result:** `Sidebar` passes the result of
+`getMostCommentedPosts()` directly to the presentational `PopularPosts`
+widget, so the displayed ranking now uses WordPress comment-count ordering.
+
 ### BF-12: Post route accepts an incorrect category prefix
 
 **Severity:** Medium
+
+**Status:** Resolved on June 14, 2026.
 
 **File:** `app/[slug]/[post_slug]/page.jsx`
 
@@ -313,6 +328,11 @@ navigation.
 
 **Fix:** Determine the canonical category from the post. If the supplied slug
 does not match, permanently redirect to the canonical URL or return not found.
+
+**Implemented result:** Post metadata, share URLs, and breadcrumbs now use the
+post's primary WordPress category. Requests with another prefix receive a
+permanent redirect to `/<primary-category>/<post-slug>`, preventing duplicate
+rendered URLs.
 
 ### BF-13: `AdBanner` position props do not select ad slots
 
@@ -366,6 +386,8 @@ Then decide whether headings should consistently use `font-heading` or
 
 **Severity:** Medium
 
+**Status:** Resolved on June 14, 2026.
+
 **Files:** `app/layout.jsx`, `app/page.jsx`
 
 The root layout renders `<main id="main">`, and the homepage renders another
@@ -375,6 +397,9 @@ The root layout renders `<main id="main">`, and the homepage renders another
 
 **Fix:** Make the homepage wrapper a `<div>` or `<section>` and keep one main
 landmark in the root layout.
+
+**Implemented result:** The homepage now uses a neutral `<div>` wrapper.
+`app/layout.jsx` remains the single `<main id="main">` landmark for all routes.
 
 ## 4. Low-Priority and Maintainability Issues
 
@@ -400,13 +425,25 @@ Add focused tests for:
 
 ### BF-19: API failures are silently swallowed
 
+**Status:** Resolved on June 14, 2026.
+
 Most helpers in `lib/wordpress.js` catch every error and return empty data.
 Users see empty content while operators receive no useful signal.
 
 **Fix:** Log structured server-side errors with endpoint and status details,
 while continuing to return safe fallback data where appropriate.
 
+**Implemented result:** WordPress requests now retry once after network
+failures, HTTP `429`, HTTP `5xx`, or invalid JSON. If the retry fails, the
+helper logs structured request context and throws `WordPressApiError`.
+Successful slug requests that return an empty array still return `null`, so
+routes use the normal 404 page only for confirmed missing content. Temporary
+CMS failures render the new `app/error.jsx` or `app/global-error.jsx`
+"Temporarily unavailable" screen with a Try Again action.
+
 ### BF-20: Quiz parser logs content during every production build/render
+
+**Status:** Resolved on June 14, 2026.
 
 **File:** `lib/quizParser.js`
 
@@ -415,6 +452,10 @@ output confirmed these logs execute during prerendering.
 
 **Fix:** Remove the logs or guard them behind a server-only debug environment
 flag.
+
+**Implemented result:** All quiz parser debug output was removed. Parsing
+behavior is unchanged, but quiz tables, questions, options, and answers are no
+longer written to production build or render logs.
 
 ### BF-21: Duplicate search implementations and unused hook
 

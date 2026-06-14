@@ -85,7 +85,11 @@ The server-side WordPress REST client.
 All public CMS calls use Next.js fetch caching. Most use the global one-hour
 revalidation value. Slug exclusions are resolved to post IDs and sent to
 WordPress through its native `exclude` query so pagination totals remain
-accurate.
+accurate. Requests retry once for transient failures. Successful empty slug
+responses return `null`; repeated CMS failures throw `WordPressApiError`.
+
+`app/error.jsx` handles route-level temporary failures, while
+`app/global-error.jsx` covers failures that also affect the root layout.
 
 ### `lib/utils.js`
 
@@ -152,9 +156,9 @@ A reusable search form hook. It is currently unused because `Header` and
 | File | Intended input | Current behavior |
 | --- | --- | --- |
 | `SearchWidget.jsx` | none | Client search form |
-| `CategoryList.jsx` | categories | Ignores passed data and fetches again |
-| `RecentPosts.jsx` | posts/count | Ignores passed posts and fetches again |
-| `PopularPosts.jsx` | posts/count | Ignores passed posts and fetches again |
+| `CategoryList.jsx` | categories | Renders categories supplied by `Sidebar` |
+| `RecentPosts.jsx` | posts | Renders recent posts supplied by `Sidebar` |
+| `PopularPosts.jsx` | posts | Renders popular posts supplied by `Sidebar` |
 
 ### Navigation, Ads, and UI
 
@@ -202,6 +206,8 @@ app/page.jsx
 ```text
 app/[slug]/[post_slug]/page.jsx
   -> getPostBySlug(post_slug)
+  -> verify URL prefix matches getFirstCategory(post).slug
+  -> permanently redirect mismatched prefixes
   -> getRelatedPosts(firstCategory.id, post.id)
   -> generateTocAndInjectIds(content)
   -> injectAdAfterFirstParagraph(content, marker)
@@ -232,11 +238,8 @@ Current behavior:
 Sidebar
   -> fetch categories, recent posts, most-commented posts
   -> pass values to widgets
-  -> widgets ignore those values
-  -> widgets fetch categories/recent/posts again
+  -> widgets render those values without additional requests
 ```
-
-This causes duplicate CMS requests and is covered in `BUG_FIXING.md`.
 
 ## 6. API Contracts
 

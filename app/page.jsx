@@ -67,7 +67,7 @@ export default async function HomePage() {
   const todayLabel = getKarachiDateLabel();
 
   return (
-    <main id="main">
+    <div>
       {/* Preload the first news image with high priority for LCP optimization */}
       {firstNewsImage && (
         <LCPPreloader
@@ -144,6 +144,6 @@ export default async function HomePage() {
           </Suspense>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

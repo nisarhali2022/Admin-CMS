@@ -100,8 +100,8 @@ WordPress body with a generated table of contents and an inserted ad.
 ### Post
 
 `app/[slug]/[post_slug]/page.jsx` loads a post by `post_slug`. The first segment
-is treated as its category in URLs and breadcrumbs, but the route currently
-does not verify that it matches the post's real category.
+must match the post's primary WordPress category. Incorrect prefixes
+permanently redirect to the canonical `/<category>/<post>` URL.
 
 ### Quiz Administration
 
@@ -162,9 +162,10 @@ Configure a random `CRON_SECRET` in the Vercel project environment.
 | API routes | Dynamic |
 | Sitemap and robots | Metadata routes |
 
-WordPress helper failures generally return empty arrays or `null` instead of
-throwing. This keeps pages available during CMS failures, but it also hides
-operational errors because most exceptions are silently swallowed.
+WordPress requests retry once for transient network, rate-limit, server, or
+invalid-JSON failures. A successful empty slug lookup returns `null` and leads
+to the normal 404 flow. A repeated CMS failure throws a structured error and
+renders a temporary-unavailable screen with a retry action.
 
 ## 8. Current Verification Status
 
