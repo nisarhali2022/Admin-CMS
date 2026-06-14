@@ -63,7 +63,7 @@ export default async function BlogPage({ searchParams }) {
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
         <section>
-          <PostGrid posts={posts} />
+          <PostGrid posts={posts} showDate={false} />
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

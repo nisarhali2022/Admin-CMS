@@ -33,7 +33,7 @@ export default function Breadcrumbs({ items }) {
                   {item.label}
                 </Link>
               ) : (
-                <span className="text-text-primary font-medium truncate max-w-[200px]">
+                <span className="text-text-primary font-medium truncate max-w-[70vw] sm:max-w-[420px] lg:max-w-[560px]">
                   {item.label}
                 </span>
               )}

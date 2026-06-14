@@ -10,6 +10,7 @@ import {
 } from '@/lib/utils';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import FeaturedImage from '@/components/posts/FeaturedImage';
+import AuthorBox from '@/components/posts/AuthorBox';
 import PostMeta from '@/components/posts/PostMeta';
 import PostCard from '@/components/posts/PostCard';
 import TableOfContents from '@/components/posts/TableOfContents';
@@ -86,19 +87,22 @@ export default async function PostPage({ params }) {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
           <article>
             <Breadcrumbs items={breadcrumbItems} />
-            <PostMeta post={post} />
+            <PostMeta post={post} showDate={false} />
             <div className="mt-5 mb-6"><FeaturedImage post={post} priority /></div>
             <TableOfContents toc={toc} />
             <div className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm prose-blockquote:border-l-4 prose-blockquote:border-accent" dangerouslySetInnerHTML={{ __html: beforeAd }} />
             <AdInArticle />
             {afterAd && <div className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm" dangerouslySetInnerHTML={{ __html: afterAd }} />}
+            <AuthorBox post={post} />
             <div className="mt-8"><AdBanner position="after-content" /></div>
             <ShareButtons title={stripHtml(post.title?.rendered || '')} url={postUrl} />
             {relatedPosts.length > 0 && (
               <section className="mt-10">
                 <h2 className="font-heading font-bold text-xl text-text-primary mb-5">Related Posts</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {relatedPosts.map((p) => <PostCard key={p.id} post={p} />)}
+                  {relatedPosts.map((p) => (
+                    <PostCard key={p.id} post={p} showDate={false} />
+                  ))}
                 </div>
               </section>
             )}

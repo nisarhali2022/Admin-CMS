@@ -14,18 +14,23 @@ export default async function Sidebar() {
   ])
 
   return (
-    <aside className="w-full lg:sticky lg:top-20 self-start space-y-0">
+    <aside className="w-full lg:sticky lg:top-20 self-start space-y-6">
 
       {/* Search */}
-      <div className="widget-box">
+      {/* <div className="widget-box">
         <h3 className="section-title">Search</h3>
         <SearchWidget />
-      </div>
+      </div> */}
 
-      {/* Sidebar Ad */}
+      {/* Recent Posts */}
       <div className="widget-box">
-        <p className="text-center text-xs text-text-muted mb-2 uppercase tracking-wide">Advertisement</p>
-        <AdSenseUnit slot={AD_SLOTS.SIDEBAR} format="rectangle" />
+        <h3 className="section-title">Recent Posts</h3>
+        <RecentPosts posts={recentPosts} />
+      </div>
+      {/* Popular Posts */}
+      <div className="widget-box">
+        <h3 className="section-title">Popular Posts</h3>
+        <PopularPosts posts={popularPosts} />
       </div>
 
       {/* Categories */}
@@ -34,17 +39,6 @@ export default async function Sidebar() {
         <CategoryList categories={categories} />
       </div>
 
-      {/* Recent Posts */}
-      <div className="widget-box">
-        <h3 className="section-title">Recent Posts</h3>
-        <RecentPosts posts={recentPosts} />
-      </div>
-
-      {/* Popular Posts */}
-      <div className="widget-box">
-        <h3 className="section-title">Popular Posts</h3>
-        <PopularPosts posts={popularPosts} />
-      </div>
 
     </aside>
   )

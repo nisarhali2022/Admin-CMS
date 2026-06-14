@@ -8,13 +8,15 @@ Commands checked:
 
 | Check | Result |
 | --- | --- |
-| `npm.cmd run build` | Passed |
+| `npm.cmd run build` | Currently blocked by Windows `EPERM` on `.next/trace` |
 | `npm.cmd run lint` | Blocked: ESLint is not configured |
 | Automated tests | No test script or test files |
 
-The production build passing means syntax and compilation are valid. The
-following issues are behavioral, security, data-integrity, SEO, performance,
-and maintainability problems found by tracing the code.
+An earlier production build passed. The current uncommitted change set has
+passed focused checks and `git diff --check`, but a full build cannot currently
+start because `.next/trace` is locked. The following register records
+behavioral, security, data-integrity, SEO, performance, UI, and maintainability
+findings.
 
 ## 2. Critical and High-Priority Issues
 
@@ -595,16 +597,169 @@ quiz dates.
 
 **Implemented result:** Quiz date formatting is centralized in `lib/date.js`.
 
-## 5. Recommended Fix Order
+### BF-29: Admin quiz lookup confuses an outage with a missing post
 
-1. BF-01, BF-02, and BF-03: restore correct content and URLs.
-2. BF-04, BF-05, BF-06, and BF-27: secure and stabilize quiz administration.
-3. BF-07, BF-08, BF-09, BF-12, and BF-24: make CMS routing/cache behavior
-   consistent.
-4. BF-10, BF-11, BF-13, BF-14, BF-15, and BF-16: performance and UI fixes.
-5. BF-17 through BF-23, BF-25, BF-26, and BF-28: tooling and maintainability.
+**Severity:** High
 
-## 6. Definition of Done
+**Status:** Resolved on June 14, 2026.
+
+**File:** `app/api/quiz/route.js`
+
+The old lookup caught every WordPress error and returned `null`. Save logic
+treated `null` as "the post does not exist" and switched from `PUT` to `POST`.
+A temporary outage could therefore trigger an unsafe create attempt.
+
+**Implemented result:** The lookup now returns `null` only after WordPress
+successfully returns an empty array. Network failures, HTTP `429`, HTTP `5xx`,
+invalid JSON, and invalid response shapes retry once. Repeated failures stop
+the read or save with HTTP `503`; the admin UI displays the error and no create
+request is attempted.
+
+### BF-30: Article author is missing after the content
+
+**Severity:** Low
+
+**Status:** Resolved on June 14, 2026.
+
+**Files:** `components/posts/AuthorBox.jsx`,
+`app/[slug]/[post_slug]/page.jsx`
+
+The author appeared only in the compact metadata row above the article.
+
+**Implemented result:** Article pages now render an end-of-content author box
+with the embedded WordPress author name, optional description, and avatar. An
+initial is used when no avatar is available. The box is omitted when the post
+does not contain embedded author data.
+
+### BF-31: Publication dates appear on surfaces where they should be hidden
+
+**Severity:** Low
+
+**Status:** Resolved on June 14, 2026.
+
+**Files:** `components/posts/PostMeta.jsx`, `components/posts/PostCard.jsx`,
+`components/posts/PostGrid.jsx`, `components/home/LatestNewsGrid.jsx`, and
+article/archive routes.
+
+**Implemented result:** `showDate` is now configurable through post metadata,
+cards, and grids. Visible publication dates are hidden on individual articles,
+related cards, `/blog`, category archives, and homepage Latest News cards.
+Search and tag archives retain their existing date display. Article published
+and modified dates remain in Open Graph and JSON-LD metadata.
+
+### BF-32: Article breadcrumbs truncate the title too early
+
+**Severity:** Low
+
+**Status:** Resolved on June 14, 2026.
+
+**File:** `components/navigation/Breadcrumbs.jsx`
+
+The final breadcrumb title was limited to `200px`, producing examples such as
+`Qualcomm Targets 2029 for 6G Gl...`.
+
+**Implemented result:** The final breadcrumb now allows up to `70vw` on very
+small screens, `420px` on small screens, and `560px` on large screens before
+truncation.
+
+### BF-33: Sidebar card content and spacing need cleanup
+
+**Severity:** Low
+
+**Status:** Resolved on June 14, 2026.
+
+**Files:** `components/layout/Sidebar.jsx`, `styles/globals.css`
+
+**Implemented result:** The Search and advertisement cards are currently not
+rendered. The active Recent Posts, Popular Posts, and Categories cards use one
+explicit `24px` parent gap, and the old per-widget bottom margin was removed.
+
+## 5. Open Improvements
+
+### IMP-01: Quiz parser requires a trailing question mark
+
+**Priority:** High
+
+`lib/quizParser.js` currently captures question text with a pattern ending in
+`\?`. Admin validation allows a question without a question mark, so valid
+saved input can parse into an empty question.
+
+**Recommendation:** Parse question text until the first option or answer
+marker instead of requiring punctuation.
+
+### IMP-02: Empty or malformed quiz content has no visible fallback
+
+**Priority:** High
+
+`QuizAnswerCards` returns `null` when parsing produces no questions. The page
+can display a quiz heading followed by empty space.
+
+**Recommendation:** Render a temporary-unavailable message and log malformed
+quiz content server-side.
+
+### IMP-03: Ad banner position values do not select slots
+
+This is the unresolved BF-13 work. Add a validated position-to-slot map or pass
+explicit `slot` values.
+
+### IMP-04: Placeholder AdSense configuration still loads the script
+
+This is the unresolved BF-14 work. Load the global script only when a real
+client ID is configured, preferably through an environment variable.
+
+### IMP-05: Font configuration is inconsistent
+
+This is the unresolved BF-15 work. Map Merriweather in Tailwind and decide
+whether heading classes use Merriweather or Inter.
+
+### IMP-06: Tooling and regression coverage
+
+This combines unresolved BF-17 and BF-18:
+
+- Add non-interactive ESLint configuration.
+- Add tests for quiz selection and parsing.
+- Add tests for admin lookup outage behavior.
+- Add tests for sitemap and pagination URLs.
+- Add tests around Karachi midnight.
+- Add browser checks for author, breadcrumb, date visibility, and sidebar UI.
+
+### IMP-07: Small cleanup
+
+- Add `per_page=1` to the public `daily-quiz` request.
+- Remove unused imports such as `truncateText` and the disabled sidebar
+  search/ad imports where no longer needed.
+- Correct stale comments in `lib/quizParser.js`.
+
+## 6. Change Summary
+
+Completed during the June 14, 2026 fixing pass:
+
+- Explicit `daily-quiz` homepage selection and cache tagging.
+- Split sitemap structure and correct canonical URLs.
+- Search pagination query preservation.
+- Signed admin sessions and protected quiz writes.
+- Dynamic Karachi date with midnight revalidation.
+- Quiz escaping, validation, and safer WordPress outage handling.
+- Correct archive totals, latest counts, category revalidation, and post
+  canonical redirects.
+- Shared sidebar data fetching and supported popular-post ranking.
+- Structured WordPress failures and temporary-unavailable pages.
+- Shared search hook, robust TOC IDs, POST-only revalidation, shared WordPress
+  URL configuration, and dead-code removal.
+- End-of-content author profile.
+- Hidden visible publication dates on requested content surfaces.
+- Wider article breadcrumbs, simplified sidebar content, and consistent
+  sidebar card spacing.
+
+## 7. Recommended Fix Order
+
+1. IMP-01 and IMP-02: prevent valid quiz content from disappearing.
+2. IMP-06: add linting and regression tests.
+3. IMP-03 and IMP-04: finish AdSense configuration behavior.
+4. IMP-05: make typography configuration consistent.
+5. IMP-07: complete low-risk cleanup.
+
+## 8. Definition of Done
 
 A bug-fixing pass should not be considered complete until:
 
@@ -619,3 +774,7 @@ A bug-fixing pass should not be considered complete until:
 - Quiz dates round-trip in Karachi `YYYY-MM-DD` format.
 - Empty/malicious quiz fields are rejected or escaped.
 - WordPress request counts for the sidebar are no longer duplicated.
+- WordPress outages cannot trigger creation of a second quiz post.
+- Quiz questions without a trailing `?` parse correctly.
+- Missing or malformed quiz content displays a visible fallback.
+- Requested date-hidden surfaces contain no visible publication date.

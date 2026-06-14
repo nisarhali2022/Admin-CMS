@@ -5,15 +5,16 @@
 This repository contains a content-focused website for daily Telenor quiz
 answers, telecom/news articles, and supporting informational pages.
 
-The application has two main content sources:
+The application uses:
 
-- WordPress REST API: posts, pages, categories, tags, media, authors, and quiz
-  content.
-- Static application content: navigation, site settings, ads, quiz guidance,
-  FAQs, and participation steps.
+- WordPress REST API for posts, pages, categories, tags, media, authors, and
+  the `daily-quiz` post.
+- Static React content for quiz guidance, participation steps, navigation,
+  fallback FAQs, and site settings.
+- A protected browser admin page for updating the five daily quiz questions.
 
-There is also a browser-based admin page that updates the WordPress post with
-the fixed slug `daily-quiz`.
+WordPress is the production data store. The Next.js application has no
+separate application database.
 
 ## 2. Technology
 
@@ -24,173 +25,197 @@ the fixed slug `daily-quiz`.
 | Styling | Tailwind CSS 3 and Typography plugin |
 | CMS | WordPress REST API v2 |
 | Rendering | Static generation, ISR, and dynamic server rendering |
-| Images | `next/image` with WordPress remote images |
+| Images | `next/image` with approved WordPress remote images |
 | Ads | Google AdSense integration |
 | Language | JavaScript and JSX |
 
-The project has no database of its own. WordPress is the production data store.
-
-## 3. Main User Features
+## 3. Main Features
 
 - Daily quiz answers on the homepage.
-- Latest WordPress news posts.
-- Category archive pages.
-- Tag archive pages.
-- Blog archive with pagination.
-- Individual WordPress post pages.
-- WordPress content pages.
-- Search with pagination.
-- Related posts, featured images, metadata, table of contents, breadcrumbs,
-  share buttons, and sidebars.
-- SEO metadata, JSON-LD, sitemap, and robots output.
-- Admin editor for five daily quiz questions.
-- On-demand cache revalidation API.
-- Midnight Karachi homepage revalidation through Vercel Cron.
+- Dynamic Karachi date that changes daily without requiring a quiz update.
+- Latest-news homepage cards.
+- Category, tag, blog, and search archives with pagination.
+- Canonical `/<category>/<post>` article routes.
+- Related posts, table of contents, breadcrumbs, share buttons, and sidebar.
+- End-of-content WordPress author profile on article pages.
+- SEO metadata, JSON-LD, robots output, and split XML sitemaps.
+- Protected five-question quiz editor.
+- On-demand and scheduled cache revalidation.
+- Temporary-unavailable pages for repeated WordPress failures.
 
-## 4. Application Architecture
-
-The project follows the Next.js App Router model:
+## 4. Architecture
 
 1. A request enters a route under `app/`.
-2. Server components call helpers in `lib/wordpress.js`.
-3. WordPress data is fetched and cached using Next.js `fetch` revalidation.
-4. Data is transformed by helpers in `lib/utils.js`, `lib/quizParser.js`, and
-   `lib/toc.js`.
-5. Route components compose reusable components from `components/`.
-6. Client components add interaction for navigation, search, admin editing,
-   sharing, ads, and table-of-contents expansion.
+2. Server components call `lib/wordpress.js`.
+3. `lib/wordpressConfig.js` supplies the shared WordPress API URL.
+4. WordPress responses use Next.js caching and revalidation.
+5. Helpers parse quiz HTML, generate TOC IDs, format dates, and build URLs.
+6. Route components compose reusable components from `components/`.
+7. Client components provide search, sharing, navigation, ads, and admin
+   interactions.
 
-Most public content is cached for 3,600 seconds. Search is forced dynamic.
-Quiz and news requests use cache tags so the quiz API can invalidate quiz
-content.
+Most public content uses one-hour ISR caching. WordPress requests retry once
+for network failures, HTTP 429/5xx responses, and invalid JSON.
 
-`vercel.json` calls `/api/cron/midnight` daily at `19:00 UTC`, which is
-midnight in Karachi. The endpoint invalidates the cached homepage, and the next
-request regenerates it with the new date.
-
-## 5. Core Content Flows
+## 5. Core Flows
 
 ### Homepage
 
-`app/page.jsx` requests two WordPress post lists in parallel:
+`app/page.jsx` loads these resources in parallel:
 
-- A one-post request intended to provide the daily quiz.
-- Six posts intended to provide the latest news.
+```text
+getDailyQuizPost()
+getPosts({ perPage: 6, excludeSlugs: ["daily-quiz"], tag: "news" })
+```
 
-It parses quiz tables and FAQs from WordPress HTML, then renders quiz cards,
-news, static information, participation steps, ads, FAQs, and the sidebar.
+`getDailyQuizPost()` explicitly requests the fixed WordPress slug
+`daily-quiz` and uses the `quiz` cache tag. Publishing a newer normal article
+cannot replace the homepage quiz.
 
-Important: the current quiz request does not filter by the `daily-quiz` slug.
-It therefore relies on that post being the latest WordPress post. This is a
-confirmed design defect documented in `BUG_FIXING.md`.
+The page parses quiz tables and FAQs, calculates the current
+`Asia/Karachi` date, and renders quiz answers, latest news, information
+sections, participation steps, ads, FAQs, and the sidebar.
 
-### Category or Page
+Homepage Latest News cards intentionally do not display publication dates.
 
-`app/[slug]/page.jsx` gives a single URL segment two meanings:
+### Category and Blog Archives
 
-1. Look for a WordPress category with the slug.
-2. If no category exists, look for a WordPress page with the slug.
-3. If neither exists, return the Next.js not-found page.
+Category routes use `app/[slug]/page.jsx`; `/blog` uses
+`app/blog/page.jsx`. Both exclude `daily-quiz` through the WordPress query so
+pagination totals remain correct.
 
-Category content displays a paginated post archive. Page content displays the
-WordPress body with a generated table of contents and an inserted ad.
+Visible publication dates are hidden on category and blog cards. Search and
+tag archives retain their current date presentation.
 
-### Post
+### Article
 
-`app/[slug]/[post_slug]/page.jsx` loads a post by `post_slug`. The first segment
-must match the post's primary WordPress category. Incorrect prefixes
-permanently redirect to the canonical `/<category>/<post>` URL.
+`app/[slug]/[post_slug]/page.jsx`:
+
+1. Fetches the post by `post_slug`.
+2. Resolves its primary category.
+3. Permanently redirects an incorrect category prefix.
+4. Generates valid, unique TOC IDs.
+5. Inserts the React in-article ad after the first paragraph.
+6. Renders the author profile after the WordPress content.
+7. Renders sharing controls and related posts.
+
+The visible publication date is hidden on the article and its related cards.
+Published and modified dates remain in Open Graph and JSON-LD metadata for
+search engines.
 
 ### Quiz Administration
 
-`app/admin/quiz/page.jsx` provides a five-question editor. Saving sends:
+The admin flow is:
 
 ```text
 POST /api/admin/session
-secret: <admin secret>
+  -> validate ADMIN_SECRET
+  -> create signed HTTP-only session cookie
 
-then, with the HTTP-only session cookie:
+GET /api/quiz
+  -> load the existing daily-quiz post
 
 POST /api/quiz
+  -> validate exactly five questions and four options each
+  -> HTML-escape all stored fields
+  -> confirm whether daily-quiz exists
+  -> update with PUT or create with POST
+  -> revalidateTag("quiz")
 ```
 
-The session API validates the secret and creates a signed eight-hour cookie.
-`app/api/quiz/route.js` validates that session and the quiz payload, converts
-the quiz to HTML tables, then creates or updates the WordPress `daily-quiz`
-post using Basic Authentication. The date is assigned automatically by the
-server in the `Asia/Karachi` timezone; there is no manual date field. Quiz
-fields are length-checked, answer-checked, and HTML-escaped before storage.
+The WordPress existence lookup returns `null` only after a successful empty
+array response. Network, rate-limit, server, malformed-JSON, or malformed-data
+failures retry once and then return HTTP 503. The save is stopped, preventing
+an outage from being mistaken for a missing post.
 
-## 6. Configuration
+### Daily Date Refresh
 
-Public site settings are in `lib/constants.js`, including:
+`vercel.json` calls `/api/cron/midnight` at `19:00 UTC`, which is midnight in
+Karachi. The endpoint revalidates `/`; the next request regenerates the
+homepage with the new date even when quiz answers were not edited.
 
-- Production URL.
-- WordPress API URL.
-- Logo and favicon URLs.
-- ISR duration.
-- posts-per-page value.
-- navigation links.
-- AdSense client and slot IDs.
-- category color classes.
+## 6. Current UI Behavior
 
-Server environment variables used by the application:
+- Article breadcrumbs allow substantially more title text before truncating:
+  up to `70vw`, `420px` on small screens, and `560px` on large screens.
+- Sidebar cards have a consistent `24px` vertical gap.
+- The sidebar currently renders Recent Posts, Popular Posts, and Categories.
+  Its Search and advertisement cards are not rendered.
+- Article pages display an author box with name, optional description, and
+  avatar or initial fallback.
+- Visible publish dates are hidden from articles, related cards, blog cards,
+  category cards, and homepage Latest News cards.
+
+## 7. Configuration
 
 | Variable | Purpose |
 | --- | --- |
 | `WORDPRESS_API_URL` | Preferred server-side WordPress REST API URL |
-| `NEXT_PUBLIC_WORDPRESS_API_URL` | Backward-compatible WordPress URL fallback |
+| `NEXT_PUBLIC_WORDPRESS_API_URL` | Backward-compatible URL fallback |
 | `WP_ADMIN_USER` | WordPress API username |
 | `WP_ADMIN_PASS` | WordPress application password |
-| `ADMIN_SECRET` | Validates admin login and signs admin sessions |
-| `REVALIDATE_SECRET` | Protects cache revalidation requests |
-| `CRON_SECRET` | Protects Vercel's midnight revalidation request |
+| `ADMIN_SECRET` | Admin login and session-signing secret |
+| `REVALIDATE_SECRET` | Protects POST cache revalidation |
+| `CRON_SECRET` | Protects scheduled midnight revalidation |
 
-Do not commit `.env.local`; it is already ignored.
-Configure a random `CRON_SECRET` in the Vercel project environment.
+Site constants, route sizes, AdSense slots, navigation, colors, images, and
+the one-hour revalidation duration are defined in `lib/constants.js`.
 
-## 7. Rendering and Caching
+## 8. Sitemaps
 
-| Route type | Behavior |
+The site publishes:
+
+- `/sitemap_index.xml`
+- `/post-sitemap.xml`
+- `/page-sitemap.xml`
+- `/category-sitemap.xml`
+
+Post URLs use `/<category>/<post>/`; categories use `/<category>/`; pages use
+`/<page>/`. `robots.txt` points to the sitemap index.
+
+## 9. Verification Status
+
+Reviewed and updated on June 14, 2026:
+
+| Check | Current result |
 | --- | --- |
-| Homepage and fixed content pages | ISR, normally one hour |
-| Category/page `[slug]` routes | Prebuilt for known categories, ISR enabled |
-| Post routes | Server rendered on demand with cached WordPress fetches |
-| Blog | Dynamic when query parameters are used |
-| Search | Forced dynamic |
-| API routes | Dynamic |
-| Sitemap and robots | Metadata routes |
+| JavaScript route syntax checks | Passed for checked `.js` files |
+| `git diff --check` | Passed |
+| Focused TOC behavior simulation | Passed |
+| Admin WordPress lookup simulations | Passed |
+| `npm.cmd run build` | Blocked before compilation by Windows `EPERM` on `.next/trace` |
+| ESLint | Not configured |
+| Automated test suite | Not configured |
 
-WordPress requests retry once for transient network, rate-limit, server, or
-invalid-JSON failures. A successful empty slug lookup returns `null` and leads
-to the normal 404 flow. A repeated CMS failure throws a structured error and
-renders a temporary-unavailable screen with a retry action.
+An earlier production build passed, but the current uncommitted change set has
+not completed a full build because another process or filesystem lock owns
+`.next/trace`.
 
-## 8. Current Verification Status
+## 10. Remaining Improvements
 
-Reviewed on June 14, 2026:
+### High priority
 
-- `npm.cmd run build`: passed.
-- Next.js version resolved by the lockfile: `15.5.19`.
-- Production build generated 19 pages/routes successfully.
-- `npm.cmd run lint`: could not run because ESLint is not configured; Next.js
-  opened an interactive configuration prompt.
-- Automated tests: none are configured.
-- Existing uncommitted change in `app/page.jsx`: preserved.
+1. Fix quiz parsing so a question does not need to end with `?`.
+2. Show a visible temporary-unavailable message when quiz HTML is missing or
+   malformed instead of rendering an empty quiz section.
+3. Add automated tests for quiz selection, parsing, admin lookup failures,
+   pagination, sitemap URLs, and Karachi midnight behavior.
 
-The passing build proves that the current code compiles and prerenders. It does
-not validate route correctness, WordPress data quality, admin security, or
-browser behavior.
+### Medium priority
 
-## 9. Maintenance Priorities
+1. Implement real ad-slot selection for `AdBanner` position values.
+2. Do not load the global AdSense script while the client ID is a placeholder.
+3. Correct the Merriweather/Tailwind font mapping.
+4. Add non-interactive ESLint configuration.
 
-1. Fix quiz selection so the homepage always reads `daily-quiz`.
-2. Correct sitemap URLs and cache-revalidation category paths.
-3. Preserve search terms during pagination.
-4. Make admin authentication real and validate quiz dates correctly.
-5. Remove duplicate sidebar API requests.
-6. Correct archive totals after excluding the quiz post.
-7. Add ESLint and focused tests for routes, quiz parsing, and URL generation.
+### Low priority
 
-See `PROJECT_STRUCTURE.md` for the complete file/call map and `BUG_FIXING.md`
-for the issue register and recommended fixes.
+1. Add `per_page=1` to the public `daily-quiz` slug request.
+2. Remove remaining unused imports, including sidebar search/ad imports while
+   those cards remain disabled, and correct stale comments.
+3. Add browser-level checks for responsive breadcrumbs, sidebar spacing,
+   author profiles, and hidden publication dates.
+
+See `PROJECT_STRUCTURE.md` for the file and call map. See `BUG_FIXING.md` for
+the issue history, resolved changes, and open work. See `SEO_ANALYSIS.md` for
+the detailed technical, on-page, content, and performance SEO audit.

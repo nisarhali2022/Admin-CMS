@@ -11,6 +11,7 @@ telenor-quiz/
 |-- public/              Static public assets (currently empty)
 |-- styles/              Global Tailwind/CSS styles
 |-- package.json         Scripts and dependencies
+|-- SEO_ANALYSIS.md      Detailed SEO audit and optimization roadmap
 |-- next.config.js       Next.js image and response-header configuration
 |-- tailwind.config.js   Theme, content scanning, and typography configuration
 |-- postcss.config.js    Tailwind and Autoprefixer pipeline
@@ -22,7 +23,7 @@ telenor-quiz/
 
 | URL | File | Data/API calls | Main output |
 | --- | --- | --- | --- |
-| `/` | `app/page.jsx` | `getPosts`, quiz/FAQ parsers | Daily quiz and latest news |
+| `/` | `app/page.jsx` | `getDailyQuizPost`, `getPosts`, quiz/FAQ parsers | Daily quiz and latest news |
 | `/blog` | `app/blog/page.jsx` | `getPosts` | Paginated all-post archive |
 | `/search?q=...` | `app/search/page.jsx` | `searchPosts` | Dynamic search results |
 | `/<slug>` | `app/[slug]/page.jsx` | Category API, then page API | Category archive or WP page |
@@ -69,6 +70,7 @@ The server-side WordPress REST client.
 | `getPosts` | `/posts` | Home, blog, tag, popular widget |
 | `getPostsByCategory` | `/posts?categories=` | `[slug]` category archive |
 | `getPostBySlug` | `/posts?slug=` | Post detail |
+| `getDailyQuizPost` | `/posts?slug=daily-quiz` | Homepage and homepage metadata |
 | `getLatestPosts` | `/posts?orderby=date` | Footer, sidebar/recent widget |
 | `getMostCommentedPosts` | `/comments`, then `/posts?orderby=include` | Sidebar |
 | `getRelatedPosts` | `/posts?categories=&exclude=` | Post detail |
@@ -132,14 +134,14 @@ callback/clearing behavior.
 | --- | --- | --- |
 | `components/layout/Header.jsx` | Client | navigation, search router, logo |
 | `components/layout/Footer.jsx` | Server | `getLatestPosts`, links, logo |
-| `components/layout/Sidebar.jsx` | Server | CMS helpers, widgets, sidebar ad |
+| `components/layout/Sidebar.jsx` | Server | recent, popular, and category widgets |
 
 ### Home
 
 | File | Input | Responsibility |
 | --- | --- | --- |
 | `QuizAnswerCards.jsx` | parsed questions | Questions, options, correct answers |
-| `LatestNewsGrid.jsx` | WordPress posts | Homepage news cards |
+| `LatestNewsGrid.jsx` | WordPress posts | Homepage news cards without visible dates |
 | `QuizInfoSections.jsx` | none | Static SEO/information sections |
 | `StepsSection.jsx` | none | Participation steps and images |
 | `FaqSection.jsx` | parsed FAQs | Parsed or fallback FAQ list |
@@ -148,10 +150,11 @@ callback/clearing behavior.
 
 | File | Input | Responsibility |
 | --- | --- | --- |
-| `PostGrid.jsx` | posts | Two-column card collection |
-| `PostCard.jsx` | post | Linked article preview |
+| `PostGrid.jsx` | posts, `showDate` | Two-column configurable card collection |
+| `PostCard.jsx` | post, `showDate` | Linked article preview |
 | `FeaturedImage.jsx` | post | WordPress image or color fallback |
-| `PostMeta.jsx` | post | Category, author, date, reading time |
+| `AuthorBox.jsx` | post | End-of-content WordPress author profile |
+| `PostMeta.jsx` | post | Configurable category, author, date, and reading time |
 | `TableOfContents.jsx` | TOC entries | Expandable client TOC |
 
 ### Widgets
@@ -167,7 +170,8 @@ callback/clearing behavior.
 
 - `Pagination.jsx`: builds previous, numbered, and next links while preserving
   route-specific query parameters such as search terms.
-- `Breadcrumbs.jsx`: visual breadcrumbs plus JSON-LD.
+- `Breadcrumbs.jsx`: visual breadcrumbs plus JSON-LD; the final title uses
+  responsive truncation limits up to `560px`.
 - `AdSenseUnit.jsx`: client-side AdSense unit.
 - `AdBanner.jsx`: horizontal wrapper around `AdSenseUnit`.
 - `AdInArticle.jsx`: fluid in-article ad.
@@ -194,11 +198,13 @@ Browser
 
 ```text
 app/page.jsx
-  -> getPosts({ perPage: 1, tag: "quiz" })
-     -> WordPress /posts
-     -> "quiz" is a Next cache tag, not a WP tag filter
+  -> getDailyQuizPost()
+     -> WordPress /posts?_embed&slug=daily-quiz
+     -> cache tag "quiz"
+  -> getPosts({ perPage: 6, excludeSlugs: ["daily-quiz"], tag: "news" })
   -> parseQuizTables(post.content.rendered)
   -> QuizAnswerCards
+  -> LatestNewsGrid without visible publication dates
 ```
 
 ### Article page
@@ -211,8 +217,9 @@ app/[slug]/[post_slug]/page.jsx
   -> getRelatedPosts(firstCategory.id, post.id)
   -> generateTocAndInjectIds(content)
   -> injectAdAfterFirstParagraph(content, marker)
-  -> FeaturedImage + PostMeta + TableOfContents
-  -> WordPress HTML + AdInArticle + ShareButtons + related PostCards
+  -> FeaturedImage + PostMeta(showDate=false) + TableOfContents
+  -> WordPress HTML + AdInArticle + AuthorBox
+  -> ShareButtons + related PostCards(showDate=false)
 ```
 
 ### Admin quiz update
@@ -224,6 +231,9 @@ app/admin/quiz/page.jsx
   -> POST /api/quiz with the session cookie
   -> validate five questions and four options each
   -> find WordPress post slug "daily-quiz"
+     -> successful [] means missing
+     -> network/429/5xx/invalid JSON retries once
+     -> repeated failure stops with HTTP 503
   -> format questions as HTML tables
   -> WordPress POST or PUT using Basic Authentication
   -> revalidateTag("quiz")
@@ -239,6 +249,8 @@ Sidebar
   -> fetch categories, recent posts, most-commented posts
   -> pass values to widgets
   -> widgets render those values without additional requests
+  -> render cards with a consistent 24px vertical gap
+  -> Search and advertisement cards are currently disabled
 ```
 
 ## 6. API Contracts

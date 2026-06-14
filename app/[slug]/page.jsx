@@ -90,7 +90,7 @@ export default async function SlugPage({ params, searchParams }) {
         <AdBanner position="top" />
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
           <section>
-            <PostGrid posts={posts} />
+            <PostGrid posts={posts} showDate={false} />
             <Pagination currentPage={currentPage} totalPages={totalPages} basePath={`/${slug}`} />
           </section>
           <Suspense fallback={<LoadingSpinner size="lg" className="py-10" />}>

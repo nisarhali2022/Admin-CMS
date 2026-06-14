@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatDate, getCategoryColor, stripHtml } from '@/lib/utils';
+import { getCategoryColor, stripHtml } from '@/lib/utils';
 
 export default function LatestNewsGrid({ posts }) {
   if (!posts?.length) return null;
@@ -44,10 +44,9 @@ export default function LatestNewsGrid({ posts }) {
 
               <div className="p-4 flex flex-col flex-1">
                 <h3
-                  className="font-merriweather font-bold text-sm text-text-primary leading-snug line-clamp-2 group-hover:text-accent transition-colors mb-2"
+                  className="font-merriweather font-bold text-sm text-text-primary leading-snug line-clamp-2 group-hover:text-accent transition-colors"
                   dangerouslySetInnerHTML={{ __html: post.title?.rendered }}
                 />
-                <p className="text-xs text-text-secondary mt-auto">{formatDate(post.date)}</p>
               </div>
             </Link>
           );

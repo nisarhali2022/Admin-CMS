@@ -3,7 +3,12 @@ import FeaturedImage from './FeaturedImage'
 import PostMeta from './PostMeta'
 import { getExcerpt, getFirstCategory } from '@/lib/utils'
 
-export default function PostCard({ post, priority = false, size = 'default' }) {
+export default function PostCard({
+  post,
+  priority = false,
+  showDate = true,
+  size = 'default',
+}) {
   const isLarge = size === 'large'
   const categorySlug = getFirstCategory(post)?.slug || 'uncategorized'
 
@@ -23,7 +28,12 @@ export default function PostCard({ post, priority = false, size = 'default' }) {
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1 gap-3">
-        <PostMeta post={post} showAuthor={false} size="small" />
+        <PostMeta
+          post={post}
+          showAuthor={false}
+          showDate={showDate}
+          size="small"
+        />
 
         <Link href={`/${categorySlug}/${post.slug}`} className="block flex-1">
           <h2

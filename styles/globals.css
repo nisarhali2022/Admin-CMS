@@ -40,7 +40,7 @@
   }
 
   .widget-box {
-    @apply bg-white border border-border rounded-lg p-5 mb-6;
+    @apply bg-white border border-border rounded-lg p-5;
   }
 
   /* Prevent WordPress inline fonts and unify all text to Inter */
