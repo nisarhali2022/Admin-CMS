@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { getDailyQuizPost, getPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
+import { getKarachiDateLabel } from '@/lib/date';
 import { stripHtml, truncateText } from '@/lib/utils';
 import { parseQuizTables, parseFaqs } from '@/lib/quizParser';
 
@@ -63,9 +64,7 @@ export default async function HomePage() {
   // Extract first news post image for LCP preloading
   const firstNewsImage = newsPosts?.[0]?._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
 
-  const todayLabel = new Intl.DateTimeFormat('en-PK', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  }).format(new Date());
+  const todayLabel = getKarachiDateLabel();
 
   return (
     <main id="main">

@@ -36,6 +36,7 @@ telenor-quiz/
 | `/api/admin/session` | `app/api/admin/session/route.js` | Signed cookie auth | Login/session/logout |
 | `/api/quiz` | `app/api/quiz/route.js` | WordPress posts API | Read/write daily quiz |
 | `/api/revalidate` | `app/api/revalidate/route.js` | Next cache API | On-demand revalidation |
+| `/api/cron/midnight` | `app/api/cron/midnight/route.js` | Next cache API | Daily homepage invalidation |
 | `/sitemap_index.xml` | `app/sitemap_index.xml/route.js` | Sitemap helpers | Sitemap index |
 | `/post-sitemap.xml` | `app/post-sitemap.xml/route.js` | WordPress posts | Blog and post URLs |
 | `/page-sitemap.xml` | `app/page-sitemap.xml/route.js` | WordPress pages/quiz | Homepage and page URLs |
@@ -102,6 +103,11 @@ footer, and breadcrumbs.
 
 Finds `h1` through `h4` elements in WordPress HTML, creates IDs where needed,
 and returns both modified HTML and table-of-contents entries.
+
+### `lib/date.js`
+
+Provides canonical `Asia/Karachi` ISO and display-date helpers for the
+homepage, quiz API, admin panel, parser compatibility exports, and cron route.
 
 ### `hooks/useSearch.js`
 
@@ -256,7 +262,7 @@ Response:
       "answer": "A"
     }
   ],
-  "date": "WordPress modified value",
+  "date": "2026-06-14",
   "id": 123
 }
 ```
@@ -269,7 +275,6 @@ Body:
 
 ```json
 {
-  "date": "2026-06-14",
   "questions": [
     {
       "question": "Question text",
@@ -281,6 +286,18 @@ Body:
 ```
 
 Exactly five questions and exactly four options per question are required.
+The server assigns and returns the current Karachi date automatically.
+
+### `GET /api/cron/midnight`
+
+Vercel Cron calls this endpoint daily using:
+
+```text
+Authorization: Bearer CRON_SECRET
+```
+
+It invalidates `/`, allowing the next request to regenerate the ISR homepage
+with the current Karachi date.
 
 ### `POST /api/revalidate`
 

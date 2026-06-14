@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getKarachiDateLabel } from '@/lib/date';
 
 const EMPTY_QUESTION = { question: '', options: ['', '', '', ''], answer: '' };
 
@@ -9,31 +10,12 @@ const DEFAULT_QUESTIONS = Array.from({ length: 5 }, () => ({
   options: ['', '', '', ''],
 }));
 
-// Get today's date in Karachi timezone (PKT = UTC+5)
-function getTodayKarachi() {
-  return new Intl.DateTimeFormat('en-PK', {
-    timeZone: 'Asia/Karachi',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date());
-}
-
-function getTodayISO() {
-  // Returns YYYY-MM-DD in Karachi time
-  const d = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' })
-  );
-  return d.toISOString().split('T')[0];
-}
-
 export default function AdminQuizPage() {
   const [secret, setSecret] = useState('');
   const [authed, setAuthed] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
   const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);
-  const [date, setDate] = useState(getTodayISO());
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -60,7 +42,6 @@ export default function AdminQuizPage() {
       .then((data) => {
         if (data?.questions?.length) {
           setQuestions(data.questions);
-          setDate(data.date || getTodayISO());
         }
       })
       .catch((error) => setAuthMessage(error.message))
@@ -147,11 +128,11 @@ export default function AdminQuizPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ questions, date }),
+        body: JSON.stringify({ questions }),
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: `✅ Quiz saved for ${getTodayKarachi()}!` });
+        setMessage({ type: 'success', text: `✅ Quiz saved for ${getKarachiDateLabel()}!` });
       } else if (res.status === 401) {
         setAuthed(false);
         setMessage(null);
@@ -169,7 +150,6 @@ export default function AdminQuizPage() {
   const handleClear = () => {
     if (window.confirm('Clear all questions? This will erase all unsaved data.')) {
       setQuestions(DEFAULT_QUESTIONS);
-      setDate(getTodayISO());
       setMessage(null);
     }
   };
@@ -229,7 +209,7 @@ export default function AdminQuizPage() {
         <div>
           <h1 className="font-merriweather font-bold text-lg">Quiz Admin Panel</h1>
           <p className="text-blue-200 text-xs mt-0.5">
-            Karachi time: {getTodayKarachi()}
+            Karachi date: {getKarachiDateLabel()}
           </p>
         </div>
         <button
@@ -241,25 +221,6 @@ export default function AdminQuizPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Date picker */}
-        <div className="bg-white border border-border rounded-xl p-5 mb-6 shadow-sm">
-          <label className="block text-sm font-semibold text-text-primary mb-2">
-            Quiz Date (auto-set to today in Karachi)
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="px-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <button
-            onClick={() => setDate(getTodayISO())}
-            className="ml-3 text-xs text-accent hover:underline"
-          >
-            Reset to today
-          </button>
-        </div>
-
         {/* Questions */}
         {loading ? (
           <div className="text-center py-10 text-text-secondary">Loading existing quiz…</div>

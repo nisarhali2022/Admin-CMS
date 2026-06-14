@@ -47,6 +47,7 @@ application.
 - SEO metadata, JSON-LD, sitemap, and robots output.
 - Admin editor for five daily quiz questions.
 - On-demand cache revalidation API.
+- Midnight Karachi homepage revalidation through Vercel Cron.
 
 ## 4. Application Architecture
 
@@ -64,6 +65,10 @@ The project follows the Next.js App Router model:
 Most public content is cached for 3,600 seconds. Search is forced dynamic.
 Quiz and news requests use cache tags so the quiz API can invalidate quiz
 content.
+
+`vercel.json` calls `/api/cron/midnight` daily at `19:00 UTC`, which is
+midnight in Karachi. The endpoint invalidates the cached homepage, and the next
+request regenerates it with the new date.
 
 ## 5. Core Content Flows
 
@@ -114,7 +119,8 @@ POST /api/quiz
 The session API validates the secret and creates a signed eight-hour cookie.
 `app/api/quiz/route.js` validates that session and the quiz payload, converts
 the quiz to HTML tables, then creates or updates the WordPress `daily-quiz`
-post using Basic Authentication.
+post using Basic Authentication. The date is assigned automatically by the
+server in the `Asia/Karachi` timezone; there is no manual date field.
 
 ## 6. Configuration
 
@@ -138,8 +144,10 @@ Server environment variables used by the application:
 | `WP_ADMIN_PASS` | WordPress application password |
 | `ADMIN_SECRET` | Validates admin login and signs admin sessions |
 | `REVALIDATE_SECRET` | Protects cache revalidation requests |
+| `CRON_SECRET` | Protects Vercel's midnight revalidation request |
 
 Do not commit `.env.local`; it is already ignored.
+Configure a random `CRON_SECRET` in the Vercel project environment.
 
 ## 7. Rendering and Caching
 

@@ -154,6 +154,8 @@ sessions return to the login screen, and admin pages are marked `noindex`.
 
 **Severity:** High
 
+**Status:** Resolved on June 14, 2026.
+
 **Files:** `app/api/quiz/route.js`, `app/admin/quiz/page.jsx`
 
 **Problems:**
@@ -170,6 +172,13 @@ explicit dates are not honored; UTC and Karachi dates can differ near midnight.
 **Fix:** Validate `date` against `/^\d{4}-\d{2}-\d{2}$/`, store it explicitly
 in post metadata or content, use it for the title, and always return the same
 Karachi `YYYY-MM-DD` format.
+
+**Implemented result:** Manual quiz-date input was removed because the product
+does not use scheduled quiz dates. The server calculates the current
+`Asia/Karachi` date when saving and uses it for the WordPress title and API
+response. The homepage uses the same shared helper. A protected Vercel cron
+invalidates `/` daily at `19:00 UTC` (midnight Karachi), preserving ISR while
+allowing the next request to regenerate the new date.
 
 ### BF-06: Quiz HTML is built from unescaped admin input
 
@@ -450,11 +459,15 @@ require exact answer membership.
 
 ### BF-28: Date/time presentation is inconsistent
 
+**Status:** Resolved on June 14, 2026.
+
 The homepage formats `new Date()` without the explicit Karachi timezone, while
 admin helpers attempt Karachi time and the API returns UTC-derived dates.
 
 **Fix:** Centralize date functions and always specify `Asia/Karachi` for daily
 quiz dates.
+
+**Implemented result:** Quiz date formatting is centralized in `lib/date.js`.
 
 ## 5. Recommended Fix Order
 

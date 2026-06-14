@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { hasAdminSession } from '@/lib/adminAuth';
+import { getKarachiDateISO, getKarachiDateLabel } from '@/lib/date';
 
 const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
 const WP_USER = process.env.WP_ADMIN_USER;
@@ -24,14 +25,14 @@ async function getMainQuizPost() {
   }
 }
 
-async function saveQuizToWordPress(questions, date) {
+async function saveQuizToWordPress(questions) {
   if (!WP_USER || !WP_PASS) {
     throw new Error('WordPress credentials not configured.');
   }
 
   const authHeader = createAuthHeader(WP_USER, WP_PASS);
   const quizContent = formatQuizContent(questions);
-  const title = `Daily Quiz - ${new Intl.DateTimeFormat('en-PK', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}`;
+  const title = `Daily Quiz - ${getKarachiDateLabel()}`;
   const slug = 'daily-quiz';
 
   const existing = await getMainQuizPost();
@@ -91,13 +92,13 @@ export async function GET(request) {
   try {
     const post = await getMainQuizPost();
     if (!post) {
-      return NextResponse.json({ questions: [], date: new Date().toISOString().split('T')[0] });
+      return NextResponse.json({ questions: [], date: getKarachiDateISO() });
     }
 
     const questions = parseQuizContent(post.content.rendered);
     return NextResponse.json({
       questions,
-      date: post.modified,
+      date: getKarachiDateISO(),
       id: post.id,
     });
   } catch (err) {
@@ -160,7 +161,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { questions, date } = body;
+    const { questions } = body;
 
     if (!questions || !Array.isArray(questions) || questions.length !== 5) {
       return NextResponse.json(
@@ -179,14 +180,14 @@ export async function POST(request) {
       }
     }
 
-    const post = await saveQuizToWordPress(questions, date);
+    const post = await saveQuizToWordPress(questions);
 
     // Invalidate cached quiz data so home page shows updated quiz
     revalidateTag('quiz');
 
     return NextResponse.json({
       message: 'Quiz saved successfully to WordPress',
-      data: { questions, date: new Date().toISOString().split('T')[0], id: post.id },
+      data: { questions, date: getKarachiDateISO(), id: post.id },
     });
   } catch (err) {
     console.error('Error in POST /api/quiz:', err.message);
