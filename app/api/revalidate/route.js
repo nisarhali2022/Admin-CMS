@@ -13,10 +13,7 @@ export async function POST(request) {
 
     revalidatePath('/'); // always revalidate homepage (quiz lives here)
 
-    if (slug) {
-      if (type === 'category') revalidatePath(`/category/${slug}`);
-      else revalidatePath(`/${slug}`);
-    }
+    if (slug) revalidatePath(`/${slug}`);
 
     return NextResponse.json({ revalidated: true, slug, type, timestamp: new Date().toISOString() });
   } catch (err) {

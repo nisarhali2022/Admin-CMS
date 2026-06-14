@@ -83,7 +83,9 @@ The server-side WordPress REST client.
 | `getAllCategorySlugs` | `/categories` | Static params and sitemap |
 
 All public CMS calls use Next.js fetch caching. Most use the global one-hour
-revalidation value.
+revalidation value. Slug exclusions are resolved to post IDs and sent to
+WordPress through its native `exclude` query so pagination totals remain
+accurate.
 
 ### `lib/utils.js`
 

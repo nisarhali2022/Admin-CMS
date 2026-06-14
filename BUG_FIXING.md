@@ -210,6 +210,8 @@ escaped before WordPress table markup is generated.
 
 **Severity:** Medium
 
+**Status:** Resolved on June 14, 2026.
+
 **File:** `app/api/revalidate/route.js`
 
 For `type === 'category'`, the code revalidates `/category/${slug}`. The actual
@@ -217,9 +219,15 @@ route is `/${slug}`.
 
 **Fix:** Change it to `revalidatePath(\`/${slug}\`)`.
 
+**Implemented result:** Category revalidation now targets the actual
+root-level category route, such as `/tech`, instead of the nonexistent
+`/category/tech` route.
+
 ### BF-08: Archive totals are wrong after filtering `daily-quiz`
 
 **Severity:** Medium
+
+**Status:** Resolved on June 14, 2026.
 
 **File:** `lib/wordpress.js`
 
@@ -234,9 +242,16 @@ This can also produce a short page because a request for 10 results may become
 WordPress's `exclude` parameter, or put it in a dedicated post type/status that
 does not appear in article queries.
 
+**Implemented result:** Excluded slugs are resolved to WordPress post IDs
+before archive and search requests. Those IDs are sent through WordPress's
+native `exclude` parameter, so posts, `X-WP-Total`, and
+`X-WP-TotalPages` are calculated from the same result set.
+
 ### BF-09: Latest lists can return fewer items than requested
 
 **Severity:** Medium
+
+**Status:** Resolved on June 14, 2026.
 
 **File:** `lib/wordpress.js`
 
@@ -245,6 +260,10 @@ When the quiz is in that result, callers receive `count - 1`.
 
 **Fix:** Exclude by ID in WordPress or request extra records and slice after
 filtering.
+
+**Implemented result:** Latest and most-commented queries now exclude the
+`daily-quiz` post by WordPress ID before applying `per_page`, so callers receive
+the requested number of normal posts when enough posts exist.
 
 ### BF-10: Sidebar performs duplicate WordPress requests
 
