@@ -56,7 +56,9 @@ still display the daily quiz.
 `/posts?_embed&slug=daily-quiz`, caches the response with the `quiz` tag, and
 returns only that fixed post. Saving through the quiz API calls
 `revalidateTag('quiz')`, so publishing a newer normal article cannot replace
-the homepage quiz.
+the homepage quiz. The admin lookup also distinguishes a successful empty
+WordPress result from an unavailable API: transient failures retry once and
+then stop the save with HTTP `503`, preventing an accidental create request.
 
 ### BF-02: Sitemap generates invalid category and post URLs
 

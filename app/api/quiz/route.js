@@ -10,23 +10,90 @@ const WP_USER = process.env.WP_ADMIN_USER;
 const WP_PASS = process.env.WP_ADMIN_PASS;
 const MAX_QUESTION_LENGTH = 300;
 const MAX_OPTION_LENGTH = 150;
+const WORDPRESS_RETRY_DELAY_MS = 250;
+
+class QuizWordPressError extends Error {
+  constructor(message, { status, cause } = {}) {
+    super(message, { cause });
+    this.name = 'QuizWordPressError';
+    this.status = status;
+  }
+}
 
 function createAuthHeader(user, pass) {
   const credentials = Buffer.from(`${user}:${pass}`).toString('base64');
   return `Basic ${credentials}`;
 }
 
+function shouldRetryWordPress(status) {
+  return !status || status === 429 || status >= 500;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function getMainQuizPost() {
-  try {
-    const res = await fetch(`${WP_API_URL}/posts?slug=daily-quiz&per_page=1`, {
-      headers: { 'Accept': 'application/json' },
-    });
-    const posts = await res.json();
-    return posts?.length > 0 ? posts[0] : null;
-  } catch (err) {
-    console.error('Error fetching main quiz post:', err);
-    return null;
+  const url = `${WP_API_URL}/posts?slug=daily-quiz&per_page=1`;
+  let lastError;
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new QuizWordPressError(
+          `WordPress quiz lookup failed with status ${response.status}.`,
+          { status: response.status }
+        );
+      }
+
+      let posts;
+      try {
+        posts = await response.json();
+      } catch (error) {
+        throw new QuizWordPressError(
+          'WordPress quiz lookup returned invalid JSON.',
+          { cause: error }
+        );
+      }
+
+      if (!Array.isArray(posts)) {
+        throw new QuizWordPressError(
+          'WordPress quiz lookup returned an invalid response.'
+        );
+      }
+
+      return posts[0] || null;
+    } catch (error) {
+      const normalizedError =
+        error instanceof QuizWordPressError
+          ? error
+          : new QuizWordPressError(
+              'WordPress is temporarily unavailable.',
+              { cause: error }
+            );
+
+      lastError = normalizedError;
+      if (
+        attempt === 2 ||
+        !shouldRetryWordPress(normalizedError.status)
+      ) {
+        console.error('WordPress quiz lookup unavailable', {
+          status: normalizedError.status || null,
+          message: normalizedError.message,
+        });
+        throw normalizedError;
+      }
+
+      await wait(WORDPRESS_RETRY_DELAY_MS);
+    }
   }
+
+  throw lastError;
 }
 
 async function saveQuizToWordPress(questions) {
@@ -166,9 +233,15 @@ export async function GET(request) {
       id: post.id,
     });
   } catch (err) {
+    const status = err instanceof QuizWordPressError ? 503 : 500;
     return NextResponse.json(
-      { message: 'Error fetching quiz: ' + err.message },
-      { status: 500 }
+      {
+        message:
+          status === 503
+            ? 'WordPress is temporarily unavailable. Please try again.'
+            : 'Error fetching quiz: ' + err.message,
+      },
+      { status }
     );
   }
 }
@@ -254,9 +327,15 @@ export async function POST(request) {
     });
   } catch (err) {
     console.error('Error in POST /api/quiz:', err.message);
+    const status = err instanceof QuizWordPressError ? 503 : 500;
     return NextResponse.json(
-      { message: 'Error saving quiz: ' + err.message },
-      { status: 500 }
+      {
+        message:
+          status === 503
+            ? 'WordPress is temporarily unavailable. Quiz was not saved. Please try again.'
+            : 'Error saving quiz: ' + err.message,
+      },
+      { status }
     );
   }
 }

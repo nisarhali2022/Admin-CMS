@@ -37,7 +37,11 @@ export default function AdminQuizPage() {
           setAuthed(false);
           throw new Error('Your admin session has expired.');
         }
-        return response.json();
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Unable to load the current quiz.');
+        }
+        return data;
       })
       .then((data) => {
         if (data?.questions?.length) {
