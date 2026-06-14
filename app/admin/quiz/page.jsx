@@ -29,31 +29,78 @@ function getTodayISO() {
 
 export default function AdminQuizPage() {
   const [secret, setSecret] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState('');
   const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);
   const [date, setDate] = useState(getTodayISO());
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Load existing quiz on auth
+  useEffect(() => {
+    fetch('/api/admin/session', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((data) => setAuthed(Boolean(data.authenticated)))
+      .catch(() => setAuthed(false));
+  }, []);
+
+  // Load existing quiz after the server confirms the session.
   useEffect(() => {
     if (!authed) return;
     setLoading(true);
-    fetch('/api/quiz')
-      .then((r) => r.json())
+    fetch('/api/quiz', { cache: 'no-store' })
+      .then(async (response) => {
+        if (response.status === 401) {
+          setAuthed(false);
+          throw new Error('Your admin session has expired.');
+        }
+        return response.json();
+      })
       .then((data) => {
         if (data?.questions?.length) {
           setQuestions(data.questions);
           setDate(data.date || getTodayISO());
         }
       })
+      .catch((error) => setAuthMessage(error.message))
       .finally(() => setLoading(false));
   }, [authed]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (secret.trim()) setAuthed(true);
+    if (!secret.trim()) return;
+
+    setAuthLoading(true);
+    setAuthMessage('');
+
+    try {
+      const response = await fetch('/api/admin/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAuthMessage(data.message || 'Login failed.');
+        return;
+      }
+
+      setSecret('');
+      setAuthed(true);
+    } catch {
+      setAuthMessage('Unable to contact the server.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/admin/session', { method: 'DELETE' }).catch(() => {});
+    setAuthed(false);
+    setQuestions(DEFAULT_QUESTIONS);
+    setMessage(null);
   };
 
   const updateQuestion = (qi, field, value) => {
@@ -99,13 +146,16 @@ export default function AdminQuizPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': secret,
         },
         body: JSON.stringify({ questions, date }),
       });
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: `✅ Quiz saved for ${getTodayKarachi()}!` });
+      } else if (res.status === 401) {
+        setAuthed(false);
+        setMessage(null);
+        setAuthMessage('Your admin session has expired. Please log in again.');
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to save.' });
       }
@@ -123,6 +173,14 @@ export default function AdminQuizPage() {
       setMessage(null);
     }
   };
+
+  if (authed === null) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <p className="text-sm text-text-secondary">Checking admin session...</p>
+      </div>
+    );
+  }
 
   // ── Login Screen ──────────────────────────────────────────────────────────
   if (!authed) {
@@ -145,11 +203,17 @@ export default function AdminQuizPage() {
               className="w-full px-4 py-3 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
             />
+            {authMessage && (
+              <p className="text-sm text-red-600" role="alert">
+                {authMessage}
+              </p>
+            )}
             <button
               type="submit"
-              className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-[#2a5298] transition-colors text-sm"
+              disabled={authLoading}
+              className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-[#2a5298] transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Login →
+              {authLoading ? 'Checking...' : 'Login →'}
             </button>
           </form>
         </div>
@@ -169,7 +233,7 @@ export default function AdminQuizPage() {
           </p>
         </div>
         <button
-          onClick={() => setAuthed(false)}
+          onClick={handleLogout}
           className="text-xs text-blue-200 hover:text-white transition-colors border border-blue-300 px-3 py-1.5 rounded"
         >
           Logout

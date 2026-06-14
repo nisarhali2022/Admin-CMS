@@ -33,6 +33,7 @@ telenor-quiz/
 | `/contact` | `app/contact/page.jsx` | `getPageBySlug('contact')` | Contact page |
 | `/privacy-policy` | `app/privacy-policy/page.jsx` | WP page API | Privacy policy |
 | `/admin/quiz` | `app/admin/quiz/page.jsx` | `GET/POST /api/quiz` | Quiz editor |
+| `/api/admin/session` | `app/api/admin/session/route.js` | Signed cookie auth | Login/session/logout |
 | `/api/quiz` | `app/api/quiz/route.js` | WordPress posts API | Read/write daily quiz |
 | `/api/revalidate` | `app/api/revalidate/route.js` | Next cache API | On-demand revalidation |
 | `/sitemap_index.xml` | `app/sitemap_index.xml/route.js` | Sitemap helpers | Sitemap index |
@@ -204,7 +205,9 @@ app/[slug]/[post_slug]/page.jsx
 
 ```text
 app/admin/quiz/page.jsx
-  -> POST /api/quiz with x-admin-secret
+  -> POST /api/admin/session with the admin secret
+  -> receive a signed HTTP-only session cookie
+  -> POST /api/quiz with the session cookie
   -> validate five questions and four options each
   -> find WordPress post slug "daily-quiz"
   -> format questions as HTML tables
@@ -229,7 +232,18 @@ This causes duplicate CMS requests and is covered in `BUG_FIXING.md`.
 
 ## 6. API Contracts
 
+### `/api/admin/session`
+
+- `GET`: returns `{ "authenticated": true|false }`.
+- `POST`: validates `{ "secret": "..." }` and creates a signed HTTP-only
+  session cookie.
+- `DELETE`: clears the admin session cookie.
+
+The cookie is same-site, secure in production, and expires after eight hours.
+
 ### `GET /api/quiz`
+
+Requires a valid admin session cookie.
 
 Response:
 
@@ -247,15 +261,9 @@ Response:
 }
 ```
 
-This endpoint is public and does not validate `ADMIN_SECRET`.
-
 ### `POST /api/quiz`
 
-Required header:
-
-```text
-x-admin-secret: ADMIN_SECRET
-```
+Requires a valid admin session cookie created by `POST /api/admin/session`.
 
 Body:
 

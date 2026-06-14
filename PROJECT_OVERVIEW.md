@@ -103,13 +103,18 @@ does not verify that it matches the post's real category.
 `app/admin/quiz/page.jsx` provides a five-question editor. Saving sends:
 
 ```text
+POST /api/admin/session
+secret: <admin secret>
+
+then, with the HTTP-only session cookie:
+
 POST /api/quiz
-x-admin-secret: <secret>
 ```
 
-`app/api/quiz/route.js` validates the secret and payload, converts the quiz to
-HTML tables, then creates or updates the WordPress `daily-quiz` post using
-Basic Authentication.
+The session API validates the secret and creates a signed eight-hour cookie.
+`app/api/quiz/route.js` validates that session and the quiz payload, converts
+the quiz to HTML tables, then creates or updates the WordPress `daily-quiz`
+post using Basic Authentication.
 
 ## 6. Configuration
 
@@ -131,7 +136,7 @@ Server environment variables used by the application:
 | `NEXT_PUBLIC_WORDPRESS_API_URL` | WordPress API used by the quiz write route |
 | `WP_ADMIN_USER` | WordPress API username |
 | `WP_ADMIN_PASS` | WordPress application password |
-| `ADMIN_SECRET` | Protects quiz update requests |
+| `ADMIN_SECRET` | Validates admin login and signs admin sessions |
 | `REVALIDATE_SECRET` | Protects cache revalidation requests |
 
 Do not commit `.env.local`; it is already ignored.

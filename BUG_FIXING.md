@@ -122,6 +122,8 @@ page 2 uses `/search?q=telenor&page=2`, while returning to page 1 keeps
 
 **Severity:** High
 
+**Status:** Resolved on June 14, 2026.
+
 **File:** `app/admin/quiz/page.jsx`
 
 **Problem:** Any non-empty string sets `authed` to `true`. The secret is not
@@ -140,6 +142,13 @@ secret in long-lived React state.
 5. Add `noindex` metadata for the admin route.
 
 At minimum, add a protected verification request before setting `authed`.
+
+**Implemented result:** Login now submits the secret to
+`POST /api/admin/session`. The server validates it with a timing-safe
+comparison and creates a signed, HTTP-only, same-site session cookie valid for
+eight hours. The browser clears the secret after login, `GET` and
+`POST /api/quiz` require the valid session, logout deletes the cookie, expired
+sessions return to the login screen, and admin pages are marked `noindex`.
 
 ### BF-05: Quiz date is ignored and returned in incompatible formats
 

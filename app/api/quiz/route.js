@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
+import { hasAdminSession } from '@/lib/adminAuth';
 
 const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
 const WP_USER = process.env.WP_ADMIN_USER;
@@ -83,6 +84,10 @@ function formatQuizContent(questions) {
 }
 
 export async function GET(request) {
+  if (!(await hasAdminSession())) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const post = await getMainQuizPost();
     if (!post) {
@@ -149,12 +154,8 @@ function parseQuizContent(content) {
 }
 
 export async function POST(request) {
-  const secret = request.headers.get('x-admin-secret');
-  if (secret !== process.env.ADMIN_SECRET) {
-    return NextResponse.json(
-      { message: 'Unauthorized: Invalid admin secret' },
-      { status: 401 }
-    );
+  if (!(await hasAdminSession())) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
   try {
