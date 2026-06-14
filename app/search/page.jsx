@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { notFound } from 'next/navigation';
 import { searchPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import PostGrid from '@/components/posts/PostGrid';
@@ -6,25 +7,37 @@ import Sidebar from '@/components/layout/Sidebar';
 import Pagination from '@/components/navigation/Pagination';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import {
+  buildMetadata,
+  canonicalPath,
+  isInvalidArchivePage,
+  parsePageNumber,
+} from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ searchParams }) {
   const resolvedSearch = await searchParams;
   const query = resolvedSearch?.q || '';
-  return {
-    title: query
-      ? `Search Results for "${query}" | ${SITE_CONFIG.siteName}`
-      : `Search | ${SITE_CONFIG.siteName}`,
+  const currentPage = parsePageNumber(resolvedSearch?.page) || 1;
+  const title = query
+    ? `Search Results for "${query}"${currentPage > 1 ? ` - Page ${currentPage}` : ''}`
+    : 'Search';
+  return buildMetadata({
+    title,
     description: `Search results for "${query}" on ${SITE_CONFIG.siteName}`,
-    robots: { index: false },
-  };
+    path: '/search',
+    page: currentPage,
+    query: query ? { q: query } : {},
+    robots: { index: false, follow: true },
+  });
 }
 
 export default async function SearchPage({ searchParams }) {
   const resolvedSearch = await searchParams;
   const query = resolvedSearch?.q || '';
-  const currentPage = Number(resolvedSearch?.page) || 1;
+  const currentPage = parsePageNumber(resolvedSearch?.page);
+  if (!currentPage) notFound();
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -34,7 +47,7 @@ export default async function SearchPage({ searchParams }) {
   if (!query.trim()) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center">
-        <Breadcrumbs items={breadcrumbItems} />
+        <Breadcrumbs items={breadcrumbItems} currentPath="/search" />
         <p className="text-5xl mb-4">🔍</p>
         <h1 className="font-merriweather font-bold text-2xl text-text-primary mb-2">
           What are you looking for?
@@ -46,11 +59,16 @@ export default async function SearchPage({ searchParams }) {
     );
   }
 
-  const { posts, totalPages } = await searchPosts(query, currentPage);
+  const results = await searchPosts(query, currentPage);
+  if (isInvalidArchivePage(results, currentPage)) notFound();
+  const { posts, totalPages } = results;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <Breadcrumbs items={breadcrumbItems} />
+      <Breadcrumbs
+        items={breadcrumbItems}
+        currentPath={canonicalPath('/search', currentPage, { q: query })}
+      />
 
       <div className="mb-6">
         <h1 className="font-merriweather font-bold text-2xl text-text-primary">

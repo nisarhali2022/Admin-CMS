@@ -8,46 +8,54 @@ import Pagination from '@/components/navigation/Pagination';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import AdBanner from '@/components/ads/AdBanner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import {
+  buildMetadata,
+  canonicalPath,
+  getTagDescription,
+  isInvalidArchivePage,
+  parsePageNumber,
+} from '@/lib/seo';
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata({ params, searchParams }) {
   const { slug } = await params;
+  const resolvedSearch = await searchParams;
+  const currentPage = parsePageNumber(resolvedSearch?.page) || 1;
   const tag = await getTagBySlug(slug);
   if (!tag) return { title: 'Not Found | ' + SITE_CONFIG.siteName };
 
-  const title = `${tag.name} | ${SITE_CONFIG.siteName}`;
-  const description = `Browse all posts tagged "${tag.name}" on ${SITE_CONFIG.siteName}`;
-  const canonical = `${SITE_CONFIG.siteUrl}/tag/${slug}`;
+  const title =
+    currentPage > 1 ? `${tag.name} - Page ${currentPage}` : tag.name;
+  const description = getTagDescription(tag);
 
-  return {
+  return buildMetadata({
     title,
     description,
-    alternates: { canonical },
-    openGraph: {
-      title,
-      description,
-      url: canonical,
-      type: 'website',
-      images: [{ url: `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}` }],
-    },
-  };
+    path: `/tag/${slug}`,
+    page: currentPage,
+    robots: { index: false, follow: true },
+  });
 }
 
 export default async function TagPage({ params, searchParams }) {
   const { slug } = await params;
   const resolvedSearch = await searchParams;
-  const currentPage = Number(resolvedSearch?.page) || 1;
+  const currentPage = parsePageNumber(resolvedSearch?.page);
+  if (!currentPage) notFound();
 
   const tag = await getTagBySlug(slug);
   if (!tag) notFound();
 
-  const { posts, totalPages } = await getPosts({
+  const archive = await getPosts({
     page: currentPage,
     perPage: SITE_CONFIG.postsPerPage,
     tagId: tag.id,
     excludeSlugs: ['daily-quiz'],
   });
+  if (isInvalidArchivePage(archive, currentPage)) notFound();
+  const { posts, totalPages } = archive;
+  const description = getTagDescription(tag);
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -56,12 +64,18 @@ export default async function TagPage({ params, searchParams }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <Breadcrumbs items={breadcrumbItems} />
+      <Breadcrumbs
+        items={breadcrumbItems}
+        currentPath={canonicalPath(`/tag/${slug}`, currentPage)}
+      />
 
       <div className="mb-6">
         <h1 className="font-merriweather font-bold text-2xl sm:text-3xl text-text-primary">
           Tag: {tag.name}
         </h1>
+        <p className="text-text-secondary mt-2 text-sm max-w-2xl">
+          {description}
+        </p>
         <p className="text-xs text-text-secondary mt-1">
           {tag.count} post{tag.count !== 1 ? 's' : ''}
         </p>

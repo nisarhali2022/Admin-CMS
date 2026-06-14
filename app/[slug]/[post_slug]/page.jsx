@@ -20,6 +20,7 @@ import AdInArticle from '@/components/ads/AdInArticle';
 import ShareButtons from '@/components/ui/ShareButtons';
 import Sidebar from '@/components/layout/Sidebar';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { buildMetadata } from '@/lib/seo';
 
 export const revalidate = 3600;
 
@@ -30,16 +31,19 @@ export async function generateMetadata({ params }) {
 
   const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
   const yoast = post.yoast_head_json;
-  const title = yoast?.title || `${post.title?.rendered} | ${SITE_CONFIG.siteName}`;
+  const title = yoast?.title || post.title?.rendered;
   const description = yoast?.description || truncateText(stripHtml(post.excerpt?.rendered || post.content?.rendered || ''), 160);
   const imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
-  const canonical = `${SITE_CONFIG.siteUrl}/${categorySlug}/${post_slug}`;
-
-  return {
-    title, description, alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: 'article', publishedTime: post.date, modifiedTime: post.modified, images: [{ url: imageUrl }] },
-    twitter: { card: 'summary_large_image', title, description, images: [imageUrl] },
-  };
+  return buildMetadata({
+    title,
+    description,
+    path: `/${categorySlug}/${post_slug}`,
+    type: 'article',
+    image: imageUrl,
+    publishedTime: post.date,
+    modifiedTime: post.modified,
+    absoluteTitle: Boolean(yoast?.title),
+  });
 }
 
 export default async function PostPage({ params }) {
@@ -86,7 +90,15 @@ export default async function PostPage({ params }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
           <article>
-            <Breadcrumbs items={breadcrumbItems} />
+            <Breadcrumbs
+              items={breadcrumbItems}
+              currentPath={`/${categorySlug}/${post_slug}`}
+            />
+            <h1
+              className="font-heading font-bold text-3xl sm:text-4xl text-text-primary leading-tight mt-2 mb-4"
+            >
+              {stripHtml(post.title?.rendered || '')}
+            </h1>
             <PostMeta post={post} showDate={false} />
             <div className="mt-5 mb-6"><FeaturedImage post={post} priority /></div>
             <TableOfContents toc={toc} />

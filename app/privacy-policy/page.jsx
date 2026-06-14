@@ -3,30 +3,25 @@ import { getPageBySlug } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import { stripHtml, truncateText } from '@/lib/utils';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
+import { buildMetadata } from '@/lib/seo';
 
 export const revalidate = 3600;
 
 export async function generateMetadata() {
   const page = await getPageBySlug('privacy-policy');
   const title = page?.title?.rendered
-    ? `${stripHtml(page.title.rendered)} | ${SITE_CONFIG.siteName}`
-    : `Privacy Policy | ${SITE_CONFIG.siteName}`;
+    ? stripHtml(page.title.rendered)
+    : 'Privacy Policy';
   const description = page?.excerpt?.rendered
     ? truncateText(stripHtml(page.excerpt.rendered), 160)
     : `Read the privacy policy for ${SITE_CONFIG.siteName}`;
 
-  return {
+  return buildMetadata({
     title,
     description,
-    alternates: { canonical: `${SITE_CONFIG.siteUrl}/privacy-policy` },
-    openGraph: {
-      title,
-      description,
-      url: `${SITE_CONFIG.siteUrl}/privacy-policy`,
-      type: 'website',
-    },
+    path: '/privacy-policy',
     robots: { index: true, follow: true },
-  };
+  });
 }
 
 export default async function PrivacyPolicyPage() {
@@ -40,7 +35,7 @@ export default async function PrivacyPolicyPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Breadcrumbs items={breadcrumbItems} />
+      <Breadcrumbs items={breadcrumbItems} currentPath="/privacy-policy" />
 
       <article>
         <h1

@@ -43,34 +43,29 @@ export const metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
-  link: [
-    {
-      rel: 'preconnect',
-      href: 'https://fonts.googleapis.com',
-    },
-    {
-      rel: 'preconnect',
-      href: 'https://fonts.gstatic.com',
-      crossOrigin: 'anonymous',
-    },
-  ],
 }
 
 export default function RootLayout({ children }) {
+  const hasAdSenseClient =
+    SITE_CONFIG.googleAdsenseId &&
+    !SITE_CONFIG.googleAdsenseId.includes('XXXX')
+
   return (
-    <html lang="en" className={`${inter.variable} ${merriweather.variable}`}>
+    <html lang="en-PK" className={`${inter.variable} ${merriweather.variable}`}>
       <body className="font-body bg-white text-text-primary">
         <Header />
         <main id="main" className="min-h-screen">
           {children}
         </main>
         <Footer />
-        <Script
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${SITE_CONFIG.googleAdsenseId}`}
-          crossOrigin="anonymous"
-          strategy="lazyOnload"
-        />
+        {hasAdSenseClient && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${SITE_CONFIG.googleAdsenseId}`}
+            crossOrigin="anonymous"
+            strategy="lazyOnload"
+          />
+        )}
       </body>
     </html>
   )

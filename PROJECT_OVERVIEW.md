@@ -143,8 +143,14 @@ homepage with the new date even when quiz answers were not edited.
   Its Search and advertisement cards are not rendered.
 - Article pages display an author box with name, optional description, and
   avatar or initial fallback.
+- Article and dynamic WordPress page templates render one visible page-title
+  H1.
 - Visible publish dates are hidden from articles, related cards, blog cards,
   category cards, and homepage Latest News cards.
+- The root document uses `lang="en-PK"`, placeholder social profiles are
+  removed, and AdSense does not load while its publisher ID is a placeholder.
+- A branded 1200x630 fallback social image is available at
+  `public/og-default.jpg`.
 
 ## 7. Configuration
 
@@ -170,8 +176,9 @@ The site publishes:
 - `/page-sitemap.xml`
 - `/category-sitemap.xml`
 
-Post URLs use `/<category>/<post>/`; categories use `/<category>/`; pages use
-`/<page>/`. `robots.txt` points to the sitemap index.
+Post URLs use `/<category>/<post>`; categories use `/<category>`; pages use
+`/<page>`. Non-root URLs consistently omit trailing slashes, and `robots.txt`
+points to the sitemap index.
 
 ## 9. Verification Status
 
@@ -183,13 +190,13 @@ Reviewed and updated on June 14, 2026:
 | `git diff --check` | Passed |
 | Focused TOC behavior simulation | Passed |
 | Admin WordPress lookup simulations | Passed |
-| `npm.cmd run build` | Blocked before compilation by Windows `EPERM` on `.next/trace` |
+| `npm.cmd run build` | Passed using an isolated output directory while the development server owned `.next` |
 | ESLint | Not configured |
 | Automated test suite | Not configured |
 
-An earlier production build passed, but the current uncommitted change set has
-not completed a full build because another process or filesystem lock owns
-`.next/trace`.
+The production build compiled, type-checked, and generated all 28 routes. A
+non-fatal Windows warning occurred while renaming one temporary webpack cache
+file after route generation.
 
 ## 10. Remaining Improvements
 
@@ -204,9 +211,8 @@ not completed a full build because another process or filesystem lock owns
 ### Medium priority
 
 1. Implement real ad-slot selection for `AdBanner` position values.
-2. Do not load the global AdSense script while the client ID is a placeholder.
-3. Correct the Merriweather/Tailwind font mapping.
-4. Add non-interactive ESLint configuration.
+2. Correct the Merriweather/Tailwind font mapping.
+3. Add non-interactive ESLint configuration.
 
 ### Low priority
 

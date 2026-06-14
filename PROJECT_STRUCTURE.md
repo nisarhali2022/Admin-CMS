@@ -8,7 +8,8 @@ telenor-quiz/
 |-- components/          Reusable server and client UI components
 |-- hooks/               Client-side React hooks
 |-- lib/                 WordPress, parsing, TOC, constants, and utility logic
-|-- public/              Static public assets (currently empty)
+|-- public/              Static public assets
+|   |-- og-default.jpg   1200x630 fallback Open Graph image
 |-- styles/              Global Tailwind/CSS styles
 |-- package.json         Scripts and dependencies
 |-- SEO_ANALYSIS.md      Detailed SEO audit and optimization roadmap
@@ -346,6 +347,14 @@ The UI generally uses:
 - Post: `/<category-slug>/<post-slug>`
 - Tag: `/tag/<tag-slug>`
 - WordPress page: `/<page-slug>`
+- Canonical About page: `/about-us`
+- Canonical Contact page: `/contact-us`
+- Non-root URLs: no trailing slash
+
+`lib/seo.js` centralizes canonical URLs, route metadata, page-number
+validation, and taxonomy descriptions. Tag archives are intentionally
+`noindex, follow`; blog/category/search/tag pagination returns 404 for invalid
+or out-of-range page numbers.
 
 Any code producing `/category/<slug>` or a one-segment post URL is inconsistent
 with the implemented routes.

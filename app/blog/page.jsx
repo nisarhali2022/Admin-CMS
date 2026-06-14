@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { notFound } from 'next/navigation';
 import { getPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import PostGrid from '@/components/posts/PostGrid';
@@ -7,38 +8,42 @@ import Pagination from '@/components/navigation/Pagination';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import AdBanner from '@/components/ads/AdBanner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import {
+  buildMetadata,
+  canonicalPath,
+  isInvalidArchivePage,
+  parsePageNumber,
+} from '@/lib/seo';
 
 export const revalidate = 3600;
 
-export async function generateMetadata() {
-  const title = `Blog | ${SITE_CONFIG.name}`;
+export async function generateMetadata({ searchParams }) {
+  const resolvedSearch = await searchParams;
+  const currentPage = parsePageNumber(resolvedSearch?.page) || 1;
+  const title = currentPage > 1 ? `Blog - Page ${currentPage}` : 'Blog';
   const description = `Read the latest news and articles on ${SITE_CONFIG.name}`;
-  const canonical = `${SITE_CONFIG.siteUrl}/blog`;
 
-  return {
+  return buildMetadata({
     title,
     description,
-    alternates: { canonical },
-    openGraph: {
-      title,
-      description,
-      url: canonical,
-      type: 'website',
-      images: [{ url: `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}` }],
-    },
-  };
+    path: '/blog',
+    page: currentPage,
+  });
 }
 
 export default async function BlogPage({ searchParams }) {
   const resolvedSearch = await searchParams;
-  const currentPage = Number(resolvedSearch?.page) || 1;
+  const currentPage = parsePageNumber(resolvedSearch?.page);
+  if (!currentPage) notFound();
 
   // Fetch all posts (excluding the daily quiz if desired)
-  const { posts, totalPages } = await getPosts({
+  const archive = await getPosts({
     page: currentPage,
     perPage: SITE_CONFIG.postsPerPage,
     excludeSlugs: ['daily-quiz'],
   });
+  if (isInvalidArchivePage(archive, currentPage)) notFound();
+  const { posts, totalPages } = archive;
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -47,7 +52,10 @@ export default async function BlogPage({ searchParams }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <Breadcrumbs items={breadcrumbItems} />
+      <Breadcrumbs
+        items={breadcrumbItems}
+        currentPath={canonicalPath('/blog', currentPage)}
+      />
 
       {/* Header */}
       <div className="mb-6">

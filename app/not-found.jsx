@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { SITE_CONFIG } from '@/lib/constants';
 
+export const metadata = {
+  title: 'Page Not Found',
+  robots: { index: false, follow: true },
+};
+
 export default function NotFound() {
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">

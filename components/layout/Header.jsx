@@ -156,10 +156,10 @@ export default function Header() {
                   </Link>
                 ))}
                 <div className="border-t border-border mt-2 pt-2">
-                  <Link href="/contact" className="px-4 py-3 text-sm font-semibold rounded-lg text-text-primary hover:bg-surface block">
+                  <Link href="/contact-us" className="px-4 py-3 text-sm font-semibold rounded-lg text-text-primary hover:bg-surface block">
                     Contact
                   </Link>
-                  <Link href="/about" className="px-4 py-3 text-sm font-semibold rounded-lg text-text-primary hover:bg-surface block">
+                  <Link href="/about-us" className="px-4 py-3 text-sm font-semibold rounded-lg text-text-primary hover:bg-surface block">
                     About
                   </Link>
                 </div>

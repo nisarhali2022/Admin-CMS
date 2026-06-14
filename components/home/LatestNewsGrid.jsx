@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getCategoryColor, stripHtml } from '@/lib/utils';
+import {
+  getCategoryColor,
+  getFeaturedImageAlt,
+} from '@/lib/utils';
 
 export default function LatestNewsGrid({ posts }) {
   if (!posts?.length) return null;
@@ -26,7 +29,7 @@ export default function LatestNewsGrid({ posts }) {
                 {img ? (
                   <Image
                     src={img}
-                    alt={stripHtml(post.title?.rendered || '')}
+                    alt={getFeaturedImageAlt(post)}
                     fill
                     priority={index === 0}
                     className="object-cover group-hover:scale-105 transition-transform duration-300"

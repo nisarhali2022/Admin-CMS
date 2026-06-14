@@ -97,6 +97,8 @@ GET /wrong-category/<valid-post>/               -> 308 to canonical category
 
 **Source:** Code
 
+**Status:** Resolved on June 14, 2026.
+
 `app/[slug]/[post_slug]/page.jsx` renders breadcrumbs, metadata, the featured
 image, TOC, and content, but it never renders `post.title.rendered`.
 
@@ -107,7 +109,10 @@ image, TOC, and content, but it never renders `post.title.rendered`.
 - Accessibility and search-engine content interpretation are weakened.
 - Users do not see the article title after opening a card.
 
-**Required fix:** Render one sanitized article title before `PostMeta`:
+**Implemented result:** Article pages now render one plain-text WordPress post
+title as the page-level H1 before `PostMeta`.
+
+The implemented pattern is equivalent to:
 
 ```jsx
 <h1>{stripHtml(post.title.rendered)}</h1>
@@ -119,6 +124,8 @@ Keep exactly one page-level H1.
 
 **Source:** Code
 
+**Status:** Resolved on June 14, 2026.
+
 `SITE_CONFIG.defaultOgImage` is `/og-default.jpg`, but `public/` contains no
 matching file. This URL is used by the root layout, homepage, blog, category,
 tag, post, and generic page metadata when no featured image is available.
@@ -129,13 +136,11 @@ tag, post, and generic page metadata when no featured image is available.
 - Link click-through rate can fall.
 - Metadata validators report a broken asset.
 
-**Required fix:** Add a real 1200x630 image at:
+**Implemented result:** A branded, optimized 1200x630 JPEG now exists at:
 
 ```text
 public/og-default.jpg
 ```
-
-Alternatively, change the constant to an existing absolute image URL.
 
 ## 4. High-Priority Issues
 
@@ -167,6 +172,8 @@ Validate the page number and return 404 for values below 1 or above the last
 available page.
 
 ### SEO-05: Generated titles can repeat the site name
+
+**Status:** Resolved on June 14, 2026.
 
 **Source:** Code
 
@@ -203,9 +210,15 @@ Post Title
 Allow the root template to append the brand once. Preserve complete external
 Yoast titles with `title.absolute` when appropriate.
 
+**Implemented result:** Route-generated titles now contain only the
+page-specific title. Complete Yoast titles use an absolute title so the root
+template does not append the brand a second time.
+
 ### SEO-06: Generic WordPress pages also omit a visible H1
 
 **Source:** Code
+
+**Status:** Resolved on June 14, 2026.
 
 The WordPress-page branch of `app/[slug]/page.jsx` renders `PostMeta`,
 featured image, TOC, and content without rendering `page.title.rendered`.
@@ -213,9 +226,12 @@ featured image, TOC, and content without rendering `page.title.rendered`.
 **Impact:** The same heading-hierarchy problem as SEO-02 affects dynamically
 resolved WordPress pages.
 
-**Fix:** Render one sanitized H1 before page metadata and content.
+**Implemented result:** The dynamic WordPress-page branch now renders the
+plain-text WordPress page title as one H1 before page metadata and content.
 
 ### SEO-07: Repository routes conflict with existing WordPress page slugs
+
+**Status:** Resolved on June 14, 2026.
 
 **Source:** Code + Live
 
@@ -250,6 +266,10 @@ The previously supplied page sitemap also used `/contact-us/`.
 
 Update fetch slugs, route links, metadata canonicals, sitemap output, and
 redirect old variants permanently.
+
+**Implemented result:** `/about-us` and `/contact-us` are the canonical public
+routes. Header/footer links and WordPress lookups use those slugs, while
+`/about` and `/contact` issue permanent redirects.
 
 ### SEO-08: Sitemap failures are silently converted into empty/partial maps
 
@@ -295,6 +315,8 @@ and WordPress/Next.js ownership. Establish one authoritative rendering layer.
 
 ### SEO-10: Archive and tag pages can be thin
 
+**Status:** Resolved on June 14, 2026.
+
 **Source:** Code
 
 Category pages display a description only when WordPress provides one. Tag
@@ -312,6 +334,10 @@ sentence.
 - Add unique category introductions, entities, and internal links.
 - Add useful tag descriptions or mark low-value tag archives `noindex`.
 - Keep only strategically useful taxonomy pages indexable.
+
+**Implemented result:** Category archives use WordPress descriptions when
+available and useful category-specific fallback introductions otherwise. Tag
+archives display a description and are consistently `noindex, follow`.
 
 ### SEO-11: Article structured data is incomplete and uses unsanitized titles
 
@@ -342,6 +368,8 @@ featured-image data, publisher logo, and author identity.
 
 ### SEO-12: Canonical slash style is inconsistent
 
+**Status:** Resolved on June 14, 2026.
+
 **Source:** Code
 
 Sitemaps output trailing slashes, while metadata canonicals generally do not.
@@ -349,7 +377,13 @@ Sitemaps output trailing slashes, while metadata canonicals generally do not.
 **Fix:** Choose one URL convention and enforce it through Next.js redirects,
 internal links, canonicals, and sitemaps.
 
+**Implemented result:** The application explicitly uses no trailing slash for
+non-root URLs. Canonical helpers and all XML sitemap URL entries follow the
+same convention.
+
 ### SEO-13: Homepage metadata date and visible H1 can diverge
+
+**Status:** Resolved on June 14, 2026.
 
 **Source:** Code
 
@@ -360,6 +394,9 @@ the WordPress `daily-quiz` Yoast/title data, which may not update at midnight.
 
 **Fix:** Generate the homepage title and description from the same Karachi
 date helper, while retaining only stable Yoast fields that do not conflict.
+
+**Implemented result:** The homepage metadata title and visible H1 now use the
+same Karachi date helper. The stable Yoast description can still be used.
 
 ### SEO-14: Homepage sitemap `lastmod` does not reflect midnight date changes
 
@@ -374,6 +411,8 @@ false modification time.
 
 ### SEO-15: Breadcrumb JSON-LD omits the final item URL
 
+**Status:** Resolved on June 14, 2026.
+
 **Source:** Code
 
 Only breadcrumb entries with `href` receive an `item` URL. The final current
@@ -381,6 +420,9 @@ page has no `item`.
 
 **Fix:** Pass the canonical path for every breadcrumb item, including the
 current page, and include the absolute URL in JSON-LD.
+
+**Implemented result:** Every breadcrumb schema item now has an absolute URL,
+including the current page and its pagination/search parameters.
 
 ### SEO-16: No site-level Organization or WebSite schema in Next.js output
 
@@ -411,6 +453,8 @@ schema.
 
 ### SEO-18: Open Graph/Twitter metadata is inconsistent by route
 
+**Status:** Resolved on June 14, 2026.
+
 **Source:** Code
 
 Some routes define Open Graph but not Twitter fields. Static pages do not
@@ -423,6 +467,10 @@ always define images. Dynamic images omit explicit width/height.
 - Open Graph URL/type/image dimensions
 - Twitter card/title/description/image
 - robots policy
+
+**Implemented result:** `lib/seo.js` now builds route metadata with consistent
+canonicals, Open Graph fields, Twitter cards, images, article dates, title
+handling, and optional robots policy.
 
 ### SEO-19: WordPress REST payloads are larger than necessary
 
@@ -484,12 +532,18 @@ Post-process non-critical body images with `loading="lazy"` and
 
 **Source:** Code
 
+**Status:** Resolved on June 14, 2026.
+
 Fallback alt text can use `post.title.rendered` directly. Recent-post image alt
 text also uses the rendered title.
 
-**Fix:** Decode entities and strip HTML before assigning alt attributes.
+**Implemented result:** `getFeaturedImageAlt()` now strips HTML and decodes
+entities. Featured images, homepage Latest News, and sidebar Recent Posts use
+that shared sanitized alt-text helper.
 
 ### SEO-25: Invalid archive page numbers do not become clean 404 responses
+
+**Status:** Resolved on June 14, 2026.
 
 **Source:** Code
 
@@ -500,9 +554,15 @@ errors rather than a not-found response.
 **Fix:** Reject non-integers and values below 1. Return 404 when
 `currentPage > totalPages`.
 
+**Implemented result:** Blog, category, tag, and search routes reject
+non-integer, zero, negative, and out-of-range page values with `notFound()`.
+WordPress invalid-page 400 responses are normalized into the same 404 path.
+
 ### SEO-26: Social profile links are placeholders
 
 **Source:** Code
+
+**Status:** Resolved on June 14, 2026.
 
 Footer links point to generic destinations:
 
@@ -514,8 +574,9 @@ https://wa.me/
 
 **Impact:** Weak trust signals and poor user experience.
 
-**Fix:** Add verified profiles or remove the icons. Use the same verified URLs
-in Organization schema.
+**Implemented result:** Placeholder Facebook, Twitter, and WhatsApp profile
+icons were removed. Verified profiles can be added later and reused in
+Organization schema.
 
 ## 6. Low-Priority Issues
 
@@ -523,31 +584,38 @@ in Organization schema.
 
 **Source:** Code + Live
 
+**Status:** Resolved in the repository on June 14, 2026.
+
 Repository: `lang="en"`. Live: `lang="en-US"`. Primary audience and locale are
 Pakistan.
 
-**Fix:** Use `lang="en-PK"` consistently unless the content language differs.
+**Implemented result:** The Next.js root document now uses `lang="en-PK"`.
+Production still requires deployment/parity verification.
 
 ### SEO-28: Next.js metadata `link` resource hints are not reliable
 
 **Source:** Code
 
+**Status:** Resolved on June 14, 2026.
+
 The root metadata object contains a `link` array for Google Fonts. The project
 uses `next/font`, which self-hosts fonts, and resource hints should not be
 defined through an unsupported metadata field.
 
-**Fix:** Remove those entries. Use Next.js font handling and measure actual
-preconnect requirements.
+**Implemented result:** The obsolete font preconnect entries were removed.
+The site continues to use `next/font`.
 
 ### SEO-29: Placeholder AdSense script is loaded globally
 
 **Source:** Code
 
+**Status:** Resolved on June 14, 2026.
+
 The client ID is `ca-pub-XXXXXXXXXXXXXXXXX`, but the layout still renders the
 AdSense script URL.
 
-**Fix:** Load the script only when a valid environment-provided publisher ID
-exists.
+**Implemented result:** The root layout loads AdSense only when the configured
+publisher ID is non-empty and does not contain the placeholder `XXXX`.
 
 ### SEO-30: Sitemap image extraction is incomplete
 
@@ -561,6 +629,8 @@ image URL rather than scraping HTML only.
 
 ### SEO-31: Sitemap does not include tag archives
 
+**Status:** Resolved by policy on June 14, 2026.
+
 **Source:** Code
 
 Tag routes are indexable but absent from the sitemap.
@@ -571,6 +641,10 @@ Tag routes are indexable but absent from the sitemap.
 - mark all low-value tag archives `noindex`.
 
 Do not indiscriminately index every tag.
+
+**Implemented result:** All tag archives now explicitly use `noindex, follow`,
+so intentionally omitting them from the sitemap is consistent with the
+indexing policy.
 
 ### SEO-32: Metadata text can contain rendered HTML or entities
 
@@ -585,9 +659,11 @@ descriptions, alt text, and structured-data names.
 
 **Source:** Code
 
+**Status:** Resolved on June 14, 2026.
+
 Search metadata sets only `index: false`.
 
-**Fix:** Use:
+**Implemented result:** Search metadata now uses:
 
 ```js
 robots: { index: false, follow: true }
@@ -596,6 +672,8 @@ robots: { index: false, follow: true }
 This makes the intended policy explicit.
 
 ### SEO-34: Missing editorial trust pages and policies in application links
+
+**Status:** Resolved on June 14, 2026.
 
 **Source:** Code + Live
 
@@ -610,6 +688,11 @@ or sourcing policy.
 - Editorial and corrections policy.
 - Sources/methodology for quiz answers.
 - Terms, privacy, and disclaimer.
+
+**Implemented result:** The footer links About, Contact, Privacy, Terms,
+Disclaimer, Editorial Policy, and Corrections Policy. New editorial and
+corrections pages explain review and correction practices and are included in
+the page sitemap.
 
 ## 7. Content and Topical SEO Analysis
 
@@ -666,14 +749,26 @@ Noindex or remove one-post, duplicate, or near-synonymous tags.
 
 ## 8. Recommended Implementation Order
 
+### Completed easy fixes
+
+- SEO-02: article H1.
+- SEO-03: fallback Open Graph image.
+- SEO-06: dynamic WordPress page H1.
+- SEO-24: sanitized image alt text.
+- SEO-26: placeholder social profile removal.
+- SEO-27: `en-PK` document language.
+- SEO-28: obsolete preconnect removal.
+- SEO-29: conditional AdSense script.
+- SEO-33: explicit `noindex, follow` for search.
+
+SEO-32 remains intentionally open.
+
 ### Phase 1: Indexing protection
 
 1. Fix live category/article redirects to `/blog/`.
 2. Confirm production is serving this Next.js repository.
-3. Add article and generic-page H1 elements.
-4. Add the real fallback OG image.
-5. Correct page slug mismatches for About and Contact.
-6. Make paginated canonicals self-referencing.
+3. Correct page slug mismatches for About and Contact.
+4. Make paginated canonicals self-referencing.
 
 ### Phase 2: Metadata and schema
 

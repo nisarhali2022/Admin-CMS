@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getDailyQuizPost, getPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import { getKarachiDateLabel } from '@/lib/date';
-import { stripHtml, truncateText } from '@/lib/utils';
+import { buildMetadata } from '@/lib/seo';
 import { parseQuizTables, parseFaqs } from '@/lib/quizParser';
 
 import Sidebar from '@/components/layout/Sidebar';
@@ -23,12 +23,9 @@ export const revalidate = 3600;
 export async function generateMetadata() {
   const post = await getDailyQuizPost();
   const yoast = post?.yoast_head_json;
+  const todayLabel = getKarachiDateLabel();
 
-  const title =
-    yoast?.title ||
-    (post?.title?.rendered
-      ? `${stripHtml(post.title.rendered)} - Latest My Telenor Answer Today`
-      : 'Telenor Quiz Today — Get Daily Quiz Answers & Win Free Internet');
+  const title = `Telenor Quiz Today ${todayLabel} - Latest My Telenor Answers`;
   const description =
     yoast?.description ||
     'Get all correct Telenor Quiz Today. Check daily updated my Telenor answers today to boost your score instantly and win exciting rewards.';
@@ -36,19 +33,13 @@ export async function generateMetadata() {
     post?._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
     `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
 
-  return {
+  return buildMetadata({
     title,
     description,
-    alternates: { canonical: SITE_CONFIG.siteUrl },
-    openGraph: {
-      title, description,
-      url: SITE_CONFIG.siteUrl,
-      siteName: SITE_CONFIG.siteName,
-      type: 'website',
-      images: [{ url: ogImage }],
-    },
-    twitter: { card: 'summary_large_image', title, description, images: [ogImage] },
-  };
+    path: '/',
+    image: ogImage,
+    absoluteTitle: true,
+  });
 }
 
 export default async function HomePage() {

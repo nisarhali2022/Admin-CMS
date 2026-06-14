@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { SITE_CONFIG } from '@/lib/constants';
+import { absoluteUrl } from '@/lib/seo';
 
-export default function Breadcrumbs({ items }) {
+export default function Breadcrumbs({ items, currentPath }) {
   // items = [{ label, href? }, ...] — last item has no href
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -10,7 +10,7 @@ export default function Breadcrumbs({ items }) {
       '@type': 'ListItem',
       position: index + 1,
       name: item.label,
-      ...(item.href && { item: `${SITE_CONFIG.siteUrl}${item.href}` }),
+      item: absoluteUrl(item.href || currentPath || '/'),
     })),
   };
 

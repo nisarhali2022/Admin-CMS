@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatDate, getFirstCategory } from '@/lib/utils';
+import { formatDate, getFeaturedImageAlt, getFirstCategory } from '@/lib/utils';
 
 export default function RecentPosts({ posts = [] }) {
   if (!posts || posts.length === 0) return null;
@@ -21,7 +21,7 @@ export default function RecentPosts({ posts = [] }) {
                 {imageUrl ? (
                   <Image
                     src={imageUrl}
-                    alt={post.title?.rendered || ''}
+                    alt={getFeaturedImageAlt(post)}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-200"
                     sizes="64px"
