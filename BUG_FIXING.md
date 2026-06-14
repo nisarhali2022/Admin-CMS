@@ -53,6 +53,8 @@ still display the daily quiz.
 
 **Severity:** High
 
+**Status:** Resolved on June 14, 2026.
+
 **File:** `app/sitemap.js`
 
 **Problems:**
@@ -77,6 +79,12 @@ still display the daily quiz.
 **Test:** Generate `sitemap.xml` and assert that it contains no
 `[object Object]`, no unsupported `/category/` URLs, and only reachable post
 URLs.
+
+**Implemented result:** The site now publishes `/sitemap_index.xml` with
+separate `/post-sitemap.xml`, `/page-sitemap.xml`, and
+`/category-sitemap.xml` endpoints. Post URLs use
+`/<category-slug>/<post-slug>/`, category URLs use `/<category-slug>/`, page
+URLs use `/<page-slug>/`, and `robots.txt` points to the sitemap index.
 
 ### BF-03: Search pagination drops the search query
 

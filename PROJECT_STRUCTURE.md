@@ -35,7 +35,10 @@ telenor-quiz/
 | `/admin/quiz` | `app/admin/quiz/page.jsx` | `GET/POST /api/quiz` | Quiz editor |
 | `/api/quiz` | `app/api/quiz/route.js` | WordPress posts API | Read/write daily quiz |
 | `/api/revalidate` | `app/api/revalidate/route.js` | Next cache API | On-demand revalidation |
-| `/sitemap.xml` | `app/sitemap.js` | Post/category slug APIs | Sitemap |
+| `/sitemap_index.xml` | `app/sitemap_index.xml/route.js` | Sitemap helpers | Sitemap index |
+| `/post-sitemap.xml` | `app/post-sitemap.xml/route.js` | WordPress posts | Blog and post URLs |
+| `/page-sitemap.xml` | `app/page-sitemap.xml/route.js` | WordPress pages/quiz | Homepage and page URLs |
+| `/category-sitemap.xml` | `app/category-sitemap.xml/route.js` | Categories/posts | Category URLs |
 | `/robots.txt` | `app/robots.js` | None | Crawler rules |
 | not found | `app/not-found.jsx` | None | Custom 404 |
 

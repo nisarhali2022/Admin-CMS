@@ -7,6 +7,6 @@ export default function robots() {
       allow: '/',
       disallow: ['/api/', '/wp-admin/', '/wp-login.php'],
     },
-    sitemap: `${SITE_CONFIG.siteUrl}/sitemap.xml`,
+    sitemap: `${SITE_CONFIG.siteUrl}/sitemap_index.xml`,
   };
 }
