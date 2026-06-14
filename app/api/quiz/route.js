@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { hasAdminSession } from '@/lib/adminAuth';
 import { getKarachiDateISO, getKarachiDateLabel } from '@/lib/date';
+import { decodeHtmlEntities } from '@/lib/utils';
 
 const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
 const WP_USER = process.env.WP_ADMIN_USER;
 const WP_PASS = process.env.WP_ADMIN_PASS;
+const MAX_QUESTION_LENGTH = 300;
+const MAX_OPTION_LENGTH = 150;
 
 function createAuthHeader(user, pass) {
   const credentials = Buffer.from(`${user}:${pass}`).toString('base64');
@@ -72,14 +75,74 @@ async function saveQuizToWordPress(questions) {
   }
 }
 
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeQuizQuestions(questions) {
+  if (!Array.isArray(questions) || questions.length !== 5) {
+    throw new Error('Quiz must have exactly 5 questions.');
+  }
+
+  return questions.map((item, index) => {
+    const question =
+      typeof item?.question === 'string' ? item.question.trim() : '';
+    const answer =
+      typeof item?.answer === 'string' ? item.answer.trim() : '';
+    const options = Array.isArray(item?.options)
+      ? item.options.map((option) =>
+          typeof option === 'string' ? option.trim() : ''
+        )
+      : [];
+
+    if (!question || question.length > MAX_QUESTION_LENGTH) {
+      throw new Error(
+        `Question ${index + 1} must contain 1-${MAX_QUESTION_LENGTH} characters.`
+      );
+    }
+
+    if (
+      options.length !== 4 ||
+      options.some(
+        (option) => !option || option.length > MAX_OPTION_LENGTH
+      )
+    ) {
+      throw new Error(
+        `Question ${index + 1} must have 4 non-empty options of at most ${MAX_OPTION_LENGTH} characters.`
+      );
+    }
+
+    const matchingOption = options.find(
+      (option) => option.toLowerCase() === answer.toLowerCase()
+    );
+
+    if (!matchingOption) {
+      throw new Error(
+        `Question ${index + 1} answer must match one of its options.`
+      );
+    }
+
+    return {
+      question,
+      options,
+      answer: matchingOption,
+    };
+  });
+}
+
 function formatQuizContent(questions) {
   let html = '';
   questions.forEach((q, i) => {
-    html += `<table><tbody><tr><td>Question ${i + 1}: ${q.question}</td></tr>`;
+    html += `<table><tbody><tr><td>Question ${i + 1}: ${escapeHtml(q.question)}</td></tr>`;
     q.options.forEach((opt) => {
-      html += `<tr><td>– ${opt}</td></tr>`;
+      html += `<tr><td>– ${escapeHtml(opt)}</td></tr>`;
     });
-    html += `<tr><td>Answer 👉 ${q.answer}</td></tr></tbody></table>`;
+    html += `<tr><td>Answer 👉 ${escapeHtml(q.answer)}</td></tr></tbody></table>`;
   });
   return html;
 }
@@ -129,7 +192,9 @@ function parseQuizContent(content) {
         const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
         if (cells.length === 0) continue;
 
-        const cellText = cells[0].replace(/<[^>]*>/g, '').trim();
+        const cellText = decodeHtmlEntities(
+          cells[0].replace(/<[^>]*>/g, '').trim()
+        );
 
         if (/^Question\s+\d+:/i.test(cellText)) {
           const match = cellText.match(/^Question\s+\d+:\s*(.+?)$/i);
@@ -163,31 +228,28 @@ export async function POST(request) {
     const body = await request.json();
     const { questions } = body;
 
-    if (!questions || !Array.isArray(questions) || questions.length !== 5) {
+    let normalizedQuestions;
+    try {
+      normalizedQuestions = normalizeQuizQuestions(questions);
+    } catch (error) {
       return NextResponse.json(
-        { message: 'Invalid quiz data: Must have exactly 5 questions' },
+        { message: error.message },
         { status: 400 }
       );
     }
 
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      if (!q.question?.trim() || !q.answer?.trim() || !Array.isArray(q.options) || q.options.length !== 4) {
-        return NextResponse.json(
-          { message: `Invalid question ${i + 1}: Must have text, 4 options, and an answer` },
-          { status: 400 }
-        );
-      }
-    }
-
-    const post = await saveQuizToWordPress(questions);
+    const post = await saveQuizToWordPress(normalizedQuestions);
 
     // Invalidate cached quiz data so home page shows updated quiz
     revalidateTag('quiz');
 
     return NextResponse.json({
       message: 'Quiz saved successfully to WordPress',
-      data: { questions, date: getKarachiDateISO(), id: post.id },
+      data: {
+        questions: normalizedQuestions,
+        date: getKarachiDateISO(),
+        id: post.id,
+      },
     });
   } catch (err) {
     console.error('Error in POST /api/quiz:', err.message);

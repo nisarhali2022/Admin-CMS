@@ -120,7 +120,8 @@ The session API validates the secret and creates a signed eight-hour cookie.
 `app/api/quiz/route.js` validates that session and the quiz payload, converts
 the quiz to HTML tables, then creates or updates the WordPress `daily-quiz`
 post using Basic Authentication. The date is assigned automatically by the
-server in the `Asia/Karachi` timezone; there is no manual date field.
+server in the `Asia/Karachi` timezone; there is no manual date field. Quiz
+fields are length-checked, answer-checked, and HTML-escaped before storage.
 
 ## 6. Configuration
 

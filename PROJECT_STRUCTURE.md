@@ -286,7 +286,10 @@ Body:
 ```
 
 Exactly five questions and exactly four options per question are required.
-The server assigns and returns the current Karachi date automatically.
+Each option must be non-empty and no longer than 150 characters, each question
+is limited to 300 characters, and the answer must match one option. The API
+HTML-escapes all values before saving them to WordPress. The server assigns and
+returns the current Karachi date automatically.
 
 ### `GET /api/cron/midnight`
 

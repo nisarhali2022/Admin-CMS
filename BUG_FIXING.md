@@ -184,6 +184,8 @@ allowing the next request to regenerate the new date.
 
 **Severity:** High
 
+**Status:** Resolved on June 14, 2026.
+
 **File:** `app/api/quiz/route.js`
 
 **Problem:** Questions, options, and answers are concatenated directly into
@@ -195,6 +197,12 @@ or scripts in WordPress content. That content is later rendered with
 
 **Fix:** HTML-escape all text fields before creating table markup. Validate
 maximum lengths and ensure the answer equals one of the four options.
+
+**Implemented result:** The quiz API trims and validates every question,
+option, and answer before writing. It requires exactly five questions, four
+non-empty options per question, a matching answer, question text up to 300
+characters, and options up to 150 characters. All stored values are HTML
+escaped before WordPress table markup is generated.
 
 ## 3. Medium-Priority Issues
 
@@ -450,12 +458,17 @@ active post routes already do.
 
 ### BF-27: Admin input validation is incomplete
 
+**Status:** Resolved on June 14, 2026.
+
 The client checks question and answer text but not empty options. The API checks
 only that four options exist, not that each is non-empty or that the answer is
 one of them.
 
 **Fix:** Trim and validate every option, reject duplicates if undesired, and
 require exact answer membership.
+
+**Implemented result:** The API trims all fields, rejects empty or oversized
+options, and requires the answer to match one of the four normalized options.
 
 ### BF-28: Date/time presentation is inconsistent
 
