@@ -10,6 +10,7 @@ import {
   getFeaturedImageUrl,
   getPostAuthor,
   optimizeContentImages,
+  removeContentH1Blocks,
   toPlainText,
 } from '@/lib/utils';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
@@ -70,7 +71,8 @@ export default async function PostPage({ params }) {
 
   const postUrl = `${SITE_CONFIG.siteUrl}/${categorySlug}/${post_slug}`;
 
-  const optimizedHtml = optimizeContentImages(post.content?.rendered || '');
+  const contentHtml = removeContentH1Blocks(post.content?.rendered || '');
+  const optimizedHtml = optimizeContentImages(contentHtml);
   const { modifiedHtml, toc } = generateTocAndInjectIds(optimizedHtml);
   const adMarker = '<!--AD_IN_ARTICLE-->';
   const contentWithAd = injectAdAfterFirstParagraph(modifiedHtml, adMarker);

@@ -23,6 +23,7 @@ import ShareButtons from '@/components/ui/ShareButtons';
 import {
   injectAdAfterFirstParagraph,
   optimizeContentImages,
+  removeContentH1Blocks,
   toPlainText,
   truncateText,
 } from '@/lib/utils';
@@ -133,7 +134,8 @@ export default async function SlugPage({ params, searchParams }) {
   // 2. Check if Page
   const page = await getPageBySlug(slug);
   if (page) {
-    const optimizedHtml = optimizeContentImages(page.content?.rendered || '');
+    const contentHtml = removeContentH1Blocks(page.content?.rendered || '');
+    const optimizedHtml = optimizeContentImages(contentHtml);
     const { modifiedHtml, toc } = generateTocAndInjectIds(optimizedHtml);
     const adMarker = '<!--AD_IN_ARTICLE-->';
     const contentWithAd = injectAdAfterFirstParagraph(modifiedHtml, adMarker);
