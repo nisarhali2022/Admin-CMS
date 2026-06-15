@@ -101,7 +101,8 @@ responses return `null`; repeated CMS failures throw `WordPressApiError`.
 ### `lib/utils.js`
 
 Presentation helpers for dates, reading time, plain text, excerpts, category
-colors, media, authors, categories, and HTML ad-marker insertion.
+colors, media, authors, categories, HTML ad-marker insertion, and responsive
+WordPress body images.
 
 Main callers: post cards, post pages, metadata functions, widgets, homepage,
 footer, and breadcrumbs.

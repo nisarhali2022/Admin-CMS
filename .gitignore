@@ -25,6 +25,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local WordPress content migration backups
+/.h1-cleanup/
+
 # OS files
 .DS_Store
 Thumbs.db
