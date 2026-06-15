@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { optimizeContentImages } from '../lib/utils.js'
+import { optimizeContentImages, removeContentH1Blocks } from '../lib/utils.js'
 
 test('body images preserve supplied responsive markup', () => {
   const html =
@@ -36,4 +36,24 @@ test('body images receive fallback dimensions and optimizer sources', () => {
   assert.match(result, /height="450"/)
   assert.match(result, /%3A%2F%2Fexample\.com%2Fphoto\.webp/)
   assert.match(result, /750w/)
+})
+
+test('content h1 blocks are removed while lower headings remain', () => {
+  const result = removeContentH1Blocks(
+    '<h1 class="wp-block-heading">Post Title</h1><p>Intro</p><h2>Section</h2>'
+  )
+
+  assert.doesNotMatch(result, /<h1\b/i)
+  assert.match(result, /<p>Intro<\/p>/)
+  assert.match(result, /<h2>Section<\/h2>/)
+})
+
+test('gutenberg h1 heading comments are removed with the heading', () => {
+  const result = removeContentH1Blocks(
+    '<!-- wp:heading {"level":1} --><h1>Manual Title</h1><!-- /wp:heading --><p>Body</p>'
+  )
+
+  assert.doesNotMatch(result, /wp:heading/i)
+  assert.doesNotMatch(result, /<h1\b/i)
+  assert.match(result, /<p>Body<\/p>/)
 })
