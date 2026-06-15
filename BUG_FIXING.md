@@ -2,21 +2,20 @@
 
 ## 1. Review Result
 
-Review date: June 14, 2026.
+Review date: June 15, 2026.
 
 Commands checked:
 
 | Check | Result |
 | --- | --- |
-| `npm.cmd run build` | Currently blocked by Windows `EPERM` on `.next/trace` |
-| `npm.cmd run lint` | Blocked: ESLint is not configured |
-| Automated tests | No test script or test files |
+| `npm.cmd run build` | Passed; all 28 routes generated on June 15, 2026 |
+| `npm.cmd run lint` | Passed with no warnings or errors |
+| `npm.cmd run test` | Passed: 13 tests |
 
-An earlier production build passed. The current uncommitted change set has
-passed focused checks and `git diff --check`, but a full build cannot currently
-start because `.next/trace` is locked. The following register records
-behavioral, security, data-integrity, SEO, performance, UI, and maintainability
-findings.
+The current uncommitted change set passed a production build using an isolated
+output directory, focused browser/runtime checks, and `git diff --check`. The
+following register records behavioral, security, data-integrity, SEO,
+performance, UI, and maintainability findings.
 
 ## 2. Critical and High-Priority Issues
 
@@ -354,6 +353,8 @@ rendered URLs.
 
 **Severity:** Medium
 
+**Status:** Resolved on June 15, 2026.
+
 **Files:** route files, `components/ads/AdBanner.jsx`
 
 Routes pass values such as `position="mid"` and `position="bottom"`, but
@@ -363,9 +364,15 @@ Routes pass values such as `position="mid"` and `position="bottom"`, but
 **Fix:** Either pass explicit `slot={AD_SLOTS...}` everywhere or add a
 position-to-slot map inside `AdBanner`.
 
+**Implemented result:** `AdBanner` maps supported position names to
+environment-backed slots and renders only when publisher and slot values are
+valid.
+
 ### BF-14: AdSense script loads even with placeholder configuration
 
 **Severity:** Medium
+
+**Status:** Resolved on June 15, 2026.
 
 **Files:** `app/layout.jsx`, `lib/constants.js`
 
@@ -375,9 +382,14 @@ global AdSense script is still requested with the invalid placeholder ID.
 **Fix:** Render the `<Script>` only when a real AdSense client ID is configured.
 Prefer an environment variable for deployment-specific IDs.
 
+**Implemented result:** Placeholder publisher IDs and slots render neither the
+global script nor empty ad containers.
+
 ### BF-15: The configured Merriweather font is not mapped to Tailwind classes
 
 **Severity:** Medium
+
+**Status:** Resolved on June 15, 2026.
 
 **Files:** `app/layout.jsx`, `tailwind.config.js`, multiple components
 
@@ -397,6 +409,9 @@ fontFamily: {
 
 Then decide whether headings should consistently use `font-heading` or
 `font-merriweather`.
+
+**Implemented result:** The unused Merriweather download and utility classes
+were removed. Inter is now the single application font.
 
 ### BF-16: Nested `<main>` elements and duplicate `id="main"`
 
@@ -421,13 +436,21 @@ landmark in the root layout.
 
 ### BF-17: ESLint is not configured
 
+**Status:** Resolved on June 15, 2026.
+
 `npm run lint` opens an interactive setup prompt, so CI cannot lint the code.
 Next.js also warns that `next lint` is deprecated.
 
 **Fix:** Install/configure ESLint and `eslint-config-next`, add an
 `eslint.config.mjs`, and change the script to `eslint .`.
 
+**Implemented result:** ESLint 9 and `eslint-config-next` are installed. The
+flat configuration extends Next.js Core Web Vitals rules, and `npm run lint`
+runs non-interactively with no warnings or errors.
+
 ### BF-18: No automated tests
+
+**Status:** Resolved for the current critical surface on June 15, 2026.
 
 Add focused tests for:
 
@@ -438,6 +461,11 @@ Add focused tests for:
 - Category/post canonical redirects.
 - API authentication and payload validation.
 - Karachi date boundaries.
+
+**Implemented result:** `npm run test` executes 13 tests through `tsx` and
+Node's native test runner. Coverage includes quiz normalization and escaping,
+canonical and pagination behavior, archive validation, Karachi midnight, and
+WordPress missing-versus-unavailable behavior and body-image enhancement.
 
 ### BF-19: API failures are silently swallowed
 
@@ -680,6 +708,8 @@ explicit `24px` parent gap, and the old per-widget bottom margin was removed.
 
 **Priority:** High
 
+**Status:** Open and required.
+
 `lib/quizParser.js` currently captures question text with a pattern ending in
 `\?`. Admin validation allows a question without a question mark, so valid
 saved input can parse into an empty question.
@@ -690,6 +720,8 @@ marker instead of requiring punctuation.
 ### IMP-02: Empty or malformed quiz content has no visible fallback
 
 **Priority:** High
+
+**Status:** Open and required.
 
 `QuizAnswerCards` returns `null` when parsing produces no questions. The page
 can display a quiz heading followed by empty space.
@@ -722,6 +754,8 @@ Merriweather download and stale utility classes were removed.
 
 ### IMP-06: Tooling and regression coverage
 
+**Status:** Resolved for the current critical surface on June 15, 2026.
+
 This combines unresolved BF-17 and BF-18:
 
 - Add non-interactive ESLint configuration.
@@ -731,7 +765,13 @@ This combines unresolved BF-17 and BF-18:
 - Add tests around Karachi midnight.
 - Add browser checks for author, breadcrumb, date visibility, and sidebar UI.
 
+ESLint and focused automated tests are now implemented. Additional
+browser-level regression coverage remains optional expansion rather than a
+blocker.
+
 ### IMP-07: Small cleanup
+
+**Status:** Optional cleanup.
 
 - Correct stale comments in `lib/quizParser.js`.
 
@@ -783,9 +823,11 @@ Completed during the June 15, 2026 performance pass:
 
 ## 7. Recommended Fix Order
 
-1. IMP-01 and IMP-02: prevent valid quiz content from disappearing.
-2. IMP-06: add linting and regression tests.
-3. IMP-07: complete low-risk cleanup.
+1. IMP-01: accept valid quiz questions without trailing punctuation.
+2. IMP-02: prevent an empty quiz section when WordPress content is malformed.
+3. Verify live category/article routing and production parity after deployment.
+
+IMP-07 is optional cleanup and is not required for correctness.
 
 ## 8. Definition of Done
 

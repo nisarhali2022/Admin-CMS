@@ -30,8 +30,10 @@ telenor-quiz/
 | `/<slug>` | `app/[slug]/page.jsx` | Category API, then page API | Category archive or WP page |
 | `/<category>/<post>` | `app/[slug]/[post_slug]/page.jsx` | Post and related-post APIs | Article detail |
 | `/tag/<slug>` | `app/tag/[slug]/page.jsx` | Tag and posts APIs | Tag archive |
-| `/about` | `app/about/page.jsx` | `getPageBySlug('about')` | About page |
-| `/contact` | `app/contact/page.jsx` | `getPageBySlug('contact')` | Contact page |
+| `/about-us` | `app/about-us/page.jsx` | `getPageBySlug('about-us')` | Canonical About page |
+| `/contact-us` | `app/contact-us/page.jsx` | `getPageBySlug('contact-us')` | Canonical Contact page |
+| `/about` | `app/about/page.jsx` | None | Permanent redirect to `/about-us` |
+| `/contact` | `app/contact/page.jsx` | None | Permanent redirect to `/contact-us` |
 | `/privacy-policy` | `app/privacy-policy/page.jsx` | WP page API | Privacy policy |
 | `/admin/quiz` | `app/admin/quiz/page.jsx` | `GET/POST /api/quiz` | Quiz editor |
 | `/api/admin/session` | `app/api/admin/session/route.js` | Signed cookie auth | Login/session/logout |
@@ -127,9 +129,9 @@ generation, and authenticated quiz writes. It prefers `WORDPRESS_API_URL`.
 
 ### `hooks/useSearch.js`
 
-A reusable search form hook used by `Header` and `SearchWidget`. It owns query
-state, trimming, URL encoding, search navigation, and optional post-submit
-callback/clearing behavior.
+A reusable client search-form hook retained for `SearchWidget`. The global
+header no longer uses it because header search is a native server-rendered GET
+form.
 
 ## 4. Component Map
 
@@ -137,8 +139,10 @@ callback/clearing behavior.
 
 | File | Type | Calls/uses |
 | --- | --- | --- |
-| `components/layout/Header.jsx` | Client | navigation, search router, logo |
-| `components/layout/Footer.jsx` | Server | `getLatestPosts`, links, logo |
+| `components/layout/Header.jsx` | Server | navigation, logo, `HeaderControls` |
+| `components/layout/HeaderControls.jsx` | Server | native search and CSS-only mobile navigation |
+| `components/layout/Footer.jsx` | Server | static footer shell and Suspense boundary |
+| `components/layout/FooterRecentPosts.jsx` | Async Server | `getLatestPosts` |
 | `components/layout/Sidebar.jsx` | Server | recent, popular, and category widgets |
 
 ### Home
@@ -364,7 +368,8 @@ The UI generally uses:
 `lib/seo.js` centralizes canonical URLs, route metadata, page-number
 validation, and taxonomy descriptions. Tag archives are intentionally
 `noindex, follow`; blog/category/search/tag pagination returns 404 for invalid
-or out-of-range page numbers.
+or out-of-range page numbers. Blog, category, and tag page 2+ metadata uses a
+self-referencing canonical containing the active `page` query parameter.
 
 `lib/wordpress.js` uses selective `_fields` and `_embed` values for public
 queries. `lib/sitemap.js` reuses its retry policy, aborts incomplete
@@ -383,3 +388,17 @@ Performance-specific behavior:
 
 Any code producing `/category/<slug>` or a one-segment post URL is inconsistent
 with the implemented routes.
+
+## 8. Necessary Remaining Work
+
+| Priority | Area | Required change |
+| --- | --- | --- |
+| High | Quiz parsing | Parse question text without requiring a trailing `?` |
+| High | Quiz UI | Render a visible unavailable state when quiz HTML is empty or malformed |
+| Deployment | Live routing | Verify category/article URLs and production-source parity after deployment |
+
+Quality tooling now includes `eslint.config.mjs`, `npm run lint`, and 13 tests
+under `test/`. Shared quiz validation/escaping lives in `lib/quiz.js`.
+`optimizeContentImages()` preserves WordPress responsive markup and fills
+missing dimensions, optimizer `srcset`, `sizes`, loading, and decoding
+attributes.

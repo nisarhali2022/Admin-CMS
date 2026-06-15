@@ -2,7 +2,7 @@
 
 ## 1. Audit Scope
 
-Audit date: June 14, 2026.
+Audit date: June 15, 2026.
 
 This review covers:
 
@@ -53,6 +53,10 @@ performance.
 ### SEO-01: Live category and article URLs redirect to `/blog/`
 
 **Source:** Live
+
+**Status:** Requires production verification after deployment. The repository
+route implementation is correct, but the earlier live audit observed the
+redirect.
 
 The following representative production URLs resolved to `/blog/` during the
 audit:
@@ -148,6 +152,8 @@ public/og-default.jpg
 
 **Source:** Code
 
+**Status:** Resolved on June 15, 2026.
+
 Blog, category, and tag metadata ignore `searchParams.page`. For example:
 
 ```text
@@ -170,6 +176,10 @@ Blog, category, and tag metadata ignore `searchParams.page`. For example:
 
 Validate the page number and return 404 for values below 1 or above the last
 available page.
+
+**Implemented result:** Blog, category, and tag metadata pass the validated
+page number through `buildMetadata()`. `canonicalPath()` adds `?page=N` for
+page 2+, and invalid/out-of-range pages return the custom 404 response.
 
 ### SEO-05: Generated titles can repeat the site name
 
@@ -296,6 +306,8 @@ last cached complete sitemap over generating an empty or partial one.
 ### SEO-09: Production and repository metadata/schema are not in parity
 
 **Source:** Parity
+
+**Status:** Requires production deployment verification.
 
 The live homepage exposed:
 
@@ -570,11 +582,13 @@ resource only.
 
 ### SEO-23: WordPress body images are not optimized by application code
 
-**Status:** Partially resolved on June 15, 2026.
+**Status:** Resolved on June 15, 2026.
 
-**Implemented result:** WordPress body images receive `loading="lazy"` and
-`decoding="async"` when absent. Intrinsic dimensions and responsive `srcset`
-still depend on WordPress media markup.
+**Implemented result:** Existing WordPress dimensions, `srcset`, and `sizes`
+are preserved. Missing dimensions are inferred from WordPress filenames or
+receive a stable fallback. Images without `srcset` receive supported Next.js
+optimizer candidates and a responsive `sizes` value. Missing lazy-loading and
+asynchronous-decoding attributes are also added.
 
 **Source:** Code
 
@@ -835,10 +849,10 @@ SEO-32 was completed with the complex metadata/schema work on June 15, 2026.
 
 ### Phase 1: Indexing protection
 
-1. Fix live category/article redirects to `/blog/`.
+1. Verify live category/article URLs no longer redirect to `/blog/`.
 2. Confirm production is serving this Next.js repository.
-3. Correct page slug mismatches for About and Contact.
-4. Make paginated canonicals self-referencing.
+3. About/Contact slug alignment is completed.
+4. Self-referencing paginated canonicals are completed.
 
 ### Phase 2: Metadata and schema
 
@@ -863,12 +877,21 @@ SEO-32 was completed with the complex metadata/schema work on June 15, 2026.
 2. Simplify popular-post calculation. Completed.
 3. Prevent footer data from blocking the root layout. Completed.
 4. Measure and correct image preload priorities. Completed.
-5. Optimize WordPress body images. Partially completed; responsive source
-   quality still depends on WordPress media markup.
+5. Optimize WordPress body images. Completed.
 6. Add real social links, author profiles, editorial policies, and sourcing
    methodology.
 
-## 9. Validation Checklist
+## 9. Necessary Remaining SEO Work
+
+1. **SEO-01 deployment check:** Verify representative category and article
+   URLs return HTTP 200 with self-canonicals after the updated application is
+   deployed.
+2. **SEO-09 deployment check:** Confirm the production domain serves this
+   repository's metadata, schema, sitemap, language, and routing output.
+3. Measure field Core Web Vitals after deployment; build bundle sizes alone
+   do not confirm real-user LCP, INP, or CLS.
+
+## 10. Validation Checklist
 
 After fixes:
 
@@ -890,7 +913,7 @@ After fixes:
 - Search Console coverage, canonical, crawl, and enhancement reports are
   reviewed after deployment.
 
-## 10. Current Verification Limitations
+## 11. Current Verification Limitations
 
 - The June 15, 2026 production build compiled, type-checked, and generated all
   28 routes successfully using an isolated output directory.

@@ -3,6 +3,13 @@
 **Audit Type:** Core Web Vitals & Performance Insights  
 **Revision:** Second audit after partial fixes applied
 
+> **Historical report:** This audit also predates the completed June 15, 2026
+> performance pass. The proposed first-news-image `priority` change is no
+> longer the current recommendation because it produced competing preload
+> signals. The custom preloader and Latest News priority flag were removed.
+> Re-run Lighthouse against the deployed production build before treating any
+> metric or recommendation below as current.
+
 ---
 
 ## 📈 Progress Tracker (v1 → v2)

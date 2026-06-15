@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { hasAdminSession } from '@/lib/adminAuth';
 import { getKarachiDateISO, getKarachiDateLabel } from '@/lib/date';
+import {
+  escapeHtml,
+  normalizeQuizQuestions,
+} from '@/lib/quiz';
 import { decodeHtmlEntities } from '@/lib/utils';
 import { WORDPRESS_API_URL } from '@/lib/wordpressConfig';
 
 const WP_API_URL = WORDPRESS_API_URL;
 const WP_USER = process.env.WP_ADMIN_USER;
 const WP_PASS = process.env.WP_ADMIN_PASS;
-const MAX_QUESTION_LENGTH = 300;
-const MAX_OPTION_LENGTH = 150;
 const WORDPRESS_RETRY_DELAY_MS = 250;
 
 class QuizWordPressError extends Error {
@@ -141,66 +143,6 @@ async function saveQuizToWordPress(questions) {
     console.error('Error saving to WordPress:', err);
     throw err;
   }
-}
-
-function escapeHtml(value) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function normalizeQuizQuestions(questions) {
-  if (!Array.isArray(questions) || questions.length !== 5) {
-    throw new Error('Quiz must have exactly 5 questions.');
-  }
-
-  return questions.map((item, index) => {
-    const question =
-      typeof item?.question === 'string' ? item.question.trim() : '';
-    const answer =
-      typeof item?.answer === 'string' ? item.answer.trim() : '';
-    const options = Array.isArray(item?.options)
-      ? item.options.map((option) =>
-          typeof option === 'string' ? option.trim() : ''
-        )
-      : [];
-
-    if (!question || question.length > MAX_QUESTION_LENGTH) {
-      throw new Error(
-        `Question ${index + 1} must contain 1-${MAX_QUESTION_LENGTH} characters.`
-      );
-    }
-
-    if (
-      options.length !== 4 ||
-      options.some(
-        (option) => !option || option.length > MAX_OPTION_LENGTH
-      )
-    ) {
-      throw new Error(
-        `Question ${index + 1} must have 4 non-empty options of at most ${MAX_OPTION_LENGTH} characters.`
-      );
-    }
-
-    const matchingOption = options.find(
-      (option) => option.toLowerCase() === answer.toLowerCase()
-    );
-
-    if (!matchingOption) {
-      throw new Error(
-        `Question ${index + 1} answer must match one of its options.`
-      );
-    }
-
-    return {
-      question,
-      options,
-      answer: matchingOption,
-    };
-  });
 }
 
 function formatQuizContent(questions) {

@@ -193,7 +193,7 @@ publishing partial XML. Homepage `lastmod` follows the Karachi date rollover.
 
 ## 9. Verification Status
 
-Reviewed and updated on June 14, 2026:
+Reviewed and updated on June 15, 2026:
 
 | Check | Current result |
 | --- | --- |
@@ -202,8 +202,8 @@ Reviewed and updated on June 14, 2026:
 | Focused TOC behavior simulation | Passed |
 | Admin WordPress lookup simulations | Passed |
 | `npm.cmd run build` | Passed on June 15, 2026 using an isolated output directory |
-| ESLint | Not configured |
-| Automated test suite | Not configured |
+| ESLint | Passed with `npm.cmd run lint` |
+| Automated test suite | 13 tests passed with `npm.cmd run test` |
 
 The production build compiled, type-checked, and generated all 28 routes.
 Browser checks verified Organization/WebSite, Article, Person, author profile,
@@ -217,23 +217,31 @@ article routes. The shared `102 kB` is primarily the Next.js/React runtime.
 
 ## 10. Remaining Improvements
 
-### High priority
+### Required functional fixes
 
 1. Fix quiz parsing so a question does not need to end with `?`.
 2. Show a visible temporary-unavailable message when quiz HTML is missing or
    malformed instead of rendering an empty quiz section.
-3. Add automated tests for quiz selection, parsing, admin lookup failures,
-   pagination, sitemap URLs, and Karachi midnight behavior.
 
-### Medium priority
+### Remaining SEO and deployment validation
 
-1. Add non-interactive ESLint configuration.
+1. Verify after deployment that valid category and article URLs return their
+   own content instead of redirecting to `/blog`.
+2. Confirm the production domain is serving this repository's metadata,
+   schema, sitemap, canonical, and routing implementation.
 
-### Low priority
+Paginated blog, category, and tag canonicals are already self-referencing and
+are no longer part of the remaining work.
 
-1. Correct stale comments in the quiz parser.
-2. Add browser-level checks for responsive breadcrumbs, sidebar spacing,
-   author profiles, and hidden publication dates.
+Engineering safeguards completed on June 15, 2026:
+
+- ESLint 9 with the Next.js Core Web Vitals rules runs non-interactively.
+- The native Node test suite covers quiz validation/escaping, pagination,
+  canonical generation, archive validation, Karachi midnight, WordPress
+  missing-versus-unavailable behavior, and body-image processing.
+- WordPress body images retain existing responsive markup or receive inferred
+  dimensions, fallback dimensions, responsive Next.js optimizer sources,
+  `sizes`, lazy loading, and asynchronous decoding.
 
 See `PROJECT_STRUCTURE.md` for the file and call map. See `BUG_FIXING.md` for
 the issue history, resolved changes, and open work. See `SEO_ANALYSIS.md` for
