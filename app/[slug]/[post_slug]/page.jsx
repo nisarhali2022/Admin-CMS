@@ -4,9 +4,13 @@ import { getPostBySlug, getRelatedPosts } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import {
   getFirstCategory,
-  stripHtml,
   truncateText,
   injectAdAfterFirstParagraph,
+  getAuthorPath,
+  getFeaturedImageUrl,
+  getPostAuthor,
+  optimizeContentImages,
+  toPlainText,
 } from '@/lib/utils';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import FeaturedImage from '@/components/posts/FeaturedImage';
@@ -21,6 +25,7 @@ import ShareButtons from '@/components/ui/ShareButtons';
 import Sidebar from '@/components/layout/Sidebar';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { buildMetadata } from '@/lib/seo';
+import { serializeJsonLd } from '@/lib/schema';
 
 export const revalidate = 3600;
 
@@ -32,7 +37,9 @@ export async function generateMetadata({ params }) {
   const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
   const yoast = post.yoast_head_json;
   const title = yoast?.title || post.title?.rendered;
-  const description = yoast?.description || truncateText(stripHtml(post.excerpt?.rendered || post.content?.rendered || ''), 160);
+  const description =
+    yoast?.description ||
+    truncateText(post.excerpt?.rendered || post.content?.rendered || '', 160);
   const imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
   return buildMetadata({
     title,
@@ -63,30 +70,59 @@ export default async function PostPage({ params }) {
 
   const postUrl = `${SITE_CONFIG.siteUrl}/${categorySlug}/${post_slug}`;
 
-  const { modifiedHtml, toc } = generateTocAndInjectIds(post.content?.rendered || '');
+  const optimizedHtml = optimizeContentImages(post.content?.rendered || '');
+  const { modifiedHtml, toc } = generateTocAndInjectIds(optimizedHtml);
   const adMarker = '<!--AD_IN_ARTICLE-->';
   const contentWithAd = injectAdAfterFirstParagraph(modifiedHtml, adMarker);
   const [beforeAd, afterAd] = contentWithAd.split(adMarker);
 
+  const author = getPostAuthor(post);
+  const authorPath = getAuthorPath(author);
+  const imageUrl = getFeaturedImageUrl(post);
+  const description = truncateText(
+    post.excerpt?.rendered || post.content?.rendered || '',
+    160
+  );
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: post.title?.rendered,
+    '@id': `${postUrl}#article`,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': postUrl },
+    headline: toPlainText(post.title?.rendered),
+    description,
     datePublished: post.date,
     dateModified: post.modified,
-    author: { '@type': 'Person', name: post._embedded?.author?.[0]?.name || SITE_CONFIG.siteName },
-    publisher: { '@type': 'Organization', name: SITE_CONFIG.siteName, url: SITE_CONFIG.siteUrl },
+    ...(imageUrl && { image: [imageUrl] }),
+    author: {
+      '@type': 'Person',
+      name: toPlainText(author?.name || SITE_CONFIG.siteName),
+      url: `${SITE_CONFIG.siteUrl}${authorPath}`,
+    },
+    publisher: {
+      '@type': 'Organization',
+      '@id': `${SITE_CONFIG.siteUrl}/#organization`,
+      name: SITE_CONFIG.siteName,
+      url: SITE_CONFIG.siteUrl,
+      logo: {
+        '@type': 'ImageObject',
+        url: SITE_CONFIG.logoUrl,
+      },
+    },
+    inLanguage: 'en-PK',
   };
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     ...(category ? [{ label: category.name, href: `/${categorySlug}` }] : []),
-    { label: stripHtml(post.title?.rendered || '') },
+    { label: toPlainText(post.title?.rendered) },
   ];
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleSchema) }}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
           <article>
@@ -97,7 +133,7 @@ export default async function PostPage({ params }) {
             <h1
               className="font-heading font-bold text-3xl sm:text-4xl text-text-primary leading-tight mt-2 mb-4"
             >
-              {stripHtml(post.title?.rendered || '')}
+              {toPlainText(post.title?.rendered)}
             </h1>
             <PostMeta post={post} showDate={false} />
             <div className="mt-5 mb-6"><FeaturedImage post={post} priority /></div>
@@ -107,7 +143,7 @@ export default async function PostPage({ params }) {
             {afterAd && <div className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm" dangerouslySetInnerHTML={{ __html: afterAd }} />}
             <AuthorBox post={post} />
             <div className="mt-8"><AdBanner position="after-content" /></div>
-            <ShareButtons title={stripHtml(post.title?.rendered || '')} url={postUrl} />
+            <ShareButtons title={toPlainText(post.title?.rendered)} url={postUrl} />
             {relatedPosts.length > 0 && (
               <section className="mt-10">
                 <h2 className="font-heading font-bold text-xl text-text-primary mb-5">Related Posts</h2>

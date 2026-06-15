@@ -30,7 +30,7 @@ export default function ShareButtons({ title, url }) {
 
   return (
     <div className="my-8">
-      <h3 className="font-merriweather font-bold text-base text-text-primary mb-3">
+      <h3 className="font-heading font-bold text-base text-text-primary mb-3">
         Share this post
       </h3>
 

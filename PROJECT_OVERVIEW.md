@@ -158,6 +158,13 @@ homepage with the new date even when quiz answers were not edited.
 | --- | --- |
 | `WORDPRESS_API_URL` | Preferred server-side WordPress REST API URL |
 | `NEXT_PUBLIC_WORDPRESS_API_URL` | Backward-compatible URL fallback |
+| `NEXT_PUBLIC_ADSENSE_ID` | Public AdSense publisher/client ID |
+| `NEXT_PUBLIC_AD_SLOT_TOP` | Top horizontal ad slot |
+| `NEXT_PUBLIC_AD_SLOT_MID` | Mid-page horizontal ad slot |
+| `NEXT_PUBLIC_AD_SLOT_IN_ARTICLE` | In-article fluid ad slot |
+| `NEXT_PUBLIC_AD_SLOT_SIDEBAR` | Sidebar ad slot |
+| `NEXT_PUBLIC_AD_SLOT_AFTER_CONTENT` | After-content ad slot |
+| `NEXT_PUBLIC_AD_SLOT_BOTTOM` | Bottom horizontal ad slot |
 | `WP_ADMIN_USER` | WordPress API username |
 | `WP_ADMIN_PASS` | WordPress application password |
 | `ADMIN_SECRET` | Admin login and session-signing secret |
@@ -180,6 +187,10 @@ Post URLs use `/<category>/<post>`; categories use `/<category>`; pages use
 `/<page>`. Non-root URLs consistently omit trailing slashes, and `robots.txt`
 points to the sitemap index.
 
+The page sitemap also includes crawlable `/author/<slug>` profiles. Sitemap
+collection uses the shared WordPress retry policy and aborts rather than
+publishing partial XML. Homepage `lastmod` follows the Karachi date rollover.
+
 ## 9. Verification Status
 
 Reviewed and updated on June 14, 2026:
@@ -190,13 +201,19 @@ Reviewed and updated on June 14, 2026:
 | `git diff --check` | Passed |
 | Focused TOC behavior simulation | Passed |
 | Admin WordPress lookup simulations | Passed |
-| `npm.cmd run build` | Passed using an isolated output directory while the development server owned `.next` |
+| `npm.cmd run build` | Passed on June 15, 2026 using an isolated output directory |
 | ESLint | Not configured |
 | Automated test suite | Not configured |
 
-The production build compiled, type-checked, and generated all 28 routes. A
-non-fatal Windows warning occurred while renaming one temporary webpack cache
-file after route generation.
+The production build compiled, type-checked, and generated all 28 routes.
+Browser checks verified Organization/WebSite, Article, Person, author profile,
+canonical, image-priority, no-hydration header, disabled-ad, responsive-image,
+and deferred-rendering output. Local HTTP checks verified sitemap author
+entries, homepage `lastmod`, and extracted images.
+
+The final performance build reports approximately `634 B` of route-specific
+JavaScript for the homepage, `637 B` for blog/tag archives, and `2.57 kB` for
+article routes. The shared `102 kB` is primarily the Next.js/React runtime.
 
 ## 10. Remaining Improvements
 
@@ -210,16 +227,12 @@ file after route generation.
 
 ### Medium priority
 
-1. Implement real ad-slot selection for `AdBanner` position values.
-2. Correct the Merriweather/Tailwind font mapping.
-3. Add non-interactive ESLint configuration.
+1. Add non-interactive ESLint configuration.
 
 ### Low priority
 
-1. Add `per_page=1` to the public `daily-quiz` slug request.
-2. Remove remaining unused imports, including sidebar search/ad imports while
-   those cards remain disabled, and correct stale comments.
-3. Add browser-level checks for responsive breadcrumbs, sidebar spacing,
+1. Correct stale comments in the quiz parser.
+2. Add browser-level checks for responsive breadcrumbs, sidebar spacing,
    author profiles, and hidden publication dates.
 
 See `PROJECT_STRUCTURE.md` for the file and call map. See `BUG_FIXING.md` for

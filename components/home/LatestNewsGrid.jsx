@@ -3,6 +3,7 @@ import Image from 'next/image';
 import {
   getCategoryColor,
   getFeaturedImageAlt,
+  getFeaturedImageUrl,
 } from '@/lib/utils';
 
 export default function LatestNewsGrid({ posts }) {
@@ -10,13 +11,13 @@ export default function LatestNewsGrid({ posts }) {
 
   return (
     <section className="my-8">
-      <h2 className="font-merriweather font-bold text-xl text-text-primary mb-5 pb-2 border-b-2 border-accent inline-block">
+      <h2 className="font-heading font-bold text-xl text-text-primary mb-5 pb-2 border-b-2 border-accent inline-block">
         Latest News
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {posts.map((post, index) => {
-          const img = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
+        {posts.map((post) => {
+          const img = getFeaturedImageUrl(post, 'medium_large');
           const category = post._embedded?.['wp:term']?.[0]?.[0] || null;
           const categorySlug = category?.slug || 'uncategorized';
           return (
@@ -31,7 +32,6 @@ export default function LatestNewsGrid({ posts }) {
                     src={img}
                     alt={getFeaturedImageAlt(post)}
                     fill
-                    priority={index === 0}
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />
@@ -47,7 +47,7 @@ export default function LatestNewsGrid({ posts }) {
 
               <div className="p-4 flex flex-col flex-1">
                 <h3
-                  className="font-merriweather font-bold text-sm text-text-primary leading-snug line-clamp-2 group-hover:text-accent transition-colors"
+                  className="font-heading font-bold text-sm text-text-primary leading-snug line-clamp-2 group-hover:text-accent transition-colors"
                   dangerouslySetInnerHTML={{ __html: post.title?.rendered }}
                 />
               </div>

@@ -1,16 +1,13 @@
 import { getCategories, getLatestPosts, getMostCommentedPosts } from '@/lib/wordpress'
-import { AD_SLOTS } from '@/lib/constants'
 import CategoryList from '@/components/widgets/CategoryList'
 import RecentPosts from '@/components/widgets/RecentPosts'
 import PopularPosts from '@/components/widgets/PopularPosts'
-import SearchWidget from '@/components/widgets/SearchWidget'
-import AdSenseUnit from '@/components/ads/AdSenseUnit'
 
 export default async function Sidebar() {
-  const [categories, recentPosts, popularPosts] = await Promise.all([
+  const recentPosts = await getLatestPosts(5)
+  const [categories, popularPosts] = await Promise.all([
     getCategories(),
-    getLatestPosts(5),
-    getMostCommentedPosts(5),
+    getMostCommentedPosts(5, recentPosts),
   ])
 
   return (

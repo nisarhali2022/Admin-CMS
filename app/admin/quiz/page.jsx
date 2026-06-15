@@ -173,7 +173,7 @@ export default function AdminQuizPage() {
         <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-8 border border-border">
           <div className="text-center mb-6">
             <span className="text-4xl">🔐</span>
-            <h1 className="font-merriweather font-bold text-xl text-text-primary mt-2">
+            <h1 className="font-heading font-bold text-xl text-text-primary mt-2">
               Admin Panel
             </h1>
             <p className="text-text-secondary text-sm mt-1">Enter your admin secret to continue</p>
@@ -211,7 +211,7 @@ export default function AdminQuizPage() {
       {/* Header */}
       <div className="bg-primary text-white px-6 py-4 flex items-center justify-between shadow">
         <div>
-          <h1 className="font-merriweather font-bold text-lg">Quiz Admin Panel</h1>
+          <h1 className="font-heading font-bold text-lg">Quiz Admin Panel</h1>
           <p className="text-blue-200 text-xs mt-0.5">
             Karachi date: {getKarachiDateLabel()}
           </p>

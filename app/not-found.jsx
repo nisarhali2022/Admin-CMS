@@ -10,12 +10,12 @@ export default function NotFound() {
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
       <div className="mb-6">
-        <span className="font-merriweather font-black text-8xl sm:text-9xl text-primary/10 select-none">
+        <span className="font-heading font-black text-8xl sm:text-9xl text-primary/10 select-none">
           404
         </span>
       </div>
 
-      <h1 className="font-merriweather font-bold text-2xl sm:text-3xl text-text-primary mb-3">
+      <h1 className="font-heading font-bold text-2xl sm:text-3xl text-text-primary mb-3">
         Page Not Found
       </h1>
 

@@ -699,18 +699,26 @@ quiz content server-side.
 
 ### IMP-03: Ad banner position values do not select slots
 
-This is the unresolved BF-13 work. Add a validated position-to-slot map or pass
-explicit `slot` values.
+**Status:** Resolved on June 15, 2026.
+
+`AdBanner` now maps `top`, `mid`, `bottom`, and `after-content` positions to
+validated slots. Slot values can be configured through public environment
+variables.
 
 ### IMP-04: Placeholder AdSense configuration still loads the script
 
-This is the unresolved BF-14 work. Load the global script only when a real
-client ID is configured, preferably through an environment variable.
+**Status:** Resolved on June 15, 2026.
+
+The client ID now reads `NEXT_PUBLIC_ADSENSE_ID`. Placeholder clients and
+slots render neither the global script nor empty ad containers. Configured ad
+containers reserve height to reduce layout shift.
 
 ### IMP-05: Font configuration is inconsistent
 
-This is the unresolved BF-15 work. Map Merriweather in Tailwind and decide
-whether heading classes use Merriweather or Inter.
+**Status:** Resolved on June 15, 2026.
+
+The project standardizes on Inter for headings and body text. The unused
+Merriweather download and stale utility classes were removed.
 
 ### IMP-06: Tooling and regression coverage
 
@@ -725,9 +733,6 @@ This combines unresolved BF-17 and BF-18:
 
 ### IMP-07: Small cleanup
 
-- Add `per_page=1` to the public `daily-quiz` request.
-- Remove unused imports such as `truncateText` and the disabled sidebar
-  search/ad imports where no longer needed.
 - Correct stale comments in `lib/quizParser.js`.
 
 ## 6. Change Summary
@@ -751,13 +756,36 @@ Completed during the June 14, 2026 fixing pass:
 - Wider article breadcrumbs, simplified sidebar content, and consistent
   sidebar card spacing.
 
+Completed during the June 15, 2026 complex SEO pass:
+
+- Shared plain-text sanitization for metadata and JSON-LD.
+- Complete Organization, WebSite, Article, breadcrumb, and Person schema.
+- Crawlable author profile routes and author sitemap entries.
+- Resilient all-or-nothing sitemap collection with improved image discovery.
+- Lean WordPress REST field/embed selection and cheaper popular-post refresh.
+- Suspense-streamed footer posts instead of blocking the root layout.
+- Removed duplicate Latest News image preloading.
+- Lazy/async WordPress body-image attributes.
+
+Completed during the June 15, 2026 performance pass:
+
+- Zero-hydration global header navigation using native HTML controls.
+- Removed global pathname/scroll listeners and router-backed header search.
+- Removed the unused Merriweather font family.
+- Added validated environment-backed ad slots and stable ad dimensions.
+- Removed blank ad spacing while AdSense is not configured.
+- Added AVIF/WebP image negotiation and a one-day optimized-image cache.
+- Selected smaller WordPress media variants for news and sidebar cards.
+- Added accurate responsive `sizes` for post-card images.
+- Deferred below-fold informational rendering with `content-visibility`.
+- Reduced homepage/blog/tag route JavaScript from about `1.03 kB` to
+  `634-637 B`, and article route JavaScript from `2.96 kB` to `2.57 kB`.
+
 ## 7. Recommended Fix Order
 
 1. IMP-01 and IMP-02: prevent valid quiz content from disappearing.
 2. IMP-06: add linting and regression tests.
-3. IMP-03 and IMP-04: finish AdSense configuration behavior.
-4. IMP-05: make typography configuration consistent.
-5. IMP-07: complete low-risk cleanup.
+3. IMP-07: complete low-risk cleanup.
 
 ## 8. Definition of Done
 

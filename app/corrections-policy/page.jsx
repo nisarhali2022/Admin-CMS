@@ -16,7 +16,7 @@ export default function CorrectionsPolicyPage() {
         items={[{ label: 'Home', href: '/' }, { label: 'Corrections Policy' }]}
         currentPath="/corrections-policy"
       />
-      <article className="prose prose-lg max-w-none prose-headings:font-merriweather prose-headings:text-text-primary prose-a:text-accent">
+      <article className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent">
         <h1>Corrections Policy</h1>
         <p>
           Accuracy matters to us. When a factual error is confirmed, we update

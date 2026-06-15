@@ -70,7 +70,7 @@ export default async function TagPage({ params, searchParams }) {
       />
 
       <div className="mb-6">
-        <h1 className="font-merriweather font-bold text-2xl sm:text-3xl text-text-primary">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-text-primary">
           Tag: {tag.name}
         </h1>
         <p className="text-text-secondary mt-2 text-sm max-w-2xl">

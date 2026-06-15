@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatDate, getFeaturedImageAlt, getFirstCategory } from '@/lib/utils';
+import {
+  formatDate,
+  getFeaturedImageAlt,
+  getFeaturedImageUrl,
+  getFirstCategory,
+} from '@/lib/utils';
 
 export default function RecentPosts({ posts = [] }) {
   if (!posts || posts.length === 0) return null;
@@ -8,8 +13,7 @@ export default function RecentPosts({ posts = [] }) {
   return (
     <ul className="space-y-3">
       {posts.map((post) => {
-        const imageUrl =
-          post._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
+        const imageUrl = getFeaturedImageUrl(post, 'thumbnail');
         const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
         return (
           <li key={post.id}>

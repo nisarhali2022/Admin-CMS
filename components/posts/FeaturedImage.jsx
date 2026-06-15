@@ -1,7 +1,13 @@
 import Image from 'next/image'
 import { getFeaturedImageUrl, getFeaturedImageAlt, getCategoryColor, getFirstCategory } from '@/lib/utils'
 
-export default function FeaturedImage({ post, priority = false, fill = false, className = '' }) {
+export default function FeaturedImage({
+  post,
+  priority = false,
+  fill = false,
+  className = '',
+  sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 70vw, 800px',
+}) {
   const src = getFeaturedImageUrl(post)
   const alt = getFeaturedImageAlt(post)
   const category = getFirstCategory(post)
@@ -25,7 +31,7 @@ export default function FeaturedImage({ post, priority = false, fill = false, cl
         fill
         priority={priority}
         className={`object-cover ${className}`}
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 70vw, 800px"
+        sizes={sizes}
       />
     )
   }
@@ -38,7 +44,7 @@ export default function FeaturedImage({ post, priority = false, fill = false, cl
       height={450}
       priority={priority}
       className={`w-full h-auto object-cover ${className}`}
-      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 70vw, 800px"
+      sizes={sizes}
     />
   )
 }

@@ -9,7 +9,7 @@ import { SITE_CONFIG } from '@/lib/constants'
 export async function GET() {
   const posts = await getSitemapPosts()
   const blogEntry = {
-    loc: `${SITE_CONFIG.siteUrl}/blog/`,
+    loc: `${SITE_CONFIG.siteUrl}/blog`,
     lastmod: getLatestLastModified(posts),
     images: [],
   }

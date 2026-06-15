@@ -273,6 +273,12 @@ routes. Header/footer links and WordPress lookups use those slugs, while
 
 ### SEO-08: Sitemap failures are silently converted into empty/partial maps
 
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** Sitemap collection now uses the shared WordPress
+retry/error layer. A failed page aborts generation instead of publishing a
+partial map, while responses retain stale-while-revalidate caching.
+
 **Source:** Code
 
 `lib/sitemap.js` catches fetch failures and breaks pagination without logging
@@ -341,6 +347,12 @@ archives display a description and are consistently `noindex, follow`.
 
 ### SEO-11: Article structured data is incomplete and uses unsanitized titles
 
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** Article schema now includes a sanitized headline and
+description, canonical main entity, image, publisher identity/logo, language,
+dates, and crawlable author profile URL.
+
 **Source:** Code
 
 Article JSON-LD currently contains:
@@ -400,6 +412,11 @@ same Karachi date helper. The stable Yoast description can still be used.
 
 ### SEO-14: Homepage sitemap `lastmod` does not reflect midnight date changes
 
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** Homepage sitemap `lastmod` uses the start of the
+current Karachi calendar day, matching the visible daily date rollover.
+
 **Source:** Code
 
 The homepage visibly changes its date each midnight, but sitemap `lastmod`
@@ -426,6 +443,12 @@ including the current page and its pagination/search parameters.
 
 ### SEO-16: No site-level Organization or WebSite schema in Next.js output
 
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** The root layout emits a linked Organization/WebSite
+graph with stable IDs, canonical URL, language, description, publisher, and
+logo. It does not add speculative social profiles or a SearchAction.
+
 **Source:** Code
 
 The repository emits Article and Breadcrumb schemas, but no central
@@ -441,6 +464,12 @@ Organization/WebSite identity graph.
 Do not add a SearchAction unless the search URL and behavior are reliable.
 
 ### SEO-17: Author identity lacks a crawlable profile URL
+
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** `/author/[slug]` renders the WordPress author name,
+bio, avatar, Person schema, and paginated article list. Article schema,
+bylines, author boxes, and the page sitemap link to these profiles.
 
 **Source:** Code
 
@@ -474,6 +503,12 @@ handling, and optional robots policy.
 
 ### SEO-19: WordPress REST payloads are larger than necessary
 
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** Post, page, taxonomy, related-post, author, and
+sitemap requests use endpoint-specific `_fields` and selective `_embed`
+values.
+
 **Source:** Code
 
 Many requests use `_embed=true` without `_fields`, returning large post
@@ -486,6 +521,12 @@ embedded media, terms, and authors.
 
 ### SEO-20: Popular-post calculation is expensive
 
+**Status:** Resolved for the current implementation on June 15, 2026.
+
+**Implemented result:** The calculation samples 50 recent comments instead of
+100, caches for one hour instead of five minutes, and reuses the sidebar's
+already-fetched latest posts for fallback results.
+
 **Source:** Code
 
 The sidebar fetches up to 100 comments and then another posts request. It is
@@ -496,6 +537,11 @@ for popularity, or refresh the ranking less frequently.
 
 ### SEO-21: Root footer data can delay the entire response
 
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** The footer shell is synchronous, while recent posts
+stream inside a Suspense boundary and no longer block the root layout.
+
 **Source:** Code
 
 `Footer` is an async component in the root layout and fetches recent posts.
@@ -505,6 +551,12 @@ Unlike the sidebar, it is not wrapped in Suspense.
 remove dynamic recent posts from the global layout.
 
 ### SEO-22: Homepage image priority is over-specified
+
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** The custom Latest News preload component and Latest
+News `priority` flags were removed. The above-the-fold logo is the only
+homepage image preload observed.
 
 **Source:** Code
 
@@ -517,6 +569,12 @@ The header logo uses `priority`. The first Latest News image also uses
 resource only.
 
 ### SEO-23: WordPress body images are not optimized by application code
+
+**Status:** Partially resolved on June 15, 2026.
+
+**Implemented result:** WordPress body images receive `loading="lazy"` and
+`decoding="async"` when absent. Intrinsic dimensions and responsive `srcset`
+still depend on WordPress media markup.
 
 **Source:** Code
 
@@ -619,6 +677,12 @@ publisher ID is non-empty and does not contain the placeholder `XXXX`.
 
 ### SEO-30: Sitemap image extraction is incomplete
 
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** Sitemap images prioritize embedded featured media and
+also recognize normal/lazy source attributes and the largest usable srcset
+candidate.
+
 **Source:** Code
 
 The sitemap parser reads only `<img src>`. It does not account for lazy-image
@@ -647,6 +711,12 @@ so intentionally omitting them from the sitemap is consistent with the
 indexing policy.
 
 ### SEO-32: Metadata text can contain rendered HTML or entities
+
+**Status:** Resolved on June 15, 2026.
+
+**Implemented result:** Metadata, Article/Person/breadcrumb schema, author
+names, WordPress page titles/descriptions, and image alt fallbacks use one
+HTML-stripping and entity-decoding plain-text helper.
 
 **Source:** Code
 
@@ -761,7 +831,7 @@ Noindex or remove one-post, duplicate, or near-synonymous tags.
 - SEO-29: conditional AdSense script.
 - SEO-33: explicit `noindex, follow` for search.
 
-SEO-32 remains intentionally open.
+SEO-32 was completed with the complex metadata/schema work on June 15, 2026.
 
 ### Phase 1: Indexing protection
 
@@ -789,11 +859,12 @@ SEO-32 remains intentionally open.
 
 ### Phase 4: Performance and trust
 
-1. Reduce WordPress payloads.
-2. simplify popular-post calculation.
-3. prevent footer data from blocking the root layout.
-4. Measure and correct image preload priorities.
-5. Optimize WordPress body images.
+1. Reduce WordPress payloads. Completed.
+2. Simplify popular-post calculation. Completed.
+3. Prevent footer data from blocking the root layout. Completed.
+4. Measure and correct image preload priorities. Completed.
+5. Optimize WordPress body images. Partially completed; responsive source
+   quality still depends on WordPress media markup.
 6. Add real social links, author profiles, editorial policies, and sourcing
    methodology.
 
@@ -821,10 +892,10 @@ After fixes:
 
 ## 10. Current Verification Limitations
 
-- The current full Next.js build is blocked by a Windows `EPERM` lock on
-  `.next/trace`.
-- Browser access to XML and robots endpoints was blocked by the local browser
-  client, so their repository implementations were reviewed directly.
+- The June 15, 2026 production build compiled, type-checked, and generated all
+  28 routes successfully using an isolated output directory.
+- Local browser and HTTP checks verified site, Article, Person, breadcrumb,
+  author-route, and sitemap output.
 - No Search Console, Analytics, backlink, keyword, or field Core Web Vitals
   data was available.
 - Live production and repository output differ, so deployment parity must be

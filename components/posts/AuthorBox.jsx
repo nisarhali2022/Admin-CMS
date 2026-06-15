@@ -1,10 +1,11 @@
-import { getPostAuthor, stripHtml } from '@/lib/utils'
+import Link from 'next/link'
+import { getAuthorPath, getPostAuthor, toPlainText } from '@/lib/utils'
 
 export default function AuthorBox({ post }) {
   const author = getPostAuthor(post)
   if (!author?.name) return null
 
-  const description = stripHtml(author.description || '').trim()
+  const description = toPlainText(author.description || '').trim()
   const avatarUrl =
     author.avatar_urls?.['96'] ||
     author.avatar_urls?.['48'] ||
@@ -38,7 +39,9 @@ export default function AuthorBox({ post }) {
           Written by
         </p>
         <h2 className="mt-1 font-heading text-lg font-bold text-text-primary">
-          {author.name}
+          <Link href={getAuthorPath(author)} className="hover:text-primary">
+            {toPlainText(author.name)}
+          </Link>
         </h2>
         {description && (
           <p className="mt-2 text-sm leading-relaxed text-text-secondary">

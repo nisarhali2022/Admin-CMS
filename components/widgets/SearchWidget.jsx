@@ -7,7 +7,7 @@ export default function SearchWidget() {
 
   return (
     <div>
-      <h3 className="font-merriweather font-bold text-base text-text-primary mb-3 pb-2 border-b border-border">
+      <h3 className="font-heading font-bold text-base text-text-primary mb-3 pb-2 border-b border-border">
         Search
       </h3>
       <form onSubmit={handleSearch} className="flex gap-2">

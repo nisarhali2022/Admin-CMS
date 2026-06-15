@@ -1,7 +1,11 @@
 import { notFound } from 'next/navigation';
 import { getPageBySlug } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
-import { stripHtml, truncateText } from '@/lib/utils';
+import {
+  optimizeContentImages,
+  toPlainText,
+  truncateText,
+} from '@/lib/utils';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import { buildMetadata } from '@/lib/seo';
 
@@ -10,10 +14,10 @@ export const revalidate = 3600;
 export async function generateMetadata() {
   const page = await getPageBySlug('privacy-policy');
   const title = page?.title?.rendered
-    ? stripHtml(page.title.rendered)
+    ? toPlainText(page.title.rendered)
     : 'Privacy Policy';
   const description = page?.excerpt?.rendered
-    ? truncateText(stripHtml(page.excerpt.rendered), 160)
+    ? truncateText(page.excerpt.rendered, 160)
     : `Read the privacy policy for ${SITE_CONFIG.siteName}`;
 
   return buildMetadata({
@@ -38,14 +42,13 @@ export default async function PrivacyPolicyPage() {
       <Breadcrumbs items={breadcrumbItems} currentPath="/privacy-policy" />
 
       <article>
-        <h1
-          className="font-merriweather font-bold text-3xl sm:text-4xl text-text-primary mt-2 mb-8"
-          dangerouslySetInnerHTML={{ __html: page.title?.rendered }}
-        />
+        <h1 className="font-heading font-bold text-3xl sm:text-4xl text-text-primary mt-2 mb-8">
+          {toPlainText(page.title?.rendered)}
+        </h1>
 
         <div
           className="prose prose-lg max-w-none
-            prose-headings:font-merriweather prose-headings:text-text-primary
+            prose-headings:font-heading prose-headings:text-text-primary
             prose-a:text-accent hover:prose-a:underline
             prose-img:rounded-lg prose-img:shadow-sm
             prose-blockquote:border-l-4 prose-blockquote:border-accent
@@ -53,7 +56,9 @@ export default async function PrivacyPolicyPage() {
             prose-table:text-sm
             prose-th:bg-surface prose-th:text-text-primary
             prose-td:border-border"
-          dangerouslySetInnerHTML={{ __html: page.content?.rendered }}
+          dangerouslySetInnerHTML={{
+            __html: optimizeContentImages(page.content?.rendered || ''),
+          }}
         />
 
         <p className="mt-10 text-xs text-text-secondary border-t border-border pt-4">

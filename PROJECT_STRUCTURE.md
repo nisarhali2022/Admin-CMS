@@ -45,8 +45,12 @@ telenor-quiz/
 | `/robots.txt` | `app/robots.js` | None | Crawler rules |
 | not found | `app/not-found.jsx` | None | Custom 404 |
 
-`app/layout.jsx` wraps every route with `Header`, `Footer`, global fonts,
-global CSS, metadata defaults, and the AdSense script.
+`app/layout.jsx` wraps every route with `Header`, `Footer`, one self-hosted
+Inter font, global CSS, metadata defaults, and the conditional AdSense script.
+
+`Header` is server-rendered. Search uses a native GET form, and search/mobile
+navigation toggles use native HTML/CSS controls, so the global header adds no
+hydration, pathname subscription, or scroll listener.
 
 ## 3. Library Modules
 
@@ -174,10 +178,16 @@ callback/clearing behavior.
 - `Breadcrumbs.jsx`: visual breadcrumbs plus JSON-LD; the final title uses
   responsive truncation limits up to `560px`.
 - `AdSenseUnit.jsx`: client-side AdSense unit.
-- `AdBanner.jsx`: horizontal wrapper around `AdSenseUnit`.
+- `AdBanner.jsx`: position-to-slot wrapper that renders only with valid
+  environment configuration and reserves stable layout space.
 - `AdInArticle.jsx`: fluid in-article ad.
 - `ShareButtons.jsx`: WhatsApp, Facebook, X, and clipboard sharing.
-- `LCPPreloader.jsx`: injects an image preload link; used by the homepage.
+- `lib/schema.js`: safely serializes JSON-LD for site, article, breadcrumb,
+  and author schemas.
+- `app/author/[slug]/page.jsx`: crawlable author profile with bio, Person
+  schema, and paginated posts.
+- `components/layout/FooterRecentPosts.jsx`: streams footer post data behind
+  Suspense so the root layout shell is not blocked.
 - `LoadingSpinner.jsx`: Suspense fallback.
 
 ## 5. Detailed Call Flows
@@ -355,6 +365,21 @@ The UI generally uses:
 validation, and taxonomy descriptions. Tag archives are intentionally
 `noindex, follow`; blog/category/search/tag pagination returns 404 for invalid
 or out-of-range page numbers.
+
+`lib/wordpress.js` uses selective `_fields` and `_embed` values for public
+queries. `lib/sitemap.js` reuses its retry policy, aborts incomplete
+generation, includes author profiles, understands lazy/srcset images, and
+sets the homepage modification time to Karachi midnight.
+
+Performance-specific behavior:
+
+- `next.config.js` negotiates AVIF/WebP and caches optimized images for one
+  day.
+- Cards request smaller WordPress media variants with responsive `sizes`.
+- `.render-deferred` uses `content-visibility: auto` for long below-fold
+  homepage information.
+- Inter is the only application font; headings and body share the same file
+  family.
 
 Any code producing `/category/<slug>` or a one-segment post URL is inconsistent
 with the implemented routes.

@@ -1,11 +1,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { getLatestPosts } from '@/lib/wordpress'
+import { Suspense } from 'react'
 import { SITE_CONFIG, NAV_LINKS } from '@/lib/constants'
-import { formatDate, getFirstCategory } from '@/lib/utils'
+import FooterRecentPosts from './FooterRecentPosts'
 
-export default async function Footer() {
-  const recentPosts = await getLatestPosts(5)
+export default function Footer() {
   const year = new Date().getFullYear()
 
   return (
@@ -96,35 +95,13 @@ export default async function Footer() {
               Recent Posts
             </h3>
 
-            <ul className="space-y-4">
-              {recentPosts.map((post) => {
-                const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
-                return (
-                <li key={post.id} className="flex gap-3 group">
-                  <span className="text-accent font-bold text-lg leading-none mt-0.5 flex-shrink-0">
-                    ›
-                  </span>
-
-                  <div>
-                    <Link
-                      href={`/${categorySlug}/${post.slug}`}
-                      className="text-gray-300 group-hover:text-white text-sm leading-snug transition-colors line-clamp-2"
-                    >
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: post.title.rendered
-                        }}
-                      />
-                    </Link>
-
-                    <span className="text-gray-500 text-xs mt-1 block">
-                      {formatDate(post.date)}
-                    </span>
-                  </div>
-                </li>
-              );
-              })}
-            </ul>
+            <Suspense
+              fallback={
+                <p className="text-sm text-gray-400">Loading recent posts...</p>
+              }
+            >
+              <FooterRecentPosts />
+            </Suspense>
           </div>
         </div>
       </div>

@@ -36,7 +36,7 @@ const STEPS = [
 export default function StepsSection() {
   return (
     <section className="my-8">
-      <h2 className="font-merriweather font-bold text-xl text-text-primary mb-6">
+      <h2 className="font-heading font-bold text-xl text-text-primary mb-6">
         Steps to Participate
       </h2>
       <div className="space-y-6">

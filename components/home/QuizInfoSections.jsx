@@ -3,10 +3,10 @@
 
 export default function QuizInfoSections() {
   return (
-    <>
+    <div className="render-deferred">
       {/* ── What is the Telenor Daily Quiz ── */}
       <section className="my-8">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-4">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           What is the Telenor Daily Quiz?
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
@@ -28,7 +28,7 @@ export default function QuizInfoSections() {
 
       {/* ── How to Find Answers ── */}
       <section className="my-8">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-4">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           How to Find the Correct My Telenor Quiz Answers Today Instantly?
         </h2>
         <p className="text-sm text-text-secondary leading-relaxed">
@@ -42,7 +42,7 @@ export default function QuizInfoSections() {
 
       {/* ── How to Play ── */}
       <section className="my-8">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-4">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           How to Play the Telenor Quiz Today and Win Free MBs?
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
@@ -62,7 +62,7 @@ export default function QuizInfoSections() {
 
       {/* ── Why People Love It ── */}
       <section className="my-8">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-4">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Why People Love the Daily Telenor Quiz?
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
@@ -89,7 +89,7 @@ export default function QuizInfoSections() {
 
       {/* ── Who Can Join ── */}
       <section className="my-8">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-4">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Who Can Join the Today Telenor Quiz Answer?
         </h2>
         <p className="text-sm text-text-secondary leading-relaxed mb-3">
@@ -112,7 +112,7 @@ export default function QuizInfoSections() {
 
       {/* ── Rewards ── */}
       <section className="my-8 bg-surface border border-border rounded-xl p-6">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-3">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
           Rewards You Can Get from My Telenor Today Answer
         </h2>
         <p className="text-sm text-text-secondary leading-relaxed">
@@ -126,7 +126,7 @@ export default function QuizInfoSections() {
 
       {/* ── Common Problems ── */}
       <section className="my-8">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-4">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Common Problems and How to Fix Them
         </h2>
         <div className="space-y-4">
@@ -154,7 +154,7 @@ export default function QuizInfoSections() {
 
       {/* ── Tips ── */}
       <section className="my-8">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-4">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Proven Tips to Boost Your Success
         </h2>
         <ul className="space-y-2">
@@ -174,7 +174,7 @@ export default function QuizInfoSections() {
 
       {/* ── Conclusion ── */}
       <section className="my-8 bg-primary/5 border border-primary/20 rounded-xl p-6">
-        <h2 className="font-merriweather font-bold text-xl text-text-primary mb-3">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
           Conclusion
         </h2>
         <p className="text-sm text-text-secondary leading-relaxed">
@@ -203,6 +203,6 @@ export default function QuizInfoSections() {
           </a>
         </div>
       </section>
-    </>
+    </div>
   );
 }

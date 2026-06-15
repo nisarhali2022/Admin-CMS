@@ -20,7 +20,12 @@ import TableOfContents from '@/components/posts/TableOfContents';
 import { generateTocAndInjectIds } from '@/lib/toc';
 import AdInArticle from '@/components/ads/AdInArticle';
 import ShareButtons from '@/components/ui/ShareButtons';
-import { stripHtml, truncateText, injectAdAfterFirstParagraph } from '@/lib/utils';
+import {
+  injectAdAfterFirstParagraph,
+  optimizeContentImages,
+  toPlainText,
+  truncateText,
+} from '@/lib/utils';
 import {
   buildMetadata,
   canonicalPath,
@@ -62,7 +67,9 @@ export async function generateMetadata({ params, searchParams }) {
   if (page) {
     const yoast = page.yoast_head_json;
     const title = yoast?.title || page.title?.rendered;
-    const description = yoast?.description || truncateText(stripHtml(page.excerpt?.rendered || page.content?.rendered || ''), 160);
+    const description =
+      yoast?.description ||
+      truncateText(page.excerpt?.rendered || page.content?.rendered || '', 160);
     const imageUrl = page._embedded?.['wp:featuredmedia']?.[0]?.source_url || `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
     return buildMetadata({
       title,
@@ -126,12 +133,13 @@ export default async function SlugPage({ params, searchParams }) {
   // 2. Check if Page
   const page = await getPageBySlug(slug);
   if (page) {
-    const { modifiedHtml, toc } = generateTocAndInjectIds(page.content?.rendered || '');
+    const optimizedHtml = optimizeContentImages(page.content?.rendered || '');
+    const { modifiedHtml, toc } = generateTocAndInjectIds(optimizedHtml);
     const adMarker = '<!--AD_IN_ARTICLE-->';
     const contentWithAd = injectAdAfterFirstParagraph(modifiedHtml, adMarker);
     const [beforeAd, afterAd] = contentWithAd.split(adMarker);
     
-    const breadcrumbItems = [{ label: 'Home', href: '/' }, { label: stripHtml(page.title?.rendered || '') }];
+    const breadcrumbItems = [{ label: 'Home', href: '/' }, { label: toPlainText(page.title?.rendered) }];
 
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -141,7 +149,7 @@ export default async function SlugPage({ params, searchParams }) {
             <h1
               className="font-heading font-bold text-3xl sm:text-4xl text-text-primary leading-tight mt-2 mb-4"
             >
-              {stripHtml(page.title?.rendered || '')}
+              {toPlainText(page.title?.rendered)}
             </h1>
             <PostMeta post={page} />
             <div className="mt-5 mb-6"><FeaturedImage post={page} priority /></div>
@@ -150,7 +158,7 @@ export default async function SlugPage({ params, searchParams }) {
             <AdInArticle />
             {afterAd && <div className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm" dangerouslySetInnerHTML={{ __html: afterAd }} />}
             <div className="mt-8"><AdBanner position="after-content" /></div>
-            <ShareButtons title={stripHtml(page.title?.rendered || '')} url={`${SITE_CONFIG.siteUrl}/${slug}`} />
+            <ShareButtons title={toPlainText(page.title?.rendered)} url={`${SITE_CONFIG.siteUrl}/${slug}`} />
           </article>
           <Suspense fallback={<LoadingSpinner size="lg" className="py-10" />}><Sidebar /></Suspense>
         </div>

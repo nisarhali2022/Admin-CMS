@@ -10,8 +10,6 @@ export default function AdSenseUnit({ slot, format = 'auto', className = '' }) {
     } catch {}
   }, [])
 
-  if (!slot || SITE_CONFIG.googleAdsenseId.includes('XXXX')) return null
-
   return (
     <div className={className}>
       <ins

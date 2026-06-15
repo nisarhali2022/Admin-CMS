@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { absoluteUrl } from '@/lib/seo';
+import { serializeJsonLd } from '@/lib/schema';
+import { toPlainText } from '@/lib/utils';
 
 export default function Breadcrumbs({ items, currentPath }) {
   // items = [{ label, href? }, ...] — last item has no href
@@ -9,7 +11,7 @@ export default function Breadcrumbs({ items, currentPath }) {
     itemListElement: items.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
-      name: item.label,
+      name: toPlainText(item.label),
       item: absoluteUrl(item.href || currentPath || '/'),
     })),
   };
@@ -18,7 +20,7 @@ export default function Breadcrumbs({ items, currentPath }) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <nav aria-label="Breadcrumb" className="text-sm text-text-secondary py-3">
         <ol className="flex flex-wrap items-center gap-1">

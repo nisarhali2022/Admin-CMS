@@ -31,7 +31,7 @@ export default function FaqSection({ faqs }) {
 
   return (
     <section className="my-8">
-      <h2 className="font-merriweather font-bold text-xl text-text-primary mb-5">
+      <h2 className="font-heading font-bold text-xl text-text-primary mb-5">
         FAQs – My Telenor Answers Today
       </h2>
       <div className="space-y-4">

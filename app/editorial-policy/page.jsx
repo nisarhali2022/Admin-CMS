@@ -15,7 +15,7 @@ export default function EditorialPolicyPage() {
         items={[{ label: 'Home', href: '/' }, { label: 'Editorial Policy' }]}
         currentPath="/editorial-policy"
       />
-      <article className="prose prose-lg max-w-none prose-headings:font-merriweather prose-headings:text-text-primary prose-a:text-accent">
+      <article className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent">
         <h1>Editorial Policy</h1>
         <p>
           We aim to publish clear, accurate, and useful quiz answers, telecom

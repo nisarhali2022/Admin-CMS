@@ -1,20 +1,14 @@
-import { Inter, Merriweather } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { SITE_CONFIG } from '@/lib/constants'
+import { serializeJsonLd } from '@/lib/schema'
 import '@/styles/globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
-  display: 'swap',
-})
-
-const merriweather = Merriweather({
-  subsets: ['latin'],
-  weight: ['400', '700', '900'],
-  variable: '--font-merriweather',
   display: 'swap',
 })
 
@@ -49,10 +43,40 @@ export default function RootLayout({ children }) {
   const hasAdSenseClient =
     SITE_CONFIG.googleAdsenseId &&
     !SITE_CONFIG.googleAdsenseId.includes('XXXX')
+  const organizationId = `${SITE_CONFIG.siteUrl}/#organization`
+  const websiteId = `${SITE_CONFIG.siteUrl}/#website`
+  const siteSchema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': organizationId,
+        name: SITE_CONFIG.name,
+        url: SITE_CONFIG.siteUrl,
+        logo: {
+          '@type': 'ImageObject',
+          url: SITE_CONFIG.logoUrl,
+        },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': websiteId,
+        url: SITE_CONFIG.siteUrl,
+        name: SITE_CONFIG.name,
+        description: SITE_CONFIG.description,
+        inLanguage: 'en-PK',
+        publisher: { '@id': organizationId },
+      },
+    ],
+  }
 
   return (
-    <html lang="en-PK" className={`${inter.variable} ${merriweather.variable}`}>
+    <html lang="en-PK" className={inter.variable}>
       <body className="font-body bg-white text-text-primary">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteSchema) }}
+        />
         <Header />
         <main id="main" className="min-h-screen">
           {children}
