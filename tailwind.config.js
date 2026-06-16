@@ -29,10 +29,17 @@ module.exports = {
       typography: {
         DEFAULT: {
           css: {
+            fontFamily: 'var(--font-inter), system-ui, sans-serif',
             color: '#0f172a',
             a: { color: '#004f9f', '&:hover': { color: '#003d7a' } },
-            h2: { fontFamily: 'var(--font-inter)', color: '#0f172a' },
-            h3: { fontFamily: 'var(--font-inter)', color: '#0f172a' },
+            p: { fontFamily: 'inherit' },
+            li: { fontFamily: 'inherit' },
+            blockquote: { fontFamily: 'inherit' },
+            table: { fontFamily: 'inherit' },
+            h1: { fontFamily: 'inherit', color: '#0f172a' },
+            h2: { fontFamily: 'inherit', color: '#0f172a' },
+            h3: { fontFamily: 'inherit', color: '#0f172a' },
+            h4: { fontFamily: 'inherit', color: '#0f172a' },
             strong: { color: '#0f172a' },
           },
         },

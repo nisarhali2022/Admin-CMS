@@ -74,6 +74,8 @@ export default async function PostPage({ params }) {
   const contentHtml = removeContentH1Blocks(post.content?.rendered || '');
   const optimizedHtml = optimizeContentImages(contentHtml);
   const { modifiedHtml, toc } = generateTocAndInjectIds(optimizedHtml);
+  const titleText = toPlainText(post.title?.rendered);
+  const tocWithTitle = [{ id: 'article-title', text: titleText, level: 1 }, ...toc];
   const adMarker = '<!--AD_IN_ARTICLE-->';
   const contentWithAd = injectAdAfterFirstParagraph(modifiedHtml, adMarker);
   const [beforeAd, afterAd] = contentWithAd.split(adMarker);
@@ -133,16 +135,17 @@ export default async function PostPage({ params }) {
               currentPath={`/${categorySlug}/${post_slug}`}
             />
             <h1
+              id="article-title"
               className="font-heading font-bold text-3xl sm:text-4xl text-text-primary leading-tight mt-2 mb-4"
             >
-              {toPlainText(post.title?.rendered)}
+              {titleText}
             </h1>
             <PostMeta post={post} showDate={false} />
             <div className="mt-5 mb-6"><FeaturedImage post={post} priority /></div>
-            <TableOfContents toc={toc} />
-            <div className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm prose-blockquote:border-l-4 prose-blockquote:border-accent" dangerouslySetInnerHTML={{ __html: beforeAd }} />
+            <TableOfContents toc={tocWithTitle} />
+            <div className="article-content prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm prose-blockquote:border-l-4 prose-blockquote:border-accent" dangerouslySetInnerHTML={{ __html: beforeAd }} />
             <AdInArticle />
-            {afterAd && <div className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm" dangerouslySetInnerHTML={{ __html: afterAd }} />}
+            {afterAd && <div className="article-content prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm" dangerouslySetInnerHTML={{ __html: afterAd }} />}
             <AuthorBox post={post} />
             <div className="mt-8"><AdBanner position="after-content" /></div>
             <ShareButtons title={toPlainText(post.title?.rendered)} url={postUrl} />

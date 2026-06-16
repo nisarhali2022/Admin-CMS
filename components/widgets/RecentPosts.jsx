@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  formatDate,
   getFeaturedImageAlt,
   getFeaturedImageUrl,
   getFirstCategory,
@@ -39,9 +38,6 @@ export default function RecentPosts({ posts = [] }) {
                   className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-2 leading-snug"
                   dangerouslySetInnerHTML={{ __html: post.title?.rendered }}
                 />
-                <p className="text-xs text-text-secondary mt-1">
-                  {formatDate(post.date)}
-                </p>
               </div>
             </Link>
           </li>

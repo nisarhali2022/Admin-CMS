@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { formatDate, getFirstCategory } from '@/lib/utils';
+import { getFirstCategory } from '@/lib/utils';
 
 export default function PopularPosts({ posts = [] }) {
   if (posts.length === 0) return null;
@@ -19,9 +19,6 @@ export default function PopularPosts({ posts = [] }) {
                   className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-2 leading-snug"
                   dangerouslySetInnerHTML={{ __html: post.title?.rendered }}
                 />
-                <p className="text-xs text-text-secondary mt-1">
-                  {formatDate(post.date)}
-                </p>
               </div>
             </Link>
           </li>

@@ -48,7 +48,15 @@
     contain-intrinsic-size: auto 1800px;
   }
 
-  /* Prevent WordPress inline fonts and unify all text to Inter */
+  .article-content {
+    font-size: 17px !important;
+  }
+
+  .prose {
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+
+  /* Prevent WordPress inline fonts and unify all rendered body content to Inter */
   .prose * {
     font-family: var(--font-inter), system-ui, sans-serif !important;
   }
