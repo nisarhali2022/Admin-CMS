@@ -36,13 +36,13 @@ export default function FaqSection({ faqs }) {
       </h2>
       <div className="space-y-4">
         {items.map((faq, i) => (
-          <div key={i} className="border border-border rounded-lg overflow-hidden">
-            <div className="bg-surface px-4 py-3">
-              <p className="font-semibold text-sm text-text-primary">Q: {faq.q}</p>
-            </div>
-            <div className="px-4 py-3">
-              <p className="text-sm text-text-secondary leading-relaxed">{faq.a}</p>
-            </div>
+          <div key={i} className="border border-border rounded-lg bg-surface px-4 py-3">
+            <p className="font-semibold text-sm text-text-primary">
+              Q: {faq.q}
+            </p>
+            <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+              A: {faq.a}
+            </p>
           </div>
         ))}
       </div>

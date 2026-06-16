@@ -18,6 +18,62 @@ const moreLinks = [
   { label: 'Disclaimer', href: '/disclaimer' },
 ]
 
+const socialLinks = [
+  {
+    label: 'Facebook',
+    href: '#',
+    icon: (
+      <path d="M13.5 8.5H16V5h-2.9C9.8 5 8 6.8 8 10v2H5v3.5h3V24h4v-8.5h3.2l.6-3.5H12v-1.7c0-1 .3-1.8 1.5-1.8Z" />
+    ),
+  },
+  {
+    label: 'LinkedIn',
+    href: '#',
+    icon: (
+      <>
+        <path d="M6.5 9.5h4V24h-4V9.5Z" />
+        <path d="M8.5 8a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z" />
+        <path d="M13 9.5h3.8v2c.6-1.1 1.9-2.3 4-2.3 4.2 0 5 2.8 5 6.4V24h-4v-7.4c0-1.8 0-4-2.5-4s-2.8 1.9-2.8 3.8V24H13V9.5Z" />
+      </>
+    ),
+  },
+  {
+    label: 'YouTube',
+    href: '#',
+    icon: (
+      <>
+        <path d="M23.5 7.3a3 3 0 0 0-2.1-2.1C19.5 4.7 12 4.7 12 4.7s-7.5 0-9.4.5A3 3 0 0 0 .5 7.3 31 31 0 0 0 0 13a31 31 0 0 0 .5 5.7 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 13a31 31 0 0 0-.5-5.7Z" />
+        <path className="fill-navy" d="M9.6 16.6V9.4l6.3 3.6-6.3 3.6Z" />
+      </>
+    ),
+  },
+  {
+    label: 'Twitter',
+    href: '#',
+    icon: (
+      <path d="M17.5 4h3.7l-8 9.2L22.7 24h-7.4l-5.8-6.9L2.9 24H-.8l8.6-9.8L-1.3 4h7.6l5.2 6 6-6Zm-1.3 18h2L5.2 5.9H3.1L16.2 22Z" />
+    ),
+  },
+  {
+    label: 'Instagram',
+    href: '#',
+    icon: (
+      <>
+        <path d="M12 7.8A6.2 6.2 0 1 0 12 20a6.2 6.2 0 0 0 0-12.2Zm0 10a3.8 3.8 0 1 1 0-7.6 3.8 3.8 0 0 1 0 7.6Z" />
+        <path d="M20.3 7.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z" />
+        <path d="M17.4 24H6.6A6.6 6.6 0 0 1 0 17.4V6.6A6.6 6.6 0 0 1 6.6 0h10.8A6.6 6.6 0 0 1 24 6.6v10.8a6.6 6.6 0 0 1-6.6 6.6ZM6.6 2.4a4.2 4.2 0 0 0-4.2 4.2v10.8a4.2 4.2 0 0 0 4.2 4.2h10.8a4.2 4.2 0 0 0 4.2-4.2V6.6a4.2 4.2 0 0 0-4.2-4.2H6.6Z" />
+      </>
+    ),
+  },
+  {
+    label: 'Pinterest',
+    href: '#',
+    icon: (
+      <path d="M12.3 0C5.6 0 2 4.3 2 9c0 2.2 1.2 5 3.1 5.9.3.1.5.1.6-.2l.5-2c.1-.3 0-.4-.2-.7-.6-.7-1-1.7-1-3C5 5.7 7.5 2.6 12 2.6c3.8 0 6.4 2.2 6.4 5.8 0 4.1-2.1 7-4.8 7-1.5 0-2.7-1.3-2.3-2.8.4-1.8 1.3-3.8 1.3-5.1 0-1.2-.6-2.2-2-2.2-1.6 0-2.9 1.7-2.9 3.9 0 1.4.5 2.4.5 2.4l-2 8.3c-.4 1.8 0 4.3.1 4.5.1.1.2.1.3 0 .1-.1 1.8-2.2 2.3-4l1.1-4.1c.6 1.1 2.2 2 3.9 2 5.1 0 8.8-4.7 8.8-10.5C22.6 3.2 18.8 0 12.3 0Z" />
+    ),
+  },
+]
+
 function FooterHeading({ children }) {
   return (
     <h3 className="text-white font-heading font-bold text-lg mb-5 border-l-4 border-accent pl-3">
@@ -41,6 +97,31 @@ function FooterLinkList({ links }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+function SocialLinks() {
+  return (
+    <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3">
+      {socialLinks.map((link) => (
+        <a
+          key={link.label}
+          href={link.href}
+          aria-label={link.label}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-gray-300 transition-colors hover:bg-accent hover:text-white"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4 fill-current"
+            aria-hidden="true"
+          >
+            {link.icon}
+          </svg>
+        </a>
+      ))}
+    </div>
   )
 }
 
@@ -101,17 +182,7 @@ export default function Footer() {
             © {year} {SITE_CONFIG.name}. All rights reserved.
           </p>
 
-          <div className="flex gap-5">
-            <Link href="/privacy-policy" className="text-gray-400 hover:text-white">
-              Privacy Policy
-            </Link>
-            <Link href="/contact-us" className="text-gray-400 hover:text-white">
-              Contact
-            </Link>
-            <Link href="/about-us" className="text-gray-400 hover:text-white">
-              About
-            </Link>
-          </div>
+          <SocialLinks />
         </div>
       </div>
     </footer>
