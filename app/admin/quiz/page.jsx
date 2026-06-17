@@ -304,7 +304,7 @@ export default function AdminQuizPage() {
                   {/* Answer preview */}
                   {q.answer && (
                     <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                      <span className="text-green-600 text-xs font-bold">👉 Answer:</span>
+                      <span className="text-green-800 text-xs font-bold">👉 Answer:</span>
                       <span className="text-green-800 text-sm font-bold">{q.answer}</span>
                     </div>
                   )}
@@ -319,7 +319,7 @@ export default function AdminQuizPage() {
           <div
             className={`mt-6 px-4 py-3 rounded-lg text-sm font-medium ${
               message.type === 'success'
-                ? 'bg-green-50 text-green-700 border border-green-200'
+                ? 'bg-green-50 text-green-800 border border-green-300'
                 : 'bg-red-50 text-red-700 border border-red-200'
             }`}
           >
@@ -332,7 +332,7 @@ export default function AdminQuizPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-3 bg-accent text-white font-bold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm"
+            className="flex-1 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm"
           >
             {saving ? 'Saving…' : '💾 Save Quiz for Today'}
           </button>

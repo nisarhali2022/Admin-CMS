@@ -21,7 +21,7 @@ export default function SearchWidget() {
         />
         <button
           type="submit"
-          className="px-3 py-2 bg-accent text-white rounded hover:bg-orange-600 transition-colors text-sm font-medium"
+          className="px-3 py-2 bg-accent text-white rounded hover:bg-accent-dark transition-colors text-sm font-medium"
           aria-label="Submit search"
         >
           🔍

@@ -12,7 +12,7 @@ export default function GlobalError({ reset }) {
           <button
             type="button"
             onClick={() => reset()}
-            className="px-5 py-2.5 rounded bg-orange-500 text-white font-semibold"
+            className="px-5 py-2.5 rounded bg-accent text-white font-semibold"
           >
             Try again
           </button>

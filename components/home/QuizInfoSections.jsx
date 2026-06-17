@@ -189,7 +189,7 @@ export default function QuizInfoSections() {
             href="https://play.google.com/store/apps/details?id=com.telenor.pakistan.mytelenor"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-5 py-2.5 bg-accent text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors"
+            className="px-5 py-2.5 bg-accent text-white text-sm font-semibold rounded-lg hover:bg-accent-dark transition-colors"
           >
             📱 Download for Android
           </a>
