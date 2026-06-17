@@ -115,7 +115,7 @@ export default function QuizInfoSections() {
         <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
           Rewards You Can Get from My Telenor Today Answer
         </h2>
-        <p className="text-sm text-text-secondary leading-relaxed">
+        <p className="text-sm text-text-primary leading-relaxed">
           By participating in My Telenor today answers, you can earn exciting rewards. The main
           prize is <strong className="text-text-primary">150 MB of free data</strong>, giving you extra
           connectivity without spending a penny. Many users also enjoy bonus balance for calls and SMS.

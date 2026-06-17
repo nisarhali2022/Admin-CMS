@@ -4,6 +4,8 @@ const nextConfig = {
   trailingSlash: false,
   images: {
     formats: ['image/avif', 'image/webp'],
+    deviceSizes: [320, 384, 420, 640, 750, 828, 1080, 1200],
+    imageSizes: [32, 48, 64, 96, 128, 160, 256, 384],
     minimumCacheTTL: 86400,
     remotePatterns: [
       {

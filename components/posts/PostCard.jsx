@@ -22,7 +22,12 @@ export default function PostCard({
             priority={priority}
             fill
             className="group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 420px"
+            sizes={
+              isLarge
+                ? '(max-width: 640px) 100vw, (max-width: 1024px) 70vw, 800px'
+                : '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 273px'
+            }
+            quality={60}
           />
         </div>
       </Link>

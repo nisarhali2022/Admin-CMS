@@ -19,7 +19,7 @@ module.exports = {
         surface: '#f8fafc',
         border: '#e2e8f0',
         'text-primary': '#0f172a',
-        'text-secondary': '#64748b',
+        'text-secondary': '#475569',
         'text-muted': '#94a3b8',
       },
       fontFamily: {

@@ -33,7 +33,8 @@ export default function LatestNewsGrid({ posts }) {
                     alt={getFeaturedImageAlt(post)}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 273px"
+                    quality={60}
                   />
                 ) : (
                   <div className={`w-full h-full ${getCategoryColor(category?.slug || 'default')}`} />

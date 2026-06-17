@@ -7,6 +7,7 @@ export default function FeaturedImage({
   fill = false,
   className = '',
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 70vw, 800px',
+  quality = 70,
 }) {
   const src = getFeaturedImageUrl(post)
   const alt = getFeaturedImageAlt(post)
@@ -32,6 +33,7 @@ export default function FeaturedImage({
         priority={priority}
         className={`object-cover ${className}`}
         sizes={sizes}
+        quality={quality}
       />
     )
   }
@@ -45,6 +47,7 @@ export default function FeaturedImage({
       priority={priority}
       className={`w-full h-auto object-cover ${className}`}
       sizes={sizes}
+      quality={quality}
     />
   )
 }
