@@ -26,25 +26,7 @@ module.exports = {
         heading: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
-      typography: {
-        DEFAULT: {
-          css: {
-            fontFamily: 'var(--font-inter), system-ui, sans-serif',
-            color: '#0f172a',
-            a: { color: '#004f9f', '&:hover': { color: '#003d7a' } },
-            p: { fontFamily: 'inherit' },
-            li: { fontFamily: 'inherit' },
-            blockquote: { fontFamily: 'inherit' },
-            table: { fontFamily: 'inherit' },
-            h1: { fontFamily: 'inherit', color: '#0f172a' },
-            h2: { fontFamily: 'inherit', color: '#0f172a' },
-            h3: { fontFamily: 'inherit', color: '#0f172a' },
-            h4: { fontFamily: 'inherit', color: '#0f172a' },
-            strong: { color: '#0f172a' },
-          },
-        },
-      },
     },
   },
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [],
 }
