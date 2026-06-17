@@ -32,7 +32,6 @@ export default function QuizAnswerCards({ questions }) {
                         : 'bg-white border-border text-text-secondary'
                     }`}
                   >
-                    {correct ? 'Correct: ' : ''}
                     {opt}
                   </span>
                 )
