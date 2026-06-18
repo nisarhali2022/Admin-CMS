@@ -550,8 +550,7 @@ available only through `POST /api/revalidate` with
 
 **Status:** Resolved on June 14, 2026.
 
-Public reads use the hardcoded `SITE_CONFIG.wpApiUrl`; quiz writes use
-`NEXT_PUBLIC_WORDPRESS_API_URL`.
+Public reads and quiz writes used separate WordPress API configuration paths.
 
 **Impact:** A configuration mismatch can read from one WordPress installation
 and write to another.
@@ -560,9 +559,9 @@ and write to another.
 URL should not need the `NEXT_PUBLIC_` prefix.
 
 **Implemented result:** Public reads, sitemap generation, and quiz writes now
-use `lib/wordpressConfig.js`. It prefers the server-only `WORDPRESS_API_URL`,
-supports the existing public variable for backward compatibility, and falls
-back to the configured site URL.
+use `lib/wordpressConfig.js`. It requires the server-only `WORDPRESS_API_URL`
+environment variable and supports `NEXT_PUBLIC_WORDPRESS_API_URL` only for
+backward compatibility. There is no hardcoded WordPress API fallback in source.
 
 ### BF-25: Legacy files and dead code increase confusion
 

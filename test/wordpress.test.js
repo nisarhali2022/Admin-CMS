@@ -1,11 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  getPostBySlug,
-  WordPressApiError,
-} from '../lib/wordpress.js'
+
+process.env.WORDPRESS_API_URL = 'https://example.test'
+
+async function getWordPressModule() {
+  return import('../lib/wordpress.js')
+}
 
 test('a successful empty WordPress slug response means missing content', async () => {
+  const { getPostBySlug } = await getWordPressModule()
   const originalFetch = globalThis.fetch
   let calls = 0
 
@@ -26,6 +29,7 @@ test('a successful empty WordPress slug response means missing content', async (
 })
 
 test('a temporary WordPress failure retries once and then throws', async () => {
+  const { getPostBySlug, WordPressApiError } = await getWordPressModule()
   const originalFetch = globalThis.fetch
   const originalConsoleError = console.error
   let calls = 0

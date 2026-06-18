@@ -13,13 +13,15 @@ await loadEnvironment(path.join(projectDirectory, '.env.local'))
 const apiUrl = (
   process.env.WORDPRESS_API_URL ||
   process.env.NEXT_PUBLIC_WORDPRESS_API_URL ||
-  'https://telenorquiztoday.com.pk/wp-json/wp/v2'
+  ''
 ).replace(/\/+$/, '')
 const username = process.env.WP_ADMIN_USER
 const password = process.env.WP_ADMIN_PASS
 
-if (!username || !password) {
-  throw new Error('WP_ADMIN_USER and WP_ADMIN_PASS are required.')
+if (!apiUrl || !username || !password) {
+  throw new Error(
+    'WORDPRESS_API_URL or NEXT_PUBLIC_WORDPRESS_API_URL, WP_ADMIN_USER, and WP_ADMIN_PASS are required.'
+  )
 }
 
 if (

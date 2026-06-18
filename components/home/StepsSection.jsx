@@ -5,19 +5,19 @@ const STEPS = [
     num: 1,
     title: 'Install the My Telenor App',
     desc: 'Download from the Google Play Store or Apple App Store and log in with your Telenor number.',
-    img: 'https://telenorquiztoday.com.pk/wp-content/uploads/2026/01/Install-the-My-Telenor-App-683x1024.webp',
+    img: '/assets/install-my-telenor-app.webp',
   },
   {
     num: 2,
     title: 'Log in with Your Telenor SIM',
     desc: 'Open the app and register with your Telenor number. The login process takes only a moment.',
-    img: 'https://telenorquiztoday.com.pk/wp-content/uploads/2026/01/Log-in-with-Your-Telenor-SIM-683x1024.webp',
+    img: '/assets/login-with-telenor-sim.webp',
   },
   {
     num: 3,
     title: 'Open the Play & Win Section',
     desc: 'From the home screen, scroll down and tap the Telenor Play & Win or Test Your Skills section.',
-    img: 'https://telenorquiztoday.com.pk/wp-content/uploads/2026/01/Open-the-Play-Win-Section-2-683x1024.webp',
+    img: '/assets/open-play-win-section.webp',
   },
   {
     num: 4,
@@ -29,7 +29,7 @@ const STEPS = [
     num: 5,
     title: 'Get Your Free Internet Reward',
     desc: 'Answer all five correctly and receive 150 MB of free internet credited directly to your Telenor account.',
-    img: 'https://telenorquiztoday.com.pk/wp-content/uploads/2026/01/Answer-Five-Quiz-Questions-1-683x1024.webp',
+    img: '/assets/answer-five-quiz-questions.webp',
   },
 ];
 
