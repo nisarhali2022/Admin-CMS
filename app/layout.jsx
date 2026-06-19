@@ -37,9 +37,13 @@ export const metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  verification: {
+    google: 'WFCdLQyHzHZA8YtaW4AxsHzFFrFiro_5zMwLoMLYqo8',
+  },
 }
 
 export default function RootLayout({ children }) {
+  const hasGoogleAnalytics = Boolean(SITE_CONFIG.googleAnalyticsId)
   const hasAdSenseClient =
     SITE_CONFIG.googleAdsenseId &&
     !SITE_CONFIG.googleAdsenseId.includes('XXXX')
@@ -82,6 +86,23 @@ export default function RootLayout({ children }) {
           {children}
         </main>
         <Footer />
+        {hasGoogleAnalytics && (
+          <>
+            <Script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${SITE_CONFIG.googleAnalyticsId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){window.dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${SITE_CONFIG.googleAnalyticsId}');
+              `}
+            </Script>
+          </>
+        )}
         {hasAdSenseClient && (
           <Script
             async
