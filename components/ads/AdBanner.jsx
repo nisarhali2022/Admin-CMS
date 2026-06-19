@@ -24,7 +24,7 @@ export default function AdBanner({
       className={`my-6 min-h-[100px] w-full overflow-hidden ${className}`}
       aria-label="Advertisement"
     >
-      <AdSenseUnit slot={resolvedSlot} format="horizontal" />
+      <AdSenseUnit slot={resolvedSlot} format="auto" />
     </div>
   )
 }
