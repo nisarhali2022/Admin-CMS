@@ -35,7 +35,7 @@ const STEPS = [
 
 export default function StepsSection() {
   return (
-    <section className="my-8">
+    <section id="steps-to-participate" className="my-8">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-6">
         Steps to Participate
       </h2>

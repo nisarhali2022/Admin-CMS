@@ -10,6 +10,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import AdBanner from '@/components/ads/AdBanner';
 import AdInArticle from '@/components/ads/AdInArticle';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import TableOfContents from '@/components/posts/TableOfContents';
 
 import QuizAnswerCards from '@/components/home/QuizAnswerCards';
 import LatestNewsGrid from '@/components/home/LatestNewsGrid';
@@ -18,6 +19,23 @@ import FaqSection from '@/components/home/FaqSection';
 import QuizInfoSections from '@/components/home/QuizInfoSections';
 
 export const revalidate = 3600;
+
+const HOME_TOC = [
+  { id: 'article-title', text: 'Telenor Quiz Today', level: 1 },
+  { id: 'quiz-answers', text: 'Today Telenor Answer', level: 2 },
+  { id: 'latest-news', text: 'Latest News', level: 2 },
+  { id: 'what-is-telenor-daily-quiz', text: 'What is the Telenor Daily Quiz?', level: 2 },
+  { id: 'find-correct-answers', text: 'How to Find Correct Answers', level: 2 },
+  { id: 'how-to-play', text: 'How to Play and Win Free MBs', level: 2 },
+  { id: 'why-people-love-it', text: 'Why People Love the Daily Quiz', level: 2 },
+  { id: 'who-can-join', text: 'Who Can Join', level: 2 },
+  { id: 'rewards', text: 'Rewards You Can Get', level: 2 },
+  { id: 'common-problems', text: 'Common Problems and Fixes', level: 2 },
+  { id: 'tips', text: 'Tips to Boost Your Success', level: 2 },
+  { id: 'conclusion', text: 'Conclusion', level: 2 },
+  { id: 'steps-to-participate', text: 'Steps to Participate', level: 2 },
+  { id: 'faqs', text: 'FAQs', level: 2 },
+];
 
 export async function generateMetadata() {
   const post = await getDailyQuizPost();
@@ -62,7 +80,10 @@ export default async function HomePage() {
           <article>
             {/* Title */}
       
-            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-text-primary leading-tight mb-4">
+            <h1
+              id="article-title"
+              className="font-heading font-bold text-2xl sm:text-3xl text-text-primary leading-tight mb-4"
+            >
               Telenor Quiz today {todayLabel} – Latest My Telenor Answer Today</h1>
 
             {/* Intro */}
@@ -84,6 +105,8 @@ export default async function HomePage() {
                 as your main number, you can still participate using your Telenor SIM in the second slot.
               </p>
             </div>
+
+            <TableOfContents toc={HOME_TOC} defaultExpanded />
 
             {/* Top Ad */}
             <AdBanner position="top" />

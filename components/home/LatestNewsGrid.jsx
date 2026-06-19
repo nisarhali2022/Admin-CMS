@@ -10,7 +10,7 @@ export default function LatestNewsGrid({ posts }) {
   if (!posts?.length) return null;
 
   return (
-    <section className="my-8">
+    <section id="latest-news" className="my-8">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-5 pb-2 border-b-2 border-accent inline-block">
         Latest News
       </h2>

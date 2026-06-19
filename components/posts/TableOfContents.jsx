@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-export default function TableOfContents({ toc }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function TableOfContents({ toc, defaultExpanded = false }) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   if (!toc || toc.length === 0) return null;
 

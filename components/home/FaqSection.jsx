@@ -30,7 +30,7 @@ export default function FaqSection({ faqs }) {
   const items = faqs?.length ? faqs : FAQS;
 
   return (
-    <section className="my-8">
+    <section id="faqs" className="my-8">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-5">
         FAQs – My Telenor Answers Today
       </h2>

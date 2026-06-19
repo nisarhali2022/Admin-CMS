@@ -5,7 +5,7 @@ export default function QuizInfoSections() {
   return (
     <div className="render-deferred">
       {/* ── What is the Telenor Daily Quiz ── */}
-      <section className="my-8">
+      <section id="what-is-telenor-daily-quiz" className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           What is the Telenor Daily Quiz?
         </h2>
@@ -27,7 +27,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── How to Find Answers ── */}
-      <section className="my-8">
+      <section id="find-correct-answers" className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           How to Find the Correct My Telenor Quiz Answers Today Instantly?
         </h2>
@@ -41,7 +41,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── How to Play ── */}
-      <section className="my-8">
+      <section id="how-to-play" className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           How to Play the Telenor Quiz Today and Win Free MBs?
         </h2>
@@ -61,7 +61,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── Why People Love It ── */}
-      <section className="my-8">
+      <section id="why-people-love-it" className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Why People Love the Daily Telenor Quiz?
         </h2>
@@ -88,7 +88,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── Who Can Join ── */}
-      <section className="my-8">
+      <section id="who-can-join" className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Who Can Join the Today Telenor Quiz Answer?
         </h2>
@@ -111,7 +111,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── Rewards ── */}
-      <section className="my-8 bg-surface border border-border rounded-xl p-6">
+      <section id="rewards" className="my-8 bg-surface border border-border rounded-xl p-6">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
           Rewards You Can Get from My Telenor Today Answer
         </h2>
@@ -125,7 +125,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── Common Problems ── */}
-      <section className="my-8">
+      <section id="common-problems" className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Common Problems and How to Fix Them
         </h2>
@@ -153,7 +153,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── Tips ── */}
-      <section className="my-8">
+      <section id="tips" className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           Proven Tips to Boost Your Success
         </h2>
@@ -173,7 +173,7 @@ export default function QuizInfoSections() {
       </section>
 
       {/* ── Conclusion ── */}
-      <section className="my-8 bg-primary/5 border border-primary/20 rounded-xl p-6">
+      <section id="conclusion" className="my-8 bg-primary/5 border border-primary/20 rounded-xl p-6">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
           Conclusion
         </h2>
