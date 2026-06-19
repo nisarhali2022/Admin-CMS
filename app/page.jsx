@@ -74,10 +74,10 @@ export default async function HomePage() {
   return (
     <div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
 
           {/* ── Main Content ── */}
-          <article>
+          <article className="min-w-0">
             {/* Title */}
       
             <h1
@@ -106,7 +106,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <TableOfContents toc={HOME_TOC} defaultExpanded />
+            <TableOfContents toc={HOME_TOC} />
 
             {/* Top Ad */}
             <AdBanner position="top" />

@@ -69,7 +69,7 @@ export default async function BlogPage({ searchParams }) {
 
       <AdBanner position="top" />
 
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
         <section>
           <PostGrid posts={posts} showDate={false} />
           <Pagination
