@@ -9,6 +9,7 @@ import {
   getAuthorPath,
   getFeaturedImageUrl,
   getPostAuthor,
+  normalizeWordPressContentLinks,
   optimizeContentImages,
   removeContentH1Blocks,
   toPlainText,
@@ -71,7 +72,9 @@ export default async function PostPage({ params }) {
 
   const postUrl = `${SITE_CONFIG.siteUrl}/${categorySlug}/${post_slug}`;
 
-  const contentHtml = removeContentH1Blocks(post.content?.rendered || '');
+  const contentHtml = normalizeWordPressContentLinks(
+    removeContentH1Blocks(post.content?.rendered || '')
+  );
   const optimizedHtml = optimizeContentImages(contentHtml);
   const { modifiedHtml, toc } = generateTocAndInjectIds(optimizedHtml);
   const titleText = toPlainText(post.title?.rendered);

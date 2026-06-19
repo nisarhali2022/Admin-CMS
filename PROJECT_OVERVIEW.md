@@ -10,7 +10,7 @@ The application uses:
 - WordPress REST API for posts, pages, categories, tags, media, authors, and
   the `daily-quiz` post.
 - Static React content for quiz guidance, participation steps, navigation,
-  fallback FAQs, and site settings.
+  local public assets, fallback FAQs, and site settings.
 - A protected browser admin page for updating the five daily quiz questions.
 
 WordPress is the production data store. The Next.js application has no
@@ -22,10 +22,10 @@ separate application database.
 | --- | --- |
 | Framework | Next.js 15 App Router |
 | UI | React 19 |
-| Styling | Tailwind CSS 3 and Typography plugin |
+| Styling | Tailwind CSS 3 with compact custom article/prose styles |
 | CMS | WordPress REST API v2 |
 | Rendering | Static generation, ISR, and dynamic server rendering |
-| Images | `next/image` with approved WordPress remote images |
+| Images | `next/image`, local public assets, and env-derived WordPress media host |
 | Ads | Google AdSense integration |
 | Language | JavaScript and JSX |
 
@@ -47,7 +47,8 @@ separate application database.
 
 1. A request enters a route under `app/`.
 2. Server components call `lib/wordpress.js`.
-3. `lib/wordpressConfig.js` supplies the shared WordPress API URL.
+3. `lib/wordpressConfig.js` supplies the shared WordPress API URL from
+   environment variables only.
 4. WordPress responses use Next.js caching and revalidation.
 5. Helpers parse quiz HTML, generate TOC IDs, format dates, and build URLs.
 6. Route components compose reusable components from `components/`.
@@ -139,24 +140,32 @@ homepage with the new date even when quiz answers were not edited.
 - Article breadcrumbs allow substantially more title text before truncating:
   up to `70vw`, `420px` on small screens, and `560px` on large screens.
 - Sidebar cards have a consistent `24px` vertical gap.
-- The sidebar currently renders Recent Posts, Popular Posts, and Categories.
-  Its Search and advertisement cards are not rendered.
+- The sidebar currently renders Recent Posts, Popular Posts, and Categories
+  without visible publication dates. Its Search and advertisement cards are
+  not rendered.
+- The footer is a static four-column layout with About, Menu, More Link, and
+  Disclaimer content plus social icon placeholders. It no longer fetches
+  WordPress posts.
 - Article pages display an author box with name, optional description, and
   avatar or initial fallback.
 - Article and dynamic WordPress page templates render one visible page-title
   H1.
 - Visible publish dates are hidden from articles, related cards, blog cards,
   category cards, and homepage Latest News cards.
-- The root document uses `lang="en-PK"`, placeholder social profiles are
-  removed, and AdSense does not load while its publisher ID is a placeholder.
+- The root document uses `lang="en-PK"`, footer social icons use placeholder
+  `#` URLs until real profiles are supplied, and AdSense does not load while
+  its publisher ID is a placeholder.
 - A branded 1200x630 fallback social image is available at
   `public/og-default.jpg`.
+- Fixed logo, favicon, and homepage participation-step images are served from
+  `public/assets/` so they do not depend on the old WordPress uploads path
+  after the main domain moves to Vercel.
 
 ## 7. Configuration
 
 | Variable | Purpose |
 | --- | --- |
-| `WORDPRESS_API_URL` | Preferred server-side WordPress REST API URL |
+| `WORDPRESS_API_URL` | Required server-side WordPress REST API URL |
 | `NEXT_PUBLIC_WORDPRESS_API_URL` | Backward-compatible URL fallback |
 | `NEXT_PUBLIC_ADSENSE_ID` | Public AdSense publisher/client ID |
 | `NEXT_PUBLIC_AD_SLOT_TOP` | Top horizontal ad slot |
@@ -171,10 +180,42 @@ homepage with the new date even when quiz answers were not edited.
 | `REVALIDATE_SECRET` | Protects POST cache revalidation |
 | `CRON_SECRET` | Protects scheduled midnight revalidation |
 
-Site constants, route sizes, AdSense slots, navigation, colors, images, and
-the one-hour revalidation duration are defined in `lib/constants.js`.
+Site constants, route sizes, AdSense slots, navigation, colors, local image
+paths, and the one-hour revalidation duration are defined in
+`lib/constants.js`.
 
-## 8. Sitemaps
+`WORDPRESS_API_URL` must be configured in Vercel, for example:
+
+```text
+WORDPRESS_API_URL=https://wp.example-domain.test/wp-json/wp/v2
+```
+
+There is no hardcoded WordPress API fallback in tracked source. Local secrets
+and the real local API URL live in `.env.local`, which is ignored by Git.
+
+## 8. Deployment Model
+
+The intended production architecture is headless WordPress:
+
+```text
+https://telenorquiztoday.com.pk
+  -> Vercel
+  -> public Next.js website
+
+https://wp.telenorquiztoday.com.pk
+  -> Hostinger
+  -> WordPress admin, media, and REST API backend
+```
+
+The main domain remains in `SITE_CONFIG.url` and `SITE_CONFIG.siteUrl` because
+it is the public canonical website URL for metadata, schema, sitemaps, robots,
+and share links. It does not mean the domain must remain hosted on Hostinger.
+
+The WordPress backend URL must be supplied through Vercel environment
+variables. The `wp.` subdomain should remain on Hostinger and should not be
+deleted when the root domain DNS is pointed to Vercel.
+
+## 9. Sitemaps
 
 The site publishes:
 
@@ -191,31 +232,33 @@ The page sitemap also includes crawlable `/author/<slug>` profiles. Sitemap
 collection uses the shared WordPress retry policy and aborts rather than
 publishing partial XML. Homepage `lastmod` follows the Karachi date rollover.
 
-## 9. Verification Status
+## 10. Verification Status
 
-Reviewed and updated on June 15, 2026:
+Reviewed and updated on June 19, 2026:
 
 | Check | Current result |
 | --- | --- |
-| JavaScript route syntax checks | Passed for checked `.js` files |
-| `git diff --check` | Passed |
-| Focused TOC behavior simulation | Passed |
-| Admin WordPress lookup simulations | Passed |
-| `npm.cmd run build` | Passed on June 15, 2026 using an isolated output directory |
+| Hardcoded backend/API secret scan | Passed: no tracked-source backend URL or secret matches |
+| `.env.local` tracking check | Passed: ignored by `.gitignore` and not tracked |
+| JavaScript route syntax checks | Covered by lint/build |
+| `git diff --check` | Previously passed; current verification focused on lint/test/build |
+| Focused TOC behavior simulation | Covered by automated tests and build |
+| Admin WordPress lookup simulations | Covered by automated tests |
+| `npm.cmd run build` | Passed on June 19, 2026 |
 | ESLint | Passed with `npm.cmd run lint` |
-| Automated test suite | 13 tests passed with `npm.cmd run test` |
+| Automated test suite | 15 tests passed with `npm.cmd run test` |
 
-The production build compiled, type-checked, and generated all 28 routes.
+The production build compiled, linted, type-checked, and generated all 28 routes.
 Browser checks verified Organization/WebSite, Article, Person, author profile,
 canonical, image-priority, no-hydration header, disabled-ad, responsive-image,
 and deferred-rendering output. Local HTTP checks verified sitemap author
 entries, homepage `lastmod`, and extracted images.
 
-The final performance build reports approximately `634 B` of route-specific
-JavaScript for the homepage, `637 B` for blog/tag archives, and `2.57 kB` for
+The final performance build reports approximately `628 B` of route-specific
+JavaScript for the homepage, `630 B` for blog/tag archives, and `2.56 kB` for
 article routes. The shared `102 kB` is primarily the Next.js/React runtime.
 
-## 10. Remaining Improvements
+## 11. Remaining Improvements
 
 ### Required functional fixes
 
@@ -242,6 +285,16 @@ Engineering safeguards completed on June 15, 2026:
 - WordPress body images retain existing responsive markup or receive inferred
   dimensions, fallback dimensions, responsive Next.js optimizer sources,
   `sizes`, lazy loading, and asynchronous decoding.
+
+Additional migration safeguards completed on June 19, 2026:
+
+- WordPress API configuration is environment-only.
+- Fixed public assets were moved from WordPress upload URLs into
+  `public/assets/`.
+- `next.config.js` derives the WordPress media host from `WORDPRESS_API_URL`.
+- Tracked source contains no hardcoded backend API URL, WordPress backend host,
+  WordPress API path, old main-domain upload path, or hardcoded local
+  passwords/secrets.
 
 See `PROJECT_STRUCTURE.md` for the file and call map. See `BUG_FIXING.md` for
 the issue history, resolved changes, and open work. See `SEO_ANALYSIS.md` for

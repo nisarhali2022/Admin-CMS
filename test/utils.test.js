@@ -1,6 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { optimizeContentImages, removeContentH1Blocks } from '../lib/utils.js'
+import {
+  normalizeWordPressContentLinks,
+  optimizeContentImages,
+  removeContentH1Blocks,
+} from '../lib/utils.js'
 
 test('body images preserve supplied responsive markup', () => {
   const html =
@@ -56,4 +60,29 @@ test('gutenberg h1 heading comments are removed with the heading', () => {
   assert.doesNotMatch(result, /wp:heading/i)
   assert.doesNotMatch(result, /<h1\b/i)
   assert.match(result, /<p>Body<\/p>/)
+})
+
+test('wordpress backend content links are rewritten to the public site', () => {
+  process.env.WORDPRESS_API_URL =
+    'https://wp.telenorquiztoday.com.pk/wp-json/wp/v2'
+
+  const result = normalizeWordPressContentLinks(
+    '<p>Also Read: <a href="https://wp.telenorquiztoday.com.pk/telecom/example-post/">Example</a></p>'
+  )
+
+  assert.match(
+    result,
+    /href="https:\/\/telenorquiztoday\.com\.pk\/telecom\/example-post\/"/
+  )
+})
+
+test('wordpress system links are not rewritten', () => {
+  process.env.WORDPRESS_API_URL =
+    'https://wp.telenorquiztoday.com.pk/wp-json/wp/v2'
+
+  const result = normalizeWordPressContentLinks(
+    '<a href="https://wp.telenorquiztoday.com.pk/wp-content/uploads/file.webp">File</a>'
+  )
+
+  assert.match(result, /href="https:\/\/wp\.telenorquiztoday\.com\.pk\/wp-content\/uploads\/file\.webp"/)
 })

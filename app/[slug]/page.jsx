@@ -22,6 +22,7 @@ import AdInArticle from '@/components/ads/AdInArticle';
 import ShareButtons from '@/components/ui/ShareButtons';
 import {
   injectAdAfterFirstParagraph,
+  normalizeWordPressContentLinks,
   optimizeContentImages,
   removeContentH1Blocks,
   toPlainText,
@@ -134,7 +135,9 @@ export default async function SlugPage({ params, searchParams }) {
   // 2. Check if Page
   const page = await getPageBySlug(slug);
   if (page) {
-    const contentHtml = removeContentH1Blocks(page.content?.rendered || '');
+    const contentHtml = normalizeWordPressContentLinks(
+      removeContentH1Blocks(page.content?.rendered || '')
+    );
     const optimizedHtml = optimizeContentImages(contentHtml);
     const { modifiedHtml, toc } = generateTocAndInjectIds(optimizedHtml);
     const titleText = toPlainText(page.title?.rendered);

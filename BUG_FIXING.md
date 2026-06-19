@@ -2,18 +2,20 @@
 
 ## 1. Review Result
 
-Review date: June 15, 2026.
+Review date: June 19, 2026.
 
 Commands checked:
 
 | Check | Result |
 | --- | --- |
-| `npm.cmd run build` | Passed; all 28 routes generated on June 15, 2026 |
+| `npm.cmd run build` | Passed; all 28 routes generated on June 19, 2026 |
 | `npm.cmd run lint` | Passed with no warnings or errors |
-| `npm.cmd run test` | Passed: 13 tests |
+| `npm.cmd run test` | Passed: 15 tests |
+| Hardcoded backend/API secret scan | Passed: no tracked-source backend URL or secret matches |
+| `.env.local` tracking check | Passed: ignored by Git and not tracked |
 
-The current uncommitted change set passed a production build using an isolated
-output directory, focused browser/runtime checks, and `git diff --check`. The
+The current uncommitted change set passed a production build, automated tests,
+linting, and a tracked-source configuration/security scan. The
 following register records behavioral, security, data-integrity, SEO,
 performance, UI, and maintainability findings.
 
@@ -462,7 +464,7 @@ Add focused tests for:
 - API authentication and payload validation.
 - Karachi date boundaries.
 
-**Implemented result:** `npm run test` executes 13 tests through `tsx` and
+**Implemented result:** `npm run test` executes 15 tests through `tsx` and
 Node's native test runner. Coverage includes quiz normalization and escaping,
 canonical and pagination behavior, archive validation, Karachi midnight, and
 WordPress missing-versus-unavailable behavior and body-image enhancement.
@@ -701,6 +703,95 @@ truncation.
 rendered. The active Recent Posts, Popular Posts, and Categories cards use one
 explicit `24px` parent gap, and the old per-widget bottom margin was removed.
 
+### BF-34: WordPress backend API URL was visible as a code fallback
+
+**Severity:** Medium
+
+**Status:** Resolved on June 19, 2026.
+
+**Files:** `lib/constants.js`, `lib/wordpressConfig.js`, `next.config.js`,
+WordPress maintenance scripts.
+
+**Problem:** The WordPress REST API URL could be discovered from tracked source
+through fallback configuration. This was not a password or private credential,
+but it exposed the backend host and made migration settings easier to confuse.
+
+**Implemented result:** WordPress API configuration is now environment-only.
+`lib/wordpressConfig.js` requires `WORDPRESS_API_URL` or the backward-compatible
+`NEXT_PUBLIC_WORDPRESS_API_URL` and throws clearly if neither exists.
+Maintenance scripts use the same env-only requirement. `next.config.js`
+derives the WordPress image host from the configured API URL instead of
+hardcoding it.
+
+### BF-35: Fixed assets depended on the old main-domain WordPress uploads path
+
+**Severity:** Medium
+
+**Status:** Resolved on June 19, 2026.
+
+**Files:** `lib/constants.js`, `components/home/StepsSection.jsx`,
+`public/assets/`, `next.config.js`.
+
+**Problem:** Logo, favicon, and homepage participation-step images pointed to
+`https://telenorquiztoday.com.pk/wp-content/uploads/...`. After the main domain
+moves from Hostinger to Vercel, those upload URLs may no longer be served from
+the main domain.
+
+**Implemented result:** Fixed assets were downloaded into `public/assets/` and
+the components now use local `/assets/...` paths. The old main-domain upload
+host was removed from `next.config.js`. Dynamic WordPress media still works via
+the env-derived WordPress backend media host.
+
+### BF-36: Footer still fetched WordPress posts and did not match requested copy
+
+**Severity:** Low
+
+**Status:** Resolved on June 18, 2026.
+
+**File:** `components/layout/Footer.jsx`
+
+**Implemented result:** The footer now renders four static columns: About us,
+Menu, More Link, and Disclaimer. The bottom row keeps the copyright text and
+shows social icons for Facebook, LinkedIn, YouTube, Twitter/X, Instagram, and
+Pinterest using placeholder `#` links until real profile URLs are provided. The
+footer no longer fetches recent posts.
+
+### BF-37: Duplicate public H1s could appear on the Vercel-rendered post route
+
+**Severity:** Medium
+
+**Status:** Resolved on June 16, 2026.
+
+**Files:** `lib/utils.js`, `app/[slug]/[post_slug]/page.jsx`,
+`app/[slug]/page.jsx`, `test/utils.test.js`.
+
+**Problem:** Next.js rendered a dynamic page-title H1 while WordPress content
+could also contain a manual body H1. This created two public H1 tags on some
+Vercel-rendered posts.
+
+**Implemented result:** Complete WordPress body `<h1>...</h1>` blocks are
+removed before public post/page rendering. The dynamic Next.js title remains
+the single visible H1, and it is added as the first Table of Contents item with
+the `article-title` anchor. Regression tests cover plain and Gutenberg H1
+blocks.
+
+### BF-38: Lighthouse contrast and image-delivery warnings
+
+**Severity:** Low
+
+**Status:** Resolved in source on June 18, 2026; requires post-deployment
+PageSpeed verification.
+
+**Files:** `tailwind.config.js`, `components/home/QuizAnswerCards.jsx`,
+`components/home/LatestNewsGrid.jsx`, `components/posts/FeaturedImage.jsx`,
+`components/posts/PostCard.jsx`, `next.config.js`, `styles/globals.css`.
+
+**Implemented result:** Accent/category/green answer colors were darkened for
+contrast. Card thumbnail `sizes`, smaller image candidates, and thumbnail
+quality were tuned. Tailwind Typography was removed and replaced with compact
+custom `.prose` CSS, reducing the CSS bundle substantially while preserving
+WordPress content styling.
+
 ## 5. Open Improvements
 
 ### IMP-01: Quiz parser requires a trailing question mark
@@ -802,7 +893,8 @@ Completed during the June 15, 2026 complex SEO pass:
 - Crawlable author profile routes and author sitemap entries.
 - Resilient all-or-nothing sitemap collection with improved image discovery.
 - Lean WordPress REST field/embed selection and cheaper popular-post refresh.
-- Suspense-streamed footer posts instead of blocking the root layout.
+- Replaced dynamic footer post fetching with a static footer so the root layout
+  is not blocked by footer WordPress requests.
 - Removed duplicate Latest News image preloading.
 - Lazy/async WordPress body-image attributes.
 
@@ -818,7 +910,24 @@ Completed during the June 15, 2026 performance pass:
 - Added accurate responsive `sizes` for post-card images.
 - Deferred below-fold informational rendering with `content-visibility`.
 - Reduced homepage/blog/tag route JavaScript from about `1.03 kB` to
-  `634-637 B`, and article route JavaScript from `2.96 kB` to `2.57 kB`.
+  about `628-630 B`, and article route JavaScript from `2.96 kB` to
+  about `2.56 kB`.
+
+Completed during the June 16-19, 2026 migration and polish pass:
+
+- Removed WordPress content H1 blocks during public rendering while keeping the
+  dynamic page-title H1.
+- Added the dynamic H1 to article/page table of contents.
+- Standardized WordPress-rendered article content to the site font and reduced
+  article body text size to `15px`.
+- Removed sidebar publication dates.
+- Rebuilt the footer as static requested copy with social icons.
+- Moved fixed WordPress upload assets into `public/assets/`.
+- Removed the hardcoded WordPress API URL fallback and old main-domain upload
+  host from tracked source.
+- Confirmed `.env.local` is ignored and untracked.
+- Confirmed no tracked-source backend URL, WordPress API path, old upload path,
+  or hardcoded local password/secret matches remain.
 
 ## 7. Recommended Fix Order
 
@@ -847,3 +956,7 @@ A bug-fixing pass should not be considered complete until:
 - Quiz questions without a trailing `?` parse correctly.
 - Missing or malformed quiz content displays a visible fallback.
 - Requested date-hidden surfaces contain no visible publication date.
+- WordPress backend/API URL and credentials are provided by environment
+  variables, not tracked source.
+- Fixed public assets do not rely on the old main-domain WordPress uploads
+  path.

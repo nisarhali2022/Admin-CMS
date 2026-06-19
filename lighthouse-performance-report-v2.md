@@ -3,12 +3,14 @@
 **Audit Type:** Core Web Vitals & Performance Insights  
 **Revision:** Second audit after partial fixes applied
 
-> **Historical report:** This audit also predates the completed June 15, 2026
-> performance pass. The proposed first-news-image `priority` change is no
-> longer the current recommendation because it produced competing preload
-> signals. The custom preloader and Latest News priority flag were removed.
-> Re-run Lighthouse against the deployed production build before treating any
-> metric or recommendation below as current.
+> **Historical report:** This audit also predates the completed June 19, 2026
+> migration and performance pass. The proposed first-news-image `priority`
+> change is no longer the current recommendation because it produced competing
+> preload signals. The custom preloader and Latest News priority flag were
+> removed, static WordPress-upload assets were moved into `public/assets/`,
+> and WordPress backend/API configuration is now environment-only. Re-run
+> Lighthouse against the deployed production build before treating any metric
+> or recommendation below as current.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## 1. Audit Scope
 
-Audit date: June 15, 2026.
+Audit date: June 19, 2026.
 
 This review covers:
 
@@ -13,7 +13,8 @@ This review covers:
 - Article, breadcrumb, and site structured data.
 - Archive pagination and duplicate-content handling.
 - Internal links and route consistency.
-- Images, Open Graph, Twitter cards, and Core Web Vitals risks.
+- Images, Open Graph, Twitter cards, local fixed assets, and Core Web Vitals
+  risks.
 - Content quality, topical structure, authorship, and trust signals.
 
 The repository and live production site are not currently identical. Findings
@@ -35,6 +36,11 @@ The project has a useful SEO foundation:
 - WordPress images use `next/image` in application-owned components.
 - The homepage explicitly loads `daily-quiz`.
 - Article author information is displayed.
+- The intended deployment model separates the public Vercel frontend from the
+  Hostinger WordPress backend on a `wp.` subdomain.
+- Fixed logo/favicon/homepage instructional images are local public assets.
+- The WordPress backend/API URL is environment-only and not hardcoded in
+  tracked source.
 
 However, several issues can prevent correct indexing or weaken search
 performance.
@@ -329,7 +335,16 @@ no homepage Article schema
 behavior cannot be reliably predicted from source review.
 
 **Fix:** Confirm the active production deployment, DNS origin, reverse proxy,
-and WordPress/Next.js ownership. Establish one authoritative rendering layer.
+and WordPress/Next.js ownership. Establish one authoritative rendering layer:
+
+```text
+telenorquiztoday.com.pk -> Vercel / Next.js frontend
+wp.telenorquiztoday.com.pk -> Hostinger / WordPress admin and REST API
+```
+
+Keep the `wp.` subdomain and Hostinger WordPress database/files active. Do not
+delete the Hostinger WordPress backend when moving the root domain DNS to
+Vercel.
 
 ### SEO-10: Archive and tag pages can be thin
 
@@ -551,16 +566,18 @@ for popularity, or refresh the ranking less frequently.
 
 **Status:** Resolved on June 15, 2026.
 
-**Implemented result:** The footer shell is synchronous, while recent posts
-stream inside a Suspense boundary and no longer block the root layout.
+**Implemented result:** The footer is now fully static requested copy and no
+longer performs any WordPress request from the root layout. Earlier Suspense
+streaming was replaced by the simpler static footer.
 
 **Source:** Code
 
-`Footer` is an async component in the root layout and fetches recent posts.
-Unlike the sidebar, it is not wrapped in Suspense.
+Earlier versions rendered an async footer in the root layout and fetched
+recent posts.
 
 **Fix:** Wrap the footer data section in Suspense, cache it for longer, or
-remove dynamic recent posts from the global layout.
+remove dynamic recent posts from the global layout. The current implementation
+uses the last option.
 
 ### SEO-22: Homepage image priority is over-specified
 
@@ -634,7 +651,7 @@ WordPress invalid-page 400 responses are normalized into the same 404 path.
 
 **Source:** Code
 
-**Status:** Resolved on June 14, 2026.
+**Status:** Partially resolved; awaiting real profile URLs.
 
 Footer links point to generic destinations:
 
@@ -646,9 +663,11 @@ https://wa.me/
 
 **Impact:** Weak trust signals and poor user experience.
 
-**Implemented result:** Placeholder Facebook, Twitter, and WhatsApp profile
-icons were removed. Verified profiles can be added later and reused in
-Organization schema.
+**Implemented result:** Generic text/profile links were removed from the footer
+bottom row. A social icon row now exists for Facebook, LinkedIn, YouTube,
+Twitter/X, Instagram, and Pinterest, but the icon links currently use `#`
+placeholders. Add verified profile URLs before using them in Organization
+schema.
 
 ## 6. Low-Priority Issues
 
@@ -688,6 +707,36 @@ AdSense script URL.
 
 **Implemented result:** The root layout loads AdSense only when the configured
 publisher ID is non-empty and does not contain the placeholder `XXXX`.
+
+### SEO-35: Hardcoded WordPress backend URL can expose migration internals
+
+**Source:** Code
+
+**Status:** Resolved on June 19, 2026.
+
+**Problem:** A hardcoded WordPress API fallback in tracked source can reveal
+the backend API host and cause accidental configuration drift between local,
+preview, and production environments.
+
+**Implemented result:** `lib/wordpressConfig.js` now requires
+`WORDPRESS_API_URL` or the backward-compatible `NEXT_PUBLIC_WORDPRESS_API_URL`.
+There is no hardcoded WordPress API fallback in tracked source. The WordPress
+media host in `next.config.js` is derived from the environment URL.
+
+### SEO-36: Static images depended on the old main-domain WordPress uploads URL
+
+**Source:** Code
+
+**Status:** Resolved on June 19, 2026.
+
+**Problem:** Logo, favicon, and homepage participation-step images used
+`telenorquiztoday.com.pk/wp-content/uploads/...`. After the root domain moves
+to Vercel, those URLs may no longer be served by Hostinger.
+
+**Implemented result:** These fixed assets now live in `public/assets/` and
+are referenced through local `/assets/...` paths. Dynamic WordPress post media
+continues to use the WordPress backend media host from environment
+configuration.
 
 ### SEO-30: Sitemap image extraction is incomplete
 
@@ -875,11 +924,23 @@ SEO-32 was completed with the complex metadata/schema work on June 15, 2026.
 
 1. Reduce WordPress payloads. Completed.
 2. Simplify popular-post calculation. Completed.
-3. Prevent footer data from blocking the root layout. Completed.
+3. Prevent footer data from blocking the root layout. Completed; footer is now
+   static.
 4. Measure and correct image preload priorities. Completed.
 5. Optimize WordPress body images. Completed.
-6. Add real social links, author profiles, editorial policies, and sourcing
-   methodology.
+6. Replace footer social icon placeholders with real social profile URLs.
+7. Add/expand sourcing methodology where relevant.
+
+### Phase 5: Headless deployment readiness
+
+1. Keep public canonicals, sitemaps, schema, and sharing URLs on
+   `https://telenorquiztoday.com.pk`.
+2. Keep WordPress backend/admin/API on the Hostinger `wp.` subdomain.
+3. Add `WORDPRESS_API_URL` in Vercel before production deployment.
+4. Keep `wp.` DNS pointing to Hostinger while the root and `www` DNS records
+   point to Vercel.
+5. Serve `robots.txt` with `Disallow: /` on the `wp.` backend subdomain, while
+   allowing indexing on the public Next.js root domain.
 
 ## 9. Necessary Remaining SEO Work
 
@@ -888,7 +949,9 @@ SEO-32 was completed with the complex metadata/schema work on June 15, 2026.
    deployed.
 2. **SEO-09 deployment check:** Confirm the production domain serves this
    repository's metadata, schema, sitemap, language, and routing output.
-3. Measure field Core Web Vitals after deployment; build bundle sizes alone
+3. Replace footer social icon `#` placeholders with real verified social URLs
+   or remove icons until profile URLs are available.
+4. Measure field Core Web Vitals after deployment; build bundle sizes alone
    do not confirm real-user LCP, INP, or CLS.
 
 ## 10. Validation Checklist
@@ -910,13 +973,21 @@ After fixes:
 - Search and admin pages are `noindex`.
 - Language, Open Graph locale, and visible audience targeting agree.
 - Core Web Vitals are measured on homepage, archive, and article templates.
+- The public root domain points to Vercel.
+- The WordPress `wp.` subdomain remains available on Hostinger.
+- The `wp.` backend subdomain is blocked from indexing, while the public root
+  domain is indexable.
+- Vercel has `WORDPRESS_API_URL` configured.
 - Search Console coverage, canonical, crawl, and enhancement reports are
   reviewed after deployment.
 
 ## 11. Current Verification Limitations
 
-- The June 15, 2026 production build compiled, type-checked, and generated all
+- The June 19, 2026 production build compiled, type-checked, and generated all
   28 routes successfully using an isolated output directory.
+- `npm.cmd run test` passed 15 tests, `npm.cmd run lint` passed, and a
+  tracked-source scan found no backend WordPress URL, WordPress API path, old
+  main-domain upload path, or hardcoded secret/password matches.
 - Local browser and HTTP checks verified site, Article, Person, breadcrumb,
   author-route, and sitemap output.
 - No Search Console, Analytics, backlink, keyword, or field Core Web Vitals

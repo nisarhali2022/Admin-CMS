@@ -10,11 +10,12 @@ telenor-quiz/
 |-- lib/                 WordPress, parsing, TOC, constants, and utility logic
 |-- public/              Static public assets
 |   |-- og-default.jpg   1200x630 fallback Open Graph image
+|   |-- assets/          Local logo, favicon, and homepage step images
 |-- styles/              Global Tailwind/CSS styles
 |-- package.json         Scripts and dependencies
 |-- SEO_ANALYSIS.md      Detailed SEO audit and optimization roadmap
 |-- next.config.js       Next.js image and response-header configuration
-|-- tailwind.config.js   Theme, content scanning, and typography configuration
+|-- tailwind.config.js   Theme and content scanning configuration
 |-- postcss.config.js    Tailwind and Autoprefixer pipeline
 |-- jsconfig.json        `@/*` import alias
 |-- .env.local           Local secrets; ignored by Git
@@ -59,7 +60,9 @@ hydration, pathname subscription, or scroll listener.
 ### `lib/constants.js`
 
 Central configuration consumed by the layout, navigation, SEO, WordPress
-client, ads, and components.
+client-adjacent helpers, ads, and components. It intentionally stores the
+public site URL, public asset paths, navigation, ad slots, colors, and cache
+duration. It no longer stores a WordPress API URL.
 
 Exports:
 
@@ -126,7 +129,9 @@ homepage, quiz API, admin panel, parser compatibility exports, and cron route.
 ### `lib/wordpressConfig.js`
 
 Provides one WordPress REST API URL resolver for public reads, sitemap
-generation, and authenticated quiz writes. It prefers `WORDPRESS_API_URL`.
+generation, and authenticated quiz writes. It requires `WORDPRESS_API_URL` or,
+for backward compatibility, `NEXT_PUBLIC_WORDPRESS_API_URL`. There is no
+hardcoded WordPress API fallback in tracked source.
 
 ### `hooks/useSearch.js`
 
@@ -142,8 +147,8 @@ form.
 | --- | --- | --- |
 | `components/layout/Header.jsx` | Server | navigation, logo, `HeaderControls` |
 | `components/layout/HeaderControls.jsx` | Server | native search and CSS-only mobile navigation |
-| `components/layout/Footer.jsx` | Server | static footer shell and Suspense boundary |
-| `components/layout/FooterRecentPosts.jsx` | Async Server | `getLatestPosts` |
+| `components/layout/Footer.jsx` | Server | static four-column footer and social icon row |
+| `components/layout/FooterRecentPosts.jsx` | Async Server | Legacy/unused recent-post footer helper |
 | `components/layout/Sidebar.jsx` | Server | recent, popular, and category widgets |
 
 ### Home
@@ -191,8 +196,8 @@ form.
   and author schemas.
 - `app/author/[slug]/page.jsx`: crawlable author profile with bio, Person
   schema, and paginated posts.
-- `components/layout/FooterRecentPosts.jsx`: streams footer post data behind
-  Suspense so the root layout shell is not blocked.
+- `components/layout/FooterRecentPosts.jsx`: legacy helper retained in source
+  but no longer used by the current static footer.
 - `LoadingSpinner.jsx`: Suspense fallback.
 
 ## 5. Detailed Call Flows
@@ -266,7 +271,20 @@ Sidebar
   -> pass values to widgets
   -> widgets render those values without additional requests
   -> render cards with a consistent 24px vertical gap
+  -> render titles only; sidebar publication dates are hidden
   -> Search and advertisement cards are currently disabled
+```
+
+### Footer
+
+Current behavior:
+
+```text
+Footer
+  -> static About us, Menu, More Link, and Disclaimer columns
+  -> local logo asset from SITE_CONFIG.logoUrl
+  -> social icon row with placeholder href values
+  -> no WordPress request from the root layout footer
 ```
 
 ## 6. API Contracts
@@ -381,11 +399,16 @@ Performance-specific behavior:
 
 - `next.config.js` negotiates AVIF/WebP and caches optimized images for one
   day.
+- `next.config.js` derives the allowed WordPress media host from
+  `WORDPRESS_API_URL`.
 - Cards request smaller WordPress media variants with responsive `sizes`.
+- Homepage participation-step images, logo, and favicon are served from
+  `public/assets/`.
 - `.render-deferred` uses `content-visibility: auto` for long below-fold
   homepage information.
-- Inter is the only application font; headings and body share the same file
-  family.
+- Inter is the only application font; headings, body, and WordPress-rendered
+  article content share the same file family. The former Tailwind Typography
+  plugin was replaced by compact custom `.prose` CSS.
 
 Any code producing `/category/<slug>` or a one-segment post URL is inconsistent
 with the implemented routes.
@@ -398,7 +421,7 @@ with the implemented routes.
 | High | Quiz UI | Render a visible unavailable state when quiz HTML is empty or malformed |
 | Deployment | Live routing | Verify category/article URLs and production-source parity after deployment |
 
-Quality tooling now includes `eslint.config.mjs`, `npm run lint`, and 13 tests
+Quality tooling now includes `eslint.config.mjs`, `npm run lint`, and 15 tests
 under `test/`. Shared quiz validation/escaping lives in `lib/quiz.js`.
 `optimizeContentImages()` preserves WordPress responsive markup and fills
 missing dimensions, optimizer `srcset`, `sizes`, loading, and decoding

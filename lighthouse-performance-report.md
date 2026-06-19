@@ -2,12 +2,14 @@
 **URL:** `https://telenor-quiz-today-puce.vercel.app`  
 **Audit Type:** Core Web Vitals & Performance Insights
 
-> **Historical report:** This audit predates the June 15, 2026 performance
-> implementation. Its recommendation to prioritize the first Latest News
-> image was superseded after runtime measurement. Duplicate/custom news-image
-> preloading was removed, the header logo remained the only observed homepage
-> preload, and route-specific homepage JavaScript was reduced to approximately
-> `634 B`. Use `PROJECT_OVERVIEW.md` and `SEO_ANALYSIS.md` for current status.
+> **Historical report:** This audit predates the June 19, 2026 headless
+> migration and performance updates. Its recommendation to prioritize the first
+> Latest News image was superseded after runtime measurement. Duplicate/custom
+> news-image preloading was removed, fixed WordPress-upload assets were moved
+> into `public/assets/`, the CSS bundle was reduced by replacing Tailwind
+> Typography with compact custom `.prose` CSS, and route-specific homepage
+> JavaScript is now approximately `628 B`. Use `PROJECT_OVERVIEW.md` and
+> `SEO_ANALYSIS.md` for current status.
 
 ---
 
