@@ -86,3 +86,16 @@ test('wordpress system links are not rewritten', () => {
 
   assert.match(result, /href="https:\/\/wp\.telenorquiztoday\.com\.pk\/wp-content\/uploads\/file\.webp"/)
 })
+
+test('visible wordpress backend contact text is rewritten', () => {
+  process.env.WORDPRESS_API_URL =
+    'https://wp.telenorquiztoday.com.pk/wp-json/wp/v2'
+
+  const result = normalizeWordPressContentLinks(
+    '<p>Email: info@wp.telenorquiztoday.com.pk</p><p>Contact Page: https://wp.telenorquiztoday.com.pk/contact</p>'
+  )
+
+  assert.match(result, /info@telenorquiztoday\.com\.pk/)
+  assert.match(result, /https:\/\/telenorquiztoday\.com\.pk\/contact/)
+  assert.doesNotMatch(result, /wp\.telenorquiztoday\.com\.pk/)
+})
