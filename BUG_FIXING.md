@@ -960,3 +960,43 @@ A bug-fixing pass should not be considered complete until:
   variables, not tracked source.
 - Fixed public assets do not rely on the old main-domain WordPress uploads
   path.
+
+## 9. Latest Fixes - 2026-06-20
+
+Completed fixes:
+
+- Fixed visible backend `wp.telenorquiztoday.com.pk` text in rendered public
+  WordPress content by normalizing public-facing links and email text.
+- Rebuilt the Contact page as a public contact form layout instead of rendering
+  the WordPress page body directly.
+- Improved About page spacing and content alignment.
+- Fixed mobile horizontal overflow caused by the header/menu layout.
+- Updated the mobile menu so selecting a menu item closes the menu.
+- Added `/sitemap.xml` permanent redirect to the real sitemap index.
+- Kept `/sitemap_index.xml` as the preferred sitemap structure for Google
+  Search Console.
+- Added static `ads.txt` for AdSense authorization.
+- Switched AdSense script loading to `lazyOnload` for performance.
+- Added eager top ad loading and near-viewport lazy loading for lower ad
+  placements.
+- Randomized Homepage Latest News cards on refresh/client render.
+- Randomized sidebar Recent Posts on refresh/client render.
+- Updated footer social links and icons.
+- Centered the quiz question number text inside the circular badge.
+
+Current ad behavior note:
+
+- If DevTools shows `data-ad-status="unfilled"`, the ad request reached Google
+  but Google did not return an ad for that slot/request. The page can be
+  technically correct while still showing a blank reserved ad area.
+
+Recommended next checks after deploy:
+
+1. Open `/ads.txt` and confirm the Google seller line is visible.
+2. Open `/sitemap_index.xml` and confirm Google sees post, page, and category
+   sitemaps.
+3. Open `/sitemap.xml` and confirm it redirects to `/sitemap_index.xml`.
+4. Run PageSpeed again after ads have been live for a few hours.
+5. In AdSense, create separate ad units for top, middle, sidebar, in-article,
+   after-content, and bottom placements if RPM testing requires per-placement
+   reporting.

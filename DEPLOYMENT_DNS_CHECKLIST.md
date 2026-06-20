@@ -224,3 +224,31 @@ wp.telenorquiztoday.com.pk -> Hostinger
 
 Removing the main domain from Hostinger can break the `wp.` subdomain if
 Hostinger also removes the DNS zone, files, database, or subdomain mapping.
+
+## Latest Deployment Verification - 2026-06-20
+
+After DNS and Vercel deployment are complete, verify these URLs:
+
+```text
+https://telenorquiztoday.com.pk/
+https://www.telenorquiztoday.com.pk/
+https://telenorquiztoday.com.pk/ads.txt
+https://telenorquiztoday.com.pk/robots.txt
+https://telenorquiztoday.com.pk/sitemap_index.xml
+https://telenorquiztoday.com.pk/sitemap.xml
+https://wp.telenorquiztoday.com.pk/wp-json/wp/v2/posts
+```
+
+Expected results:
+
+- Root domain and `www` domain both serve the Vercel Next.js site.
+- `/ads.txt` returns the Google seller line.
+- `/robots.txt` allows public crawling, blocks `/api/`, and lists the sitemap
+  index.
+- `/sitemap_index.xml` returns the XML sitemap index.
+- `/sitemap.xml` redirects to `/sitemap_index.xml`.
+- `wp.telenorquiztoday.com.pk` remains on Hostinger and the WordPress REST API
+  stays reachable for Vercel.
+
+Do not delete the Hostinger WordPress installation, database, or `wp.`
+subdomain. Only the public root domain should point to Vercel.

@@ -994,3 +994,47 @@ After fixes:
   data was available.
 - Live production and repository output differ, so deployment parity must be
   resolved before treating source changes as live SEO fixes.
+
+## 12. Latest SEO and Monetization Update - 2026-06-20
+
+Completed SEO-related changes:
+
+- `/sitemap_index.xml` is the preferred sitemap for Search Console.
+- `/sitemap.xml` now redirects to `/sitemap_index.xml` so users and crawlers do
+  not hit a 404 when checking the common sitemap URL.
+- `robots.txt` allows public crawl access, blocks `/api/`, and points to the
+  sitemap index.
+- Google Search Console verification is included statically in root metadata.
+- Google Analytics is included statically through the root layout.
+- `ads.txt` is static and authorized for the AdSense publisher account.
+- Backend WordPress domain text is normalized out of public page content so
+  users and crawlers see the public root domain instead of `wp.` URLs.
+- Contact and About pages now use public-facing layouts and cleaner content
+  presentation.
+- Mobile horizontal overflow was fixed, improving mobile usability and reducing
+  layout instability risk.
+- Table of contents remains collapsed on initial load to reduce first-load page
+  height and visual noise.
+
+Performance and Core Web Vitals status:
+
+- Latest PageSpeed screenshot showed strong SEO and accessibility scores, with
+  remaining performance pressure mainly from third-party ad scripts, CSS render
+  blocking, and JavaScript work.
+- AdSense now loads globally with `lazyOnload`.
+- The first/top ad placement loads eagerly for better monetization opportunity.
+- Lower placements load before scroll arrival using a generous viewport margin,
+  balancing RPM and page speed.
+- Reserved ad container height is kept to reduce CLS.
+
+Remaining SEO/performance recommendations:
+
+1. Re-run PageSpeed on the live Vercel domain after deployment and after ads
+   have had time to fill.
+2. Check Search Console sitemap details for discovered URL count and indexing
+   errors.
+3. Create separate AdSense ad units per placement for better RPM diagnostics.
+4. Monitor whether ad loading changes affect LCP, INP, and CLS in real Chrome
+   User Experience data.
+5. Keep the WordPress `wp.` subdomain blocked from indexing while allowing REST
+   API and media access for the Vercel frontend.

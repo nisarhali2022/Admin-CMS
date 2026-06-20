@@ -292,3 +292,35 @@ The network dependency tree shows the critical path got significantly worse:
 - [Optimize LCP — Chrome Developers](https://developer.chrome.com/docs/performance/insights/lcp-discovery)
 - [Eliminate Render-Blocking Resources — Lighthouse](https://developer.chrome.com/docs/lighthouse/performance/render-blocking-resources/)
 - [Web Vitals — web.dev](https://web.dev/vitals/)
+
+---
+
+## Latest Performance/RPM Update - 2026-06-20
+
+The ad-loading strategy was adjusted for RPM while still protecting Core Web
+Vitals:
+
+- The top ad loads eagerly.
+- Lower ads do not all load at first render.
+- Lower ads start loading before they enter the viewport using a generous
+  `IntersectionObserver` root margin.
+- Reserved ad heights remain in place to avoid layout shift.
+- Global AdSense script loads with `lazyOnload`, so it does not compete as
+  aggressively with initial render.
+
+Why this helps:
+
+- Loading every ad immediately can hurt speed and Core Web Vitals.
+- Loading ads only when fully visible can reduce fill and RPM because the ad
+  request may be too late.
+- Loading lower ads shortly before scroll arrival is the middle approach:
+  better monetization timing with less first-load pressure.
+
+Next RPM/performance checks:
+
+1. Deploy the latest code to Vercel.
+2. Re-run PageSpeed on mobile after deployment.
+3. Check AdSense report by placement.
+4. If all placements currently use one ad slot, create separate AdSense ad
+   units for top, middle, sidebar, in-article, after-content, and bottom so RPM
+   can be measured per placement.

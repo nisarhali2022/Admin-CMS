@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 import {
   getCategoryBySlug,
@@ -6,7 +6,7 @@ import {
   getPostsByCategory,
   getAllCategorySlugs,
 } from '@/lib/wordpress';
-import { SITE_CONFIG } from '@/lib/constants';
+import { LEGACY_HOME_REDIRECT_SLUGS, SITE_CONFIG } from '@/lib/constants';
 import PostGrid from '@/components/posts/PostGrid';
 import Sidebar from '@/components/layout/Sidebar';
 import Pagination from '@/components/navigation/Pagination';
@@ -45,6 +45,14 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params, searchParams }) {
   const { slug } = await params;
+  if (LEGACY_HOME_REDIRECT_SLUGS.includes(slug)) {
+    return buildMetadata({
+      title: SITE_CONFIG.siteName,
+      description: SITE_CONFIG.description,
+      path: '/',
+    });
+  }
+
   const resolvedSearch = await searchParams;
   const currentPage = parsePageNumber(resolvedSearch?.page) || 1;
   
@@ -90,6 +98,9 @@ export async function generateMetadata({ params, searchParams }) {
 
 export default async function SlugPage({ params, searchParams }) {
   const { slug } = await params;
+  if (LEGACY_HOME_REDIRECT_SLUGS.includes(slug)) {
+    permanentRedirect('/');
+  }
 
   // 1. Check if Category
   const category = await getCategoryBySlug(slug);

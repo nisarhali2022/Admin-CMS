@@ -285,3 +285,36 @@ import Script from 'next/script'
 - [Next.js Image Optimization](https://nextjs.org/docs/app/api-reference/components/image#priority)
 - [Next.js Script Component](https://nextjs.org/docs/app/api-reference/components/script)
 - [Web Vitals — web.dev](https://web.dev/vitals/)
+
+---
+
+## Latest Performance Update - 2026-06-20
+
+Recent PageSpeed screenshot showed:
+
+| Area | Score |
+| --- | --- |
+| Performance | 89 |
+| Accessibility | 98 |
+| Best Practices | 81 |
+| SEO | 100 |
+
+Latest implemented changes:
+
+- AdSense global script now uses `next/script` with `lazyOnload`.
+- Top ad placement loads eagerly so the first monetization opportunity is not
+  delayed.
+- Lower, sidebar, and in-article ad placements lazy-load through
+  `IntersectionObserver`.
+- Lazy ad loading uses an early viewport margin so ads can request before the
+  user reaches them, which is better for RPM than waiting until the ad is fully
+  visible.
+- Ad containers reserve height to protect CLS.
+- Mobile horizontal overflow was fixed.
+
+Remaining validation:
+
+- Re-run PageSpeed after the latest deployment.
+- Compare LCP/CLS with ads active and with real mobile network throttling.
+- If performance drops, reduce lower-ad preload distance or move noncritical
+  placements farther below the fold.

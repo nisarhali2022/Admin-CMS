@@ -426,3 +426,39 @@ under `test/`. Shared quiz validation/escaping lives in `lib/quiz.js`.
 `optimizeContentImages()` preserves WordPress responsive markup and fills
 missing dimensions, optimizer `srcset`, `sizes`, loading, and decoding
 attributes.
+
+## 9. Latest Structure Update - 2026-06-20
+
+New or recently changed files and responsibilities:
+
+| File | Responsibility |
+| --- | --- |
+| `lib/constants.js` | Central static public IDs for Analytics, Search Console, AdSense, ad slots, site URL, and WordPress API URL configuration. |
+| `public/ads.txt` | Static AdSense seller authorization file served from `/ads.txt`. |
+| `app/layout.jsx` | Root metadata, Search Console verification meta tag, Google Analytics script, and global AdSense script. |
+| `components/ads/LazyAdSenseUnit.jsx` | Client-side ad loader that uses `IntersectionObserver` so below-fold ads load as the user approaches them. |
+| `components/ads/AdBanner.jsx` | Shared display ad wrapper; top placement is eager, lower placements are lazy. |
+| `components/ads/AdInArticle.jsx` | In-article ad placement using the same lazy AdSense loader. |
+| `components/home/LatestNewsGrid.jsx` | Client-side randomization for homepage Latest News cards. |
+| `components/widgets/RecentPosts.jsx` | Client-side randomization for Recent Posts while keeping server-fetched post data. |
+| `components/layout/Sidebar.jsx` | Fetches larger post pools for randomized Recent Posts and keeps popular-post fallback behavior. |
+| `components/layout/Footer.jsx` | Static footer copy and requested social links/icons. |
+| `components/layout/Header.jsx` | Mobile-safe header shell and logo sizing. |
+| `components/layout/HeaderControls.jsx` | Search and mobile menu state; closes mobile menu after link selection. |
+| `components/home/QuizAnswerCards.jsx` | Quiz answer card UI, including centered number badge text. |
+| `app/contact-us/page.jsx` | Public contact form layout using the public email address. |
+| `app/about-us/page.jsx` | Improved public About page card and alignment. |
+| `app/sitemap.xml/route.js` | Permanent redirect from `/sitemap.xml` to `/sitemap_index.xml`. |
+| `app/robots.js` | Public crawl policy and sitemap index reference. |
+| `lib/utils.js` | WordPress content URL/email normalization from backend `wp.` host to public root-domain display text. |
+
+Important call flow updates:
+
+- Homepage server fetches a larger latest-post pool, then
+  `LatestNewsGrid.jsx` shuffles it in the browser.
+- Sidebar server fetches recent posts once, then `RecentPosts.jsx` shuffles
+  display order in the browser.
+- Ad containers render reserved layout space first; `LazyAdSenseUnit.jsx`
+  initializes AdSense when the placement is eager or near the viewport.
+- WordPress-rendered content is normalized before public rendering so users do
+  not see backend URLs in ordinary page text.

@@ -299,3 +299,41 @@ Additional migration safeguards completed on June 19, 2026:
 See `PROJECT_STRUCTURE.md` for the file and call map. See `BUG_FIXING.md` for
 the issue history, resolved changes, and open work. See `SEO_ANALYSIS.md` for
 the detailed technical, on-page, content, and performance SEO audit.
+
+## Latest Update - 2026-06-20
+
+The project is now configured for the public Next.js site to run on Vercel while
+WordPress remains the backend CMS on `wp.telenorquiztoday.com.pk`.
+
+Latest completed work:
+
+- Google Analytics, Google Search Console verification, and Google AdSense IDs
+  are static application constants in `lib/constants.js`.
+- `public/ads.txt` is static and contains the authorized Google AdSense seller
+  line.
+- The global AdSense script uses `lazyOnload` to reduce Core Web Vitals impact.
+- Top ad placement loads eagerly; lower, sidebar, and in-article ad placements
+  load through an `IntersectionObserver` before the user reaches them.
+- Homepage Latest News cards and sidebar Recent Posts now randomize client-side
+  from larger WordPress post pools.
+- Footer social links were updated for LinkedIn, Facebook, X, Instagram,
+  YouTube, TikTok, and Pinterest.
+- Contact page now renders a public contact form layout and no longer exposes
+  backend WordPress page content directly.
+- About page alignment was improved with a cleaner content card layout.
+- Rendered WordPress content rewrites visible backend `wp.` email/URL text to
+  public root-domain text while keeping media, API, and admin system paths
+  intact.
+- Mobile header overflow was fixed, horizontal page overflow is hidden, and the
+  mobile menu closes when a menu item is selected.
+- `/sitemap.xml` now redirects to `/sitemap_index.xml`, which remains the
+  preferred sitemap submitted to Google Search Console.
+- `robots.txt` allows the public site, disallows `/api/`, and points crawlers to
+  the sitemap index.
+
+Current production note:
+
+- If AdSense markup loads but the slot does not visually show an ad, check the
+  slot status in DevTools. `data-ad-status="unfilled"` means Google loaded the
+  ad request but did not return inventory; that is an AdSense fill issue, not a
+  rendering bug in the project.
