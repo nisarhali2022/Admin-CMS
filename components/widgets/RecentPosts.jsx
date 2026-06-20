@@ -1,17 +1,38 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import {
   getFeaturedImageAlt,
   getFeaturedImageUrl,
   getFirstCategory,
 } from '@/lib/utils';
 
-export default function RecentPosts({ posts = [] }) {
+function shufflePosts(posts) {
+  const shuffled = [...posts];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+export default function RecentPosts({ posts = [], limit = 5 }) {
+  const [visiblePosts, setVisiblePosts] = useState(() =>
+    posts.slice(0, limit)
+  );
+
+  useEffect(() => {
+    if (!posts.length) return;
+    setVisiblePosts(shufflePosts(posts).slice(0, limit));
+  }, [posts, limit]);
+
   if (!posts || posts.length === 0) return null;
 
   return (
     <ul className="space-y-3">
-      {posts.map((post) => {
+      {visiblePosts.map((post) => {
         const imageUrl = getFeaturedImageUrl(post, 'thumbnail');
         const categorySlug = getFirstCategory(post)?.slug || 'uncategorized';
         return (

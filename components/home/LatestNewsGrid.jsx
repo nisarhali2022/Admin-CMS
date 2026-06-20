@@ -1,12 +1,33 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import {
   getCategoryColor,
   getFeaturedImageAlt,
   getFeaturedImageUrl,
 } from '@/lib/utils';
 
-export default function LatestNewsGrid({ posts }) {
+function shufflePosts(posts) {
+  const shuffled = [...posts];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+export default function LatestNewsGrid({ posts, limit = 6 }) {
+  const [visiblePosts, setVisiblePosts] = useState(() =>
+    (posts || []).slice(0, limit)
+  );
+
+  useEffect(() => {
+    if (!posts?.length) return;
+    setVisiblePosts(shufflePosts(posts).slice(0, limit));
+  }, [posts, limit]);
+
   if (!posts?.length) return null;
 
   return (
@@ -16,7 +37,7 @@ export default function LatestNewsGrid({ posts }) {
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {posts.map((post) => {
+        {visiblePosts.map((post) => {
           const img = getFeaturedImageUrl(post, 'medium_large');
           const category = post._embedded?.['wp:term']?.[0]?.[0] || null;
           const categorySlug = category?.slug || 'uncategorized';

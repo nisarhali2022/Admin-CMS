@@ -8,8 +8,8 @@ export default function QuizAnswerCards({ questions }) {
           key={i}
           className="border border-border rounded-lg overflow-hidden shadow-sm"
         >
-          <div className="bg-primary px-4 py-3 flex items-start gap-3">
-            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center mt-0.5">
+          <div className="bg-primary px-4 py-3 flex items-center gap-3">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent text-center text-xs font-bold leading-none text-white">
               {i + 1}
             </span>
             <p className="text-white font-semibold text-sm leading-snug">

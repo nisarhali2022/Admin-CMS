@@ -62,10 +62,10 @@ export async function generateMetadata() {
 export default async function HomePage() {
   const [quizPost, newsData] = await Promise.all([
     getDailyQuizPost(),
-    getPosts({ page: 1, perPage: 6, excludeSlugs: ['daily-quiz'], tag: 'news' }),
+    getPosts({ page: 1, perPage: 12, excludeSlugs: ['daily-quiz'], tag: 'news' }),
   ]);
 
-  const newsPosts = (newsData?.posts || []).slice(0, 6);
+  const newsPosts = newsData?.posts || [];
   const quizQuestions = parseQuizTables(quizPost?.content?.rendered || '');
   const faqs = parseFaqs(quizPost?.content?.rendered || '');
 

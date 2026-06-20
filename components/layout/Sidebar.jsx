@@ -4,10 +4,10 @@ import RecentPosts from '@/components/widgets/RecentPosts'
 import PopularPosts from '@/components/widgets/PopularPosts'
 
 export default async function Sidebar() {
-  const recentPosts = await getLatestPosts(5)
+  const recentPosts = await getLatestPosts(12)
   const [categories, popularPosts] = await Promise.all([
     getCategories(),
-    getMostCommentedPosts(5, recentPosts),
+    getMostCommentedPosts(5, recentPosts.slice(0, 5)),
   ])
 
   return (
