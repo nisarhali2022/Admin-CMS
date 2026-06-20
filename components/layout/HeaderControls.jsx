@@ -3,7 +3,7 @@ import { NAV_LINKS } from '@/lib/constants'
 
 export default function HeaderControls() {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-shrink-0 items-center gap-1">
       <details className="group">
         <summary
           className="flex cursor-pointer list-none rounded-full p-2 transition-colors hover:bg-surface [&::-webkit-details-marker]:hidden"

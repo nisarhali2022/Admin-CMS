@@ -11,16 +11,16 @@ export default function Header() {
         Every Day!
       </div>
 
-      <header className="relative sticky top-0 z-50 w-full border-b border-border bg-white">
+      <header className="relative sticky top-0 z-50 w-full overflow-x-clip border-b border-border bg-white">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="flex h-16 items-center justify-between">
-            <Link href="/" className="flex-shrink-0">
+          <div className="flex h-16 min-w-0 items-center justify-between gap-3">
+            <Link href="/" className="min-w-0 flex-shrink">
               <Image
                 src={SITE_CONFIG.logoUrl}
                 alt={SITE_CONFIG.name}
                 width={220}
                 height={50}
-                className="h-11 w-auto object-contain"
+                className="h-10 w-auto max-w-[calc(100vw-8rem)] object-contain sm:h-11 sm:max-w-none"
                 priority
               />
             </Link>
