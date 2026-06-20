@@ -1,4 +1,4 @@
-import AdSenseUnit from './AdSenseUnit'
+import LazyAdSenseUnit from './LazyAdSenseUnit'
 import {
   AD_SLOTS,
   hasConfiguredAdSlot,
@@ -18,7 +18,7 @@ export default function AdInArticle() {
       className="my-8 min-h-[250px] clear-both"
       aria-label="Advertisement"
     >
-      <AdSenseUnit slot={AD_SLOTS.IN_ARTICLE} format="fluid" />
+      <LazyAdSenseUnit slot={AD_SLOTS.IN_ARTICLE} format="fluid" />
     </div>
   )
 }

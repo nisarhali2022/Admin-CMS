@@ -1,4 +1,4 @@
-import AdSenseUnit from './AdSenseUnit'
+import LazyAdSenseUnit from './LazyAdSenseUnit'
 import {
   AD_POSITIONS,
   AD_SLOTS,
@@ -10,6 +10,7 @@ export default function AdBanner({
   position = 'top',
   slot,
   className = '',
+  eager = position === 'top',
 }) {
   const resolvedSlot = slot || AD_POSITIONS[position] || AD_SLOTS.TOP_LEADERBOARD
   const isConfigured =
@@ -24,7 +25,7 @@ export default function AdBanner({
       className={`my-6 min-h-[250px] w-full overflow-hidden sm:min-h-[120px] ${className}`}
       aria-label="Advertisement"
     >
-      <AdSenseUnit slot={resolvedSlot} format="auto" />
+      <LazyAdSenseUnit slot={resolvedSlot} format="auto" eager={eager} />
     </div>
   )
 }
