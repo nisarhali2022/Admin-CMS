@@ -31,6 +31,7 @@ export default function FeaturedImage({
         alt={alt}
         fill
         priority={priority}
+        fetchPriority={priority ? 'high' : undefined}
         className={`object-cover ${className}`}
         sizes={sizes}
         quality={quality}
@@ -45,6 +46,7 @@ export default function FeaturedImage({
       width={800}
       height={450}
       priority={priority}
+      fetchPriority={priority ? 'high' : undefined}
       className={`w-full h-auto object-cover ${className}`}
       sizes={sizes}
       quality={quality}

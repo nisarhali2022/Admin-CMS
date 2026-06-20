@@ -5,7 +5,7 @@ export default function robots() {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/api/', '/wp-admin/', '/wp-login.php'],
+      disallow: ['/api/'],
     },
     sitemap: `${SITE_CONFIG.siteUrl}/sitemap_index.xml`,
   };

@@ -11,7 +11,7 @@ export default async function Sidebar() {
   ])
 
   return (
-    <aside className="w-full lg:sticky lg:top-20 self-start space-y-6">
+    <aside className="render-deferred w-full self-start space-y-6 lg:sticky lg:top-20">
 
       {/* Search */}
       {/* <div className="widget-box">

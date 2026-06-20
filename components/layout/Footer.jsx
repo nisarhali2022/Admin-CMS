@@ -21,14 +21,14 @@ const moreLinks = [
 const socialLinks = [
   {
     label: 'Facebook',
-    href: '#',
+    href: 'https://www.facebook.com/people/Telenor-Answer-Today/61581271963855',
     icon: (
       <path d="M13.5 8.5H16V5h-2.9C9.8 5 8 6.8 8 10v2H5v3.5h3V24h4v-8.5h3.2l.6-3.5H12v-1.7c0-1 .3-1.8 1.5-1.8Z" />
     ),
   },
   {
     label: 'LinkedIn',
-    href: '#',
+    href: 'https://www.linkedin.com/company/tele-answer-today/',
     icon: (
       <>
         <path d="M6.5 9.5h4V24h-4V9.5Z" />
@@ -39,7 +39,7 @@ const socialLinks = [
   },
   {
     label: 'YouTube',
-    href: '#',
+    href: 'https://www.youtube.com/@teleanswertoday',
     icon: (
       <>
         <path d="M23.5 7.3a3 3 0 0 0-2.1-2.1C19.5 4.7 12 4.7 12 4.7s-7.5 0-9.4.5A3 3 0 0 0 .5 7.3 31 31 0 0 0 0 13a31 31 0 0 0 .5 5.7 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 13a31 31 0 0 0-.5-5.7Z" />
@@ -49,14 +49,14 @@ const socialLinks = [
   },
   {
     label: 'Twitter',
-    href: '#',
+    href: 'https://x.com/TeleA48105',
     icon: (
       <path d="M17.5 4h3.7l-8 9.2L22.7 24h-7.4l-5.8-6.9L2.9 24H-.8l8.6-9.8L-1.3 4h7.6l5.2 6 6-6Zm-1.3 18h2L5.2 5.9H3.1L16.2 22Z" />
     ),
   },
   {
     label: 'Instagram',
-    href: '#',
+    href: 'https://www.instagram.com/teleanswertoday.pk',
     icon: (
       <>
         <path d="M12 7.8A6.2 6.2 0 1 0 12 20a6.2 6.2 0 0 0 0-12.2Zm0 10a3.8 3.8 0 1 1 0-7.6 3.8 3.8 0 0 1 0 7.6Z" />
@@ -66,8 +66,15 @@ const socialLinks = [
     ),
   },
   {
+    label: 'TikTok',
+    href: 'https://www.tiktok.com/@telenoranswertoday',
+    icon: (
+      <path d="M17.3 2.1c.4 2.5 1.8 4 4.2 4.2v3.4c-1.5.1-2.9-.3-4.1-1.1v6.2c0 5.5-6 8.9-10.7 6-3.1-1.9-4.2-6-2.5-9.2 1.4-2.7 4.4-4.2 7.4-3.5v3.6c-.5-.2-1-.3-1.6-.2-1.8.2-3.2 1.7-3.1 3.5.1 2.5 2.9 3.9 4.9 2.4.9-.7 1.4-1.8 1.4-2.9V2.1h4.1Z" />
+    ),
+  },
+  {
     label: 'Pinterest',
-    href: '#',
+    href: 'https://www.pinterest.com/answertele/',
     icon: (
       <path d="M12.3 0C5.6 0 2 4.3 2 9c0 2.2 1.2 5 3.1 5.9.3.1.5.1.6-.2l.5-2c.1-.3 0-.4-.2-.7-.6-.7-1-1.7-1-3C5 5.7 7.5 2.6 12 2.6c3.8 0 6.4 2.2 6.4 5.8 0 4.1-2.1 7-4.8 7-1.5 0-2.7-1.3-2.3-2.8.4-1.8 1.3-3.8 1.3-5.1 0-1.2-.6-2.2-2-2.2-1.6 0-2.9 1.7-2.9 3.9 0 1.4.5 2.4.5 2.4l-2 8.3c-.4 1.8 0 4.3.1 4.5.1.1.2.1.3 0 .1-.1 1.8-2.2 2.3-4l1.1-4.1c.6 1.1 2.2 2 3.9 2 5.1 0 8.8-4.7 8.8-10.5C22.6 3.2 18.8 0 12.3 0Z" />
     ),
