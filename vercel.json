@@ -3,6 +3,10 @@
   "crons": [
     {
       "path": "/api/cron/midnight",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/midnight",
       "schedule": "0 19 * * *"
     }
   ]
