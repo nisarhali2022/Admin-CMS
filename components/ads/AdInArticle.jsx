@@ -18,7 +18,11 @@ export default function AdInArticle() {
       className="my-8 min-h-[250px] clear-both"
       aria-label="Advertisement"
     >
-      <LazyAdSenseUnit slot={AD_SLOTS.IN_ARTICLE} format="fluid" />
+      <LazyAdSenseUnit
+        slot={AD_SLOTS.IN_ARTICLE}
+        format="fluid"
+        placementKey={`in-article-${AD_SLOTS.IN_ARTICLE}`}
+      />
     </div>
   )
 }

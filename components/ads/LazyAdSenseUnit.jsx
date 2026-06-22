@@ -9,6 +9,7 @@ export default function LazyAdSenseUnit({
   className = '',
   eager = false,
   rootMargin = '900px 0px',
+  placementKey,
 }) {
   const ref = useRef(null)
   const [shouldLoad, setShouldLoad] = useState(eager)
@@ -40,7 +41,13 @@ export default function LazyAdSenseUnit({
 
   return (
     <div ref={ref} className={className}>
-      {shouldLoad ? <AdSenseUnit slot={slot} format={format} /> : null}
+      {shouldLoad ? (
+        <AdSenseUnit
+          slot={slot}
+          format={format}
+          placementKey={placementKey || `${slot}-${format}`}
+        />
+      ) : null}
     </div>
   )
 }

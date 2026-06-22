@@ -25,7 +25,12 @@ export default function AdBanner({
       className={`my-6 min-h-[250px] w-full overflow-hidden sm:min-h-[120px] ${className}`}
       aria-label="Advertisement"
     >
-      <LazyAdSenseUnit slot={resolvedSlot} format="auto" eager={eager} />
+      <LazyAdSenseUnit
+        slot={resolvedSlot}
+        format="auto"
+        eager={eager}
+        placementKey={`banner-${position}-${resolvedSlot}`}
+      />
     </div>
   )
 }
