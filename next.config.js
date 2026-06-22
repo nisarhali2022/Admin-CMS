@@ -25,6 +25,21 @@ const wordpressImagePattern = getWordPressImagePattern()
 const nextConfig = {
   poweredByHeader: false,
   trailingSlash: false,
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.telenorquiztoday.com.pk',
+          },
+        ],
+        destination: 'https://telenorquiztoday.com.pk/:path*',
+        permanent: true,
+      },
+    ]
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [320, 384, 420, 640, 750, 828, 1080, 1200],
