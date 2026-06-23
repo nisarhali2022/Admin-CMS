@@ -5,23 +5,23 @@ const FAQS = [
   },
   {
     q: 'How many MBs can I win from the Telenor quiz today?',
-    a: 'Answer the Telenor quiz today correctly to win up to 150 MB of free internet every day. The reward system makes it easy to enjoy extra data while participating in a fun quiz.',
+    a: 'Telenor quiz today correctly to win up to 150 MB of free internet every day. The reward system makes it easy to enjoy extra data while participating in a fun quiz.',
   },
   {
     q: 'How often do Telenor quiz answers update?',
-    a: 'Telenor quiz answers update every day at midnight. Our website tracks the MyTelenor App quiz in real time and publishes the latest correct answers within minutes.',
+    a: 'Telenor quiz answers update every day at midnight. Our website tracks the MyTelenor App quiz in real time and publishes the latest correct answers within minutes. Checking daily ensures users never miss a chance to earn free MBs.',
   },
   {
     q: 'Can non-Telenor users participate in the quiz?',
-    a: 'The Telenor Daily Quiz only works for active Telenor SIM users. Prepaid and postpaid numbers both qualify. Dual-SIM phone users can play using their Telenor SIM even if another network is primary.',
+    a: 'Telenor Daily Quiz only works for active Telenor SIM users. Prepaid and postpaid numbers both qualify. If you have a dual-SIM phone, you can still play using your Telenor SIM, even if another network serves as the primary SIM.',
   },
   {
     q: 'How many times can I play the Telenor quiz each day?',
-    a: 'Each Telenor SIM allows one quiz attempt per day. The quiz resets at midnight, giving users a fresh set of questions and rewards every day.',
+    a: 'Each Telenor SIM allows one quiz attempt per day. The quiz resets at midnight, giving users a fresh set of questions and rewards every day. Multiple attempts using the same SIM are not allowed.',
   },
   {
     q: 'Where can I find today Telenor question answer?',
-    a: 'You can find today Telenor question answers directly in the My Telenor App under sections like Quiz, Test Your Skills, or Play & Win. Users also check here to confirm the correct answer before submitting.',
+    a: 'You can find today telenor questions answers directly in the My Telenor App under sections like Quiz, Test Your Skills, or Play & Win. Users also search online to quickly confirm the correct response before submitting and claiming rewards.',
   },
 ];
 

@@ -10,25 +10,25 @@ const STEPS = [
   {
     num: 2,
     title: 'Log in with Your Telenor SIM',
-    desc: 'Open the app and register with your Telenor number. The login process takes only a moment.',
+    desc: 'Start by opening the app and registering with your Telenor number. The login process takes only a moment and gives you full access to in app offers and quizzes.',
     img: '/assets/login-with-telenor-sim.webp',
   },
   {
     num: 3,
     title: 'Open the Play & Win Section',
-    desc: 'From the home screen, scroll down and tap the Telenor Play & Win or Test Your Skills section.',
+    desc: 'Launch the app and remain on the home screen. Scroll down until you see the Telenor Play & Win or Test Your Skills section. Tap on it to proceed.',
     img: '/assets/open-play-win-section.webp',
   },
   {
     num: 4,
     title: 'Answer Five Quiz Questions',
-    desc: 'Read each of the 5 multiple-choice questions carefully and select the best answer.',
+    desc: 'You will see 5 multiple choice questions on your screen. Read each one carefully and select the best answer. The quiz focuses on general knowledge questions pakistan users commonly enjoy, making the experience quick and engaging.',
     img: null,
   },
   {
     num: 5,
     title: 'Get Your Free Internet Reward',
-    desc: 'Answer all five correctly and receive 150 MB of free internet credited directly to your Telenor account.',
+    desc: 'After submitting all answers, the app checks your results instantly. Answer all five questions correctly and receive 150 MB of free internet credited directly to your Telenor account.',
     img: '/assets/answer-five-quiz-questions.webp',
   },
 ];
@@ -49,14 +49,14 @@ export default function StepsSection() {
               <h3 className="font-semibold text-text-primary mb-1">{step.title}</h3>
               <p className="text-sm text-text-secondary leading-relaxed">{step.desc}</p>
               {step.img && (
-                <div className="mt-3 relative w-40 aspect-[2/3] rounded-lg overflow-hidden shadow-sm border border-border">
+                <div className="mt-3 relative w-80 aspect-[2/3] rounded-lg overflow-hidden shadow-sm border border-border">
                   <Image
                     src={step.img}
                     alt={step.title}
                     fill
                     loading="lazy"
                     className="object-cover"
-                    sizes="160px"
+                    sizes="500px"
                   />
                 </div>
               )}

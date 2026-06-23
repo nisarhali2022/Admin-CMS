@@ -114,16 +114,8 @@ export default async function HomePage() {
                 </strong>{' '}
               is a popular daily feature inside the today My Telenor app question answer. It gives Telenor users a simple way to earn free internet MBs, balance, and bonus rewards. You just answer a few quick questions and enjoy instant benefits while learning something new.
               </p>
-              <p>
-                Telenor Answer Today suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.
-              </p>
-              <p>
-                We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with{' '}
-                <a href="https://jazz.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Jazz</a>,{' '}
-                <a href="https://www.zong.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Zong</a>, or{' '}
-                <a href="https://www.ufone.com/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-semibold">Ufone</a>{' '}
-                as your main number, you can still participate using your Telenor SIM in the second slot.
-              </p>
+              <p><Link href="/" className="text-accent hover:underline"><strong>Telenor Answer Today </strong> </Link>suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.</p>
+              <p>We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with <strong><Link href="https://jazz.com.pk/" type="link" id="https://teleanswertoday.pk/jazz/" target="_blank" rel="noreferrer noopener nofollow" className="text-accent hover:underline">Jazz</Link>, <Link href="https://www.zong.com.pk/" target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">Zong</Link>, or <Link href="https://www.ufone.com/" type="link" id="https://www.ufone.com/" className="text-accent hover:underline">Ufone</Link></strong>, as your main number, you can still participate using your Telenor SIM in the second slot. This makes the Telenor daily quiz accessible, fast, and convenient for everyone.</p>
             </div>
 
             <TableOfContents toc={HOME_TOC} />
