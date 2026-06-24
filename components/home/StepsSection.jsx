@@ -10,7 +10,7 @@ const STEPS = [
   {
     num: 2,
     title: 'Log in with Your Telenor SIM',
-    desc: 'Start by opening the app and registering with your Telenor number. The login process takes only a moment and gives you full access to in app offers and quizzes.',
+    desc: 'Start by opening the app and registering with your Telenor number. The login process takes only a moment and gives you full access to in-app offers and quizzes.',
     img: '/assets/login-with-telenor-sim.webp',
   },
   {
@@ -22,7 +22,7 @@ const STEPS = [
   {
     num: 4,
     title: 'Answer Five Quiz Questions',
-    desc: 'You will see 5 multiple choice questions on your screen. Read each one carefully and select the best answer. The quiz focuses on general knowledge questions pakistan users commonly enjoy, making the experience quick and engaging.',
+    desc: 'You will see 5 multiple-choice questions on your screen. Read each one carefully and select the best answer. The quiz focuses on general knowledge questions Pakistan users commonly enjoy, making the experience quick and engaging.',
     img: null,
   },
   {

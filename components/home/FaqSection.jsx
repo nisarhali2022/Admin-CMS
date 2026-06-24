@@ -5,11 +5,11 @@ const FAQS = [
   },
   {
     q: 'How many MBs can I win from the Telenor quiz today?',
-    a: 'Telenor quiz today correctly to win up to 150 MB of free internet every day. The reward system makes it easy to enjoy extra data while participating in a fun quiz.',
+    a: 'Answer the Telenor quiz today correctly to win up to 150 MB of free internet every day. The reward system makes it easy to enjoy extra data while participating in a fun quiz.',
   },
   {
     q: 'How often do Telenor quiz answers update?',
-    a: 'Telenor quiz answers update every day at midnight. Our website tracks the MyTelenor App quiz in real time and publishes the latest correct answers within minutes. Checking daily ensures users never miss a chance to earn free MBs.',
+    a: 'Telenor quiz answers update every day at midnight. Our website tracks the My Telenor App quiz in real time and publishes the latest correct answers within minutes. Checking daily ensures users never miss a chance to earn free MBs.',
   },
   {
     q: 'Can non-Telenor users participate in the quiz?',
@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: 'Where can I find today Telenor question answer?',
-    a: 'You can find today telenor questions answers directly in the My Telenor App under sections like Quiz, Test Your Skills, or Play & Win. Users also search online to quickly confirm the correct response before submitting and claiming rewards.',
+    a: 'You can find today Telenor question answers directly in the My Telenor App under sections like Quiz, Test Your Skills, or Play & Win. Users also search online to quickly confirm the correct response before submitting and claiming rewards.',
   },
 ];
 
@@ -32,7 +32,7 @@ export default function FaqSection({ faqs }) {
   return (
     <section id="faqs" className="my-8">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-5">
-        FAQs – My Telenor Answers Today
+        FAQs - My Telenor Answers Today
       </h2>
       <div className="space-y-4">
         {items.map((faq, i) => (

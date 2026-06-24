@@ -21,7 +21,7 @@ import QuizAnswerCards from '@/components/home/QuizAnswerCards';
 import LatestNewsGrid from '@/components/home/LatestNewsGrid';
 import StepsSection from '@/components/home/StepsSection';
 import FaqSection from '@/components/home/FaqSection';
-import QuizInfoSections from '@/components/home/QuizInfoSections';
+import QuizInfoSections, { ConclusionSection } from '@/components/home/QuizInfoSections';
 
 export const revalidate = 3600;
 
@@ -30,16 +30,21 @@ const HOME_TOC = [
   { id: 'quiz-answers', text: 'Today Telenor Answer', level: 2 },
   { id: 'latest-news', text: 'Latest News', level: 2 },
   { id: 'what-is-telenor-daily-quiz', text: 'What is the Telenor Daily Quiz?', level: 2 },
-  { id: 'find-correct-answers', text: 'How to Find Correct Answers', level: 2 },
-  { id: 'how-to-play', text: 'How to Play and Win Free MBs', level: 2 },
-  { id: 'why-people-love-it', text: 'Why People Love the Daily Quiz', level: 2 },
+  { id: 'find-correct-answers', text: 'How to Find the Correct My Telenor Quiz Answers Today Instantly?', level: 2 },
+  { id: 'how-to-play', text: 'How to Play the Telenor Quiz Today and Win Free MBs?', level: 2 },
+  { id: 'find-telenor-quiz-answers', text: 'How to Find Telenor Quiz Today Answers?', level: 2 },
+  { id: 'why-people-love-it', text: 'Why People Love the Daily Telenor Quiz?', level: 2 },
   { id: 'who-can-join', text: 'Who Can Join', level: 2 },
   { id: 'rewards', text: 'Rewards You Can Get', level: 2 },
+  { id: 'why-choose-our-telenor-quiz', text: 'Why Choose Our Today Telenor Quiz?', level: 2 },
+  { id: 'smart-way-to-find-answer', text: 'Smart Way to Find Today My Telenor Answer Fast', level: 2 },
   { id: 'common-problems', text: 'Common Problems and Fixes', level: 2 },
+  { id: 'educational-benefits', text: 'Discover the Educational Benefits', level: 2 },
+  { id: 'future-of-my-telenor-answer', text: 'The Future of My Telenor Answer Today', level: 2 },
   { id: 'tips', text: 'Tips to Boost Your Success', level: 2 },
-  { id: 'conclusion', text: 'Conclusion', level: 2 },
   { id: 'steps-to-participate', text: 'Steps to Participate', level: 2 },
   { id: 'faqs', text: 'FAQs', level: 2 },
+  { id: 'conclusion', text: 'Conclusion', level: 2 },
 ];
 
 export async function generateMetadata() {
@@ -96,7 +101,7 @@ export default async function HomePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
 
-          {/* ── Main Content ── */}
+          {/* Main Content */}
           <article className="min-w-0">
             {/* Title */}
       
@@ -104,7 +109,7 @@ export default async function HomePage() {
               id="article-title"
               className="font-heading font-bold text-2xl sm:text-3xl text-text-primary leading-tight mb-4"
             >
-              Telenor Quiz today {todayLabel} – Latest My Telenor Answer Today</h1>
+              Telenor Quiz Today {todayLabel} - Latest My Telenor Answer Today</h1>
 
             {/* Intro */}
             <div className="text-text-secondary text-sm sm:text-base leading-relaxed space-y-3 mb-6">
@@ -112,10 +117,21 @@ export default async function HomePage() {
                 <strong>
                   <Link href="/" className="text-accent hover:underline">Telenor quiz today</Link>
                 </strong>{' '}
-              is a popular daily feature inside the today My Telenor app question answer. It gives Telenor users a simple way to earn free internet MBs, balance, and bonus rewards. You just answer a few quick questions and enjoy instant benefits while learning something new.
+                is a popular daily feature inside the My Telenor app question answer section. It gives Telenor users a simple way to earn free internet MBs, balance, and bonus rewards. You just answer a few quick questions and enjoy instant benefits while learning something new.
               </p>
-              <p><Link href="/" className="text-accent hover:underline"><strong>Telenor Answer Today </strong> </Link>suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.</p>
-              <p>We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with <strong><Link href="https://jazz.com.pk/" type="link" id="https://teleanswertoday.pk/jazz/" target="_blank" rel="noreferrer noopener nofollow" className="text-accent hover:underline">Jazz</Link>, <Link href="https://www.zong.com.pk/" target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">Zong</Link>, or <Link href="https://www.ufone.com/" type="link" id="https://www.ufone.com/" className="text-accent hover:underline">Ufone</Link></strong>, as your main number, you can still participate using your Telenor SIM in the second slot. This makes the Telenor daily quiz accessible, fast, and convenient for everyone.</p>
+              <p>
+                <Link href="/" className="text-accent hover:underline"><strong>Telenor Answer Today</strong></Link>{' '}
+                suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.
+              </p>
+              <p>
+                We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with{' '}
+                <strong>
+                  <a href="https://jazz.com.pk/" target="_blank" rel="noopener noreferrer nofollow" className="text-accent hover:underline">Jazz</a>,{' '}
+                  <a href="https://www.zong.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Zong</a>, or{' '}
+                  <a href="https://www.ufone.com/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Ufone</a>
+                </strong>
+                {' '}as your main number, you can still participate using your Telenor SIM in the second slot. This makes the Telenor daily quiz accessible, fast, and convenient for everyone.
+              </p>
             </div>
 
             <TableOfContents toc={HOME_TOC} />
@@ -149,11 +165,14 @@ export default async function HomePage() {
             {/* FAQs */}
             <FaqSection faqs={faqs} />
 
+            {/* Conclusion */}
+            <ConclusionSection />
+
             {/* Bottom Ad */}
             <AdBanner position="bottom" />
           </article>
 
-          {/* ── Sidebar ── */}
+          {/* Sidebar */}
           <Suspense fallback={<LoadingSpinner size="lg" className="py-10" />}>
             <Sidebar />
           </Suspense>

@@ -83,7 +83,7 @@ export default function LatestNewsGrid({ posts, limit = 6 }) {
           href="/blog"
           className="inline-block px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded hover:bg-[#2a5298] transition-colors"
         >
-          👉 Explore Today Top News &amp; Blog – Click Here
+          Explore Today Top News &amp; Blog - Click Here
         </Link>
       </div>
     </section>
