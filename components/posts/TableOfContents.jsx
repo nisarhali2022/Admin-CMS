@@ -13,7 +13,7 @@ export default function TableOfContents({ toc, defaultExpanded = false }) {
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <h3 className="font-heading font-bold text-lg text-[#152b47] m-0">Table of Contents</h3>
+        <p className="font-heading font-bold text-lg text-[#152b47] m-0">Table of Contents</p>
         <button 
           className="text-[#152b47] hover:text-primary transition-colors focus:outline-none"
           aria-label={isExpanded ? 'Collapse Table of Contents' : 'Expand Table of Contents'}

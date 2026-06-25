@@ -8,6 +8,8 @@ import {
   getFeaturedImageAlt,
   getFeaturedImageUrl,
 } from '@/lib/utils';
+import { createHomepageAnchorId } from '@/lib/homeAnchors';
+import { LATEST_NEWS_HEADING } from '@/lib/homeHeadings';
 
 function shufflePosts(posts) {
   const shuffled = [...posts];
@@ -31,9 +33,9 @@ export default function LatestNewsGrid({ posts, limit = 6 }) {
   if (!posts?.length) return null;
 
   return (
-    <section id="latest-news" className="my-8">
+    <section id={createHomepageAnchorId(LATEST_NEWS_HEADING)} className="my-8">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-5 pb-2 border-b-2 border-accent inline-block">
-        Latest News
+        {LATEST_NEWS_HEADING}
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

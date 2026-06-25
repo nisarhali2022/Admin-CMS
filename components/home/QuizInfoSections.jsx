@@ -1,9 +1,29 @@
+import { createHomepageAnchorId } from '@/lib/homeAnchors'
+
+export const QUIZ_INFO_HEADINGS = {
+  whatIs: 'What is the Telenor Daily Quiz?',
+  findCorrectAnswers: 'How to Find the Correct My Telenor Quiz Answers Today Instantly?',
+  howToPlay: 'How to Play the Telenor Quiz Today and Win Free MBs?',
+  findAnswers: 'How to Find Telenor Quiz Today Answers?',
+  whyPeopleLoveIt: 'Why People Love the Daily Telenor Quiz?',
+  whoCanJoin: 'Who Can Join the Today Telenor Quiz Answer?',
+  rewards: 'Rewards You Can Get from My Telenor Today Answer',
+  whyChoose: 'Why Choose Our Today Telenor Quiz?',
+  smartWay: 'Smart Way to Find Today My Telenor Answer Fast',
+  commonProblems: 'Common Problems and How to Fix Them',
+  educationalBenefits: 'Discover the Educational Benefits',
+  future: 'The Future of My Telenor Answer Today',
+  tips: 'Proven Tips to Boost Your Success',
+}
+
+export const CONCLUSION_HEADING = 'Conclusion'
+
 export default function QuizInfoSections() {
   return (
     <div className="render-deferred">
-      <section id="what-is-telenor-daily-quiz" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.whatIs)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          What is the Telenor Daily Quiz?
+          {QUIZ_INFO_HEADINGS.whatIs}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -38,9 +58,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="find-correct-answers" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.findCorrectAnswers)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          How to Find the Correct My Telenor Quiz Answers Today Instantly?
+          {QUIZ_INFO_HEADINGS.findCorrectAnswers}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -63,9 +83,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="how-to-play" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.howToPlay)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          How to Play the Telenor Quiz Today and Win Free MBs?
+          {QUIZ_INFO_HEADINGS.howToPlay}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -98,9 +118,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="find-telenor-quiz-answers" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.findAnswers)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          How to Find Telenor Quiz Today Answers?
+          {QUIZ_INFO_HEADINGS.findAnswers}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -127,9 +147,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="why-people-love-it" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.whyPeopleLoveIt)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          Why People Love the Daily Telenor Quiz?
+          {QUIZ_INFO_HEADINGS.whyPeopleLoveIt}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -173,9 +193,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="who-can-join" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.whoCanJoin)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          Who Can Join the Today Telenor Quiz Answer?
+          {QUIZ_INFO_HEADINGS.whoCanJoin}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -213,9 +233,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="rewards" className="my-8 bg-surface border border-border rounded-xl p-6">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.rewards)} className="my-8 bg-surface border border-border rounded-xl p-6">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
-          Rewards You Can Get from My Telenor Today Answer
+          {QUIZ_INFO_HEADINGS.rewards}
         </h2>
         <div className="text-sm text-text-primary leading-relaxed space-y-3">
           <p>
@@ -239,9 +259,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="why-choose-our-telenor-quiz" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.whyChoose)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          Why Choose Our Today Telenor Quiz?
+          {QUIZ_INFO_HEADINGS.whyChoose}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -270,9 +290,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="smart-way-to-find-answer" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.smartWay)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          Smart Way to Find Today My Telenor Answer Fast
+          {QUIZ_INFO_HEADINGS.smartWay}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -295,9 +315,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="common-problems" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.commonProblems)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          Common Problems and How to Fix Them
+          {QUIZ_INFO_HEADINGS.commonProblems}
         </h2>
         <div className="space-y-4">
           {[
@@ -326,9 +346,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="educational-benefits" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.educationalBenefits)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          Discover the Educational Benefits
+          {QUIZ_INFO_HEADINGS.educationalBenefits}
         </h2>
         <p className="text-sm text-text-secondary leading-relaxed">
           Participating in daily quizzes offers more than just free MBs. Each
@@ -339,9 +359,9 @@ export default function QuizInfoSections() {
         </p>
       </section>
 
-      <section id="future-of-my-telenor-answer" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.future)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          The Future of My Telenor Answer Today
+          {QUIZ_INFO_HEADINGS.future}
         </h2>
         <div className="text-sm text-text-secondary leading-relaxed space-y-3">
           <p>
@@ -364,9 +384,9 @@ export default function QuizInfoSections() {
         </div>
       </section>
 
-      <section id="tips" className="my-8">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.tips)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-          Proven Tips to Boost Your Success
+          {QUIZ_INFO_HEADINGS.tips}
         </h2>
         <ul className="space-y-2">
           {[
@@ -388,9 +408,9 @@ export default function QuizInfoSections() {
 
 export function ConclusionSection() {
   return (
-    <section id="conclusion" className="my-8 bg-primary/5 border border-primary/20 rounded-xl p-6">
+    <section id={createHomepageAnchorId(CONCLUSION_HEADING)} className="my-8 bg-primary/5 border border-primary/20 rounded-xl p-6">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
-        Conclusion
+        {CONCLUSION_HEADING}
       </h2>
       <div className="text-sm text-text-secondary leading-relaxed space-y-3">
         <p>

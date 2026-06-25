@@ -1,3 +1,7 @@
+import { createHomepageAnchorId } from '@/lib/homeAnchors'
+
+export const FAQ_HEADING = 'FAQs - My Telenor Answers Today'
+
 const FAQS = [
   {
     q: 'What is the today my Telenor question and answer 2026?',
@@ -30,9 +34,9 @@ export default function FaqSection({ faqs }) {
   const items = faqs?.length ? faqs : FAQS;
 
   return (
-    <section id="faqs" className="my-8">
+    <section id={createHomepageAnchorId(FAQ_HEADING)} className="my-8">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-5">
-        FAQs - My Telenor Answers Today
+        {FAQ_HEADING}
       </h2>
       <div className="space-y-4">
         {items.map((faq, i) => (

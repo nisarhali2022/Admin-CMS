@@ -1,6 +1,9 @@
 import Image from 'next/image';
+import { createHomepageAnchorId } from '@/lib/homeAnchors'
 
-const STEPS = [
+export const STEPS_HEADING = 'Steps to Participate'
+
+export const HOME_STEPS = [
   {
     num: 1,
     title: 'Install the My Telenor App',
@@ -35,18 +38,18 @@ const STEPS = [
 
 export default function StepsSection() {
   return (
-    <section id="steps-to-participate" className="my-8">
+    <section id={createHomepageAnchorId(STEPS_HEADING)} className="my-8">
       <h2 className="font-heading font-bold text-xl text-text-primary mb-6">
-        Steps to Participate
+        {STEPS_HEADING}
       </h2>
       <div className="space-y-6">
-        {STEPS.map((step) => (
+        {HOME_STEPS.map((step) => (
           <div key={step.num} className="flex gap-4 items-start">
             <span className="flex-shrink-0 w-9 h-9 rounded-full bg-accent text-white font-bold text-sm flex items-center justify-center">
               {step.num}
             </span>
             <div className="flex-1">
-              <h3 className="font-semibold text-text-primary mb-1">{step.title}</h3>
+              <h3 id={createHomepageAnchorId(step.title)} className="font-semibold text-text-primary mb-1">{step.title}</h3>
               <p className="text-sm text-text-secondary leading-relaxed">{step.desc}</p>
               {step.img && (
                 <div className="mt-3 relative w-80 aspect-[2/3] rounded-lg overflow-hidden shadow-sm border border-border">

@@ -10,6 +10,8 @@ import {
 import { buildMetadata } from '@/lib/seo';
 import { parseQuizTables, parseFaqs } from '@/lib/quizParser';
 import { serializeJsonLd } from '@/lib/schema';
+import { createHomepageAnchorId } from '@/lib/homeAnchors';
+import { LATEST_NEWS_HEADING } from '@/lib/homeHeadings';
 
 import Sidebar from '@/components/layout/Sidebar';
 import AdBanner from '@/components/ads/AdBanner';
@@ -19,33 +21,38 @@ import TableOfContents from '@/components/posts/TableOfContents';
 
 import QuizAnswerCards from '@/components/home/QuizAnswerCards';
 import LatestNewsGrid from '@/components/home/LatestNewsGrid';
-import StepsSection from '@/components/home/StepsSection';
-import FaqSection from '@/components/home/FaqSection';
-import QuizInfoSections, { ConclusionSection } from '@/components/home/QuizInfoSections';
+import StepsSection, { HOME_STEPS, STEPS_HEADING } from '@/components/home/StepsSection';
+import FaqSection, { FAQ_HEADING } from '@/components/home/FaqSection';
+import QuizInfoSections, {
+  CONCLUSION_HEADING,
+  ConclusionSection,
+  QUIZ_INFO_HEADINGS,
+} from '@/components/home/QuizInfoSections';
 
 export const revalidate = 3600;
 
-const HOME_TOC = [
-  { id: 'article-title', text: 'Telenor Quiz Today', level: 1 },
-  { id: 'quiz-answers', text: 'Today Telenor Answer', level: 2 },
-  { id: 'latest-news', text: 'Latest News', level: 2 },
-  { id: 'what-is-telenor-daily-quiz', text: 'What is the Telenor Daily Quiz?', level: 2 },
-  { id: 'find-correct-answers', text: 'How to Find the Correct My Telenor Quiz Answers Today Instantly?', level: 2 },
-  { id: 'how-to-play', text: 'How to Play the Telenor Quiz Today and Win Free MBs?', level: 2 },
-  { id: 'find-telenor-quiz-answers', text: 'How to Find Telenor Quiz Today Answers?', level: 2 },
-  { id: 'why-people-love-it', text: 'Why People Love the Daily Telenor Quiz?', level: 2 },
-  { id: 'who-can-join', text: 'Who Can Join', level: 2 },
-  { id: 'rewards', text: 'Rewards You Can Get', level: 2 },
-  { id: 'why-choose-our-telenor-quiz', text: 'Why Choose Our Today Telenor Quiz?', level: 2 },
-  { id: 'smart-way-to-find-answer', text: 'Smart Way to Find Today My Telenor Answer Fast', level: 2 },
-  { id: 'common-problems', text: 'Common Problems and Fixes', level: 2 },
-  { id: 'educational-benefits', text: 'Discover the Educational Benefits', level: 2 },
-  { id: 'future-of-my-telenor-answer', text: 'The Future of My Telenor Answer Today', level: 2 },
-  { id: 'tips', text: 'Tips to Boost Your Success', level: 2 },
-  { id: 'steps-to-participate', text: 'Steps to Participate', level: 2 },
-  { id: 'faqs', text: 'FAQs', level: 2 },
-  { id: 'conclusion', text: 'Conclusion', level: 2 },
-];
+function createTocItem(text, level) {
+  return {
+    id: createHomepageAnchorId(text),
+    text,
+    level,
+  };
+}
+
+function buildHomeToc(articleTitle, quizHeading) {
+  return [
+    createTocItem(articleTitle, 1),
+    createTocItem(quizHeading, 2),
+    createTocItem(LATEST_NEWS_HEADING, 2),
+    ...Object.values(QUIZ_INFO_HEADINGS).map((heading) =>
+      createTocItem(heading, 2)
+    ),
+    createTocItem(STEPS_HEADING, 2),
+    ...HOME_STEPS.map((step) => createTocItem(step.title, 3)),
+    createTocItem(FAQ_HEADING, 2),
+    createTocItem(CONCLUSION_HEADING, 2),
+  ];
+}
 
 export async function generateMetadata() {
   const post = await getDailyQuizPost();
@@ -80,6 +87,9 @@ export default async function HomePage() {
   const seoDateLabel = getSeoKarachiDateLabel();
   const seoTitle = `Telenor Quiz Today ${seoDateLabel} - Latest My Telenor Answer Today`;
   const seoDescription = `Get all correct Telenor Quiz Today ${seoDateLabel}. Check daily updated My Telenor answers today to boost your score instantly and win exciting rewards.`;
+  const articleTitle = `Telenor Quiz Today ${todayLabel} - Latest My Telenor Answer Today`;
+  const quizHeading = `Today Telenor Answer ${todayLabel}`;
+  const homeToc = buildHomeToc(articleTitle, quizHeading);
   const homepageSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -106,10 +116,10 @@ export default async function HomePage() {
             {/* Title */}
       
             <h1
-              id="article-title"
+              id={createHomepageAnchorId(articleTitle)}
               className="font-heading font-bold text-2xl sm:text-3xl text-text-primary leading-tight mb-4"
             >
-              Telenor Quiz Today {todayLabel} - Latest My Telenor Answer Today</h1>
+              {articleTitle}</h1>
 
             {/* Intro */}
             <div className="text-text-secondary text-sm sm:text-base leading-relaxed space-y-3 mb-6">
@@ -134,15 +144,15 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <TableOfContents toc={HOME_TOC} />
+            <TableOfContents toc={homeToc} />
 
             {/* Top Ad */}
             <AdBanner position="top" />
 
             {/* Quiz Answers */}
-            <section className="my-6" id="quiz-answers">
+            <section className="my-6" id={createHomepageAnchorId(quizHeading)}>
               <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-                Today Telenor Answer {todayLabel}
+                {quizHeading}
               </h2>
               <QuizAnswerCards questions={quizQuestions} />
             </section>
