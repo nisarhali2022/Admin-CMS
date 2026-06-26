@@ -10,15 +10,7 @@ import {
 } from '@/lib/utils';
 import { createHomepageAnchorId } from '@/lib/homeAnchors';
 import { LATEST_NEWS_HEADING } from '@/lib/homeHeadings';
-
-function shufflePosts(posts) {
-  const shuffled = [...posts];
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
+import { selectLatestNewsPosts } from '@/lib/latestNewsSelection';
 
 export default function LatestNewsGrid({ posts, limit = 6 }) {
   const [visiblePosts, setVisiblePosts] = useState(() =>
@@ -27,7 +19,7 @@ export default function LatestNewsGrid({ posts, limit = 6 }) {
 
   useEffect(() => {
     if (!posts?.length) return;
-    setVisiblePosts(shufflePosts(posts).slice(0, limit));
+    setVisiblePosts(selectLatestNewsPosts(posts, limit));
   }, [posts, limit]);
 
   if (!posts?.length) return null;

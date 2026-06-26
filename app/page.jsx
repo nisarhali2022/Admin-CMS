@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { getDailyQuizPost, getPosts } from '@/lib/wordpress';
+import { getDailyQuizPost, getLatestPostCards } from '@/lib/wordpress';
 import { SITE_CONFIG } from '@/lib/constants';
 import {
   getKarachiDateLabel,
@@ -76,10 +76,10 @@ export async function generateMetadata() {
 export default async function HomePage() {
   const [quizPost, newsData] = await Promise.all([
     getDailyQuizPost(),
-    getPosts({ page: 1, perPage: 12, excludeSlugs: ['daily-quiz'], tag: 'news' }),
+    getLatestPostCards(60),
   ]);
 
-  const newsPosts = newsData?.posts || [];
+  const newsPosts = newsData || [];
   const quizQuestions = parseQuizTables(quizPost?.content?.rendered || '');
   const faqs = parseFaqs(quizPost?.content?.rendered || '');
 
