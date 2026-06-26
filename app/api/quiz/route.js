@@ -1,75 +1,75 @@
-import { NextResponse } from 'next/server';
-import { revalidateTag } from 'next/cache';
-import { hasAdminSession } from '@/lib/adminAuth';
-import { getKarachiDateISO, getKarachiDateLabel } from '@/lib/date';
+import { NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
+import { hasAdminSession } from '@/lib/adminAuth'
+import { getKarachiDateISO, getKarachiDateLabel } from '@/lib/date'
 import {
-  escapeHtml,
+  formatQuizContent,
   normalizeQuizQuestions,
-} from '@/lib/quiz';
-import { decodeHtmlEntities } from '@/lib/utils';
-import { WORDPRESS_API_URL } from '@/lib/wordpressConfig';
+} from '@/lib/quiz'
+import { parseQuizTables } from '@/lib/quizParser'
+import { WORDPRESS_API_URL } from '@/lib/wordpressConfig'
 
-const WP_API_URL = WORDPRESS_API_URL;
-const WP_USER = process.env.WP_ADMIN_USER;
-const WP_PASS = process.env.WP_ADMIN_PASS;
-const WORDPRESS_RETRY_DELAY_MS = 250;
+const WP_API_URL = WORDPRESS_API_URL
+const WP_USER = process.env.WP_ADMIN_USER
+const WP_PASS = process.env.WP_ADMIN_PASS
+const WORDPRESS_RETRY_DELAY_MS = 250
 
 class QuizWordPressError extends Error {
   constructor(message, { status, cause } = {}) {
-    super(message, { cause });
-    this.name = 'QuizWordPressError';
-    this.status = status;
+    super(message, { cause })
+    this.name = 'QuizWordPressError'
+    this.status = status
   }
 }
 
 function createAuthHeader(user, pass) {
-  const credentials = Buffer.from(`${user}:${pass}`).toString('base64');
-  return `Basic ${credentials}`;
+  const credentials = Buffer.from(`${user}:${pass}`).toString('base64')
+  return `Basic ${credentials}`
 }
 
 function shouldRetryWordPress(status) {
-  return !status || status === 429 || status >= 500;
+  return !status || status === 429 || status >= 500
 }
 
 function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function getMainQuizPost() {
-  const url = `${WP_API_URL}/posts?slug=daily-quiz&per_page=1`;
-  let lastError;
+  const url = `${WP_API_URL}/posts?slug=daily-quiz&per_page=1`
+  let lastError
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const response = await fetch(url, {
         cache: 'no-store',
         headers: { Accept: 'application/json' },
-      });
+      })
 
       if (!response.ok) {
         throw new QuizWordPressError(
           `WordPress quiz lookup failed with status ${response.status}.`,
           { status: response.status }
-        );
+        )
       }
 
-      let posts;
+      let posts
       try {
-        posts = await response.json();
+        posts = await response.json()
       } catch (error) {
         throw new QuizWordPressError(
           'WordPress quiz lookup returned invalid JSON.',
           { cause: error }
-        );
+        )
       }
 
       if (!Array.isArray(posts)) {
         throw new QuizWordPressError(
           'WordPress quiz lookup returned an invalid response.'
-        );
+        )
       }
 
-      return posts[0] || null;
+      return posts[0] || null
     } catch (error) {
       const normalizedError =
         error instanceof QuizWordPressError
@@ -77,9 +77,9 @@ async function getMainQuizPost() {
           : new QuizWordPressError(
               'WordPress is temporarily unavailable.',
               { cause: error }
-            );
+            )
 
-      lastError = normalizedError;
+      lastError = normalizedError
       if (
         attempt === 2 ||
         !shouldRetryWordPress(normalizedError.status)
@@ -87,28 +87,28 @@ async function getMainQuizPost() {
         console.error('WordPress quiz lookup unavailable', {
           status: normalizedError.status || null,
           message: normalizedError.message,
-        });
-        throw normalizedError;
+        })
+        throw normalizedError
       }
 
-      await wait(WORDPRESS_RETRY_DELAY_MS);
+      await wait(WORDPRESS_RETRY_DELAY_MS)
     }
   }
 
-  throw lastError;
+  throw lastError
 }
 
 async function saveQuizToWordPress(questions) {
   if (!WP_USER || !WP_PASS) {
-    throw new Error('WordPress credentials not configured.');
+    throw new Error('WordPress credentials not configured.')
   }
 
-  const authHeader = createAuthHeader(WP_USER, WP_PASS);
-  const quizContent = formatQuizContent(questions);
-  const title = `Daily Quiz - ${getKarachiDateLabel()}`;
-  const slug = 'daily-quiz';
+  const authHeader = createAuthHeader(WP_USER, WP_PASS)
+  const quizContent = formatQuizContent(questions)
+  const title = `Daily Quiz - ${getKarachiDateLabel()}`
+  const slug = 'daily-quiz'
 
-  const existing = await getMainQuizPost();
+  const existing = await getMainQuizPost()
 
   const postData = {
     title,
@@ -116,66 +116,54 @@ async function saveQuizToWordPress(questions) {
     slug,
     status: 'publish',
     categories: [],
-  };
+  }
 
-  const method = existing ? 'PUT' : 'POST';
+  const method = existing ? 'PUT' : 'POST'
   const endpoint = existing
     ? `${WP_API_URL}/posts/${existing.id}`
-    : `${WP_API_URL}/posts`;
+    : `${WP_API_URL}/posts`
 
   try {
     const res = await fetch(endpoint, {
       method,
       headers: {
-        'Authorization': authHeader,
+        Authorization: authHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(postData),
-    });
+    })
 
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || `WordPress API error: ${res.status}`);
+      const error = await res.json()
+      throw new Error(error.message || `WordPress API error: ${res.status}`)
     }
 
-    return await res.json();
+    return await res.json()
   } catch (err) {
-    console.error('Error saving to WordPress:', err);
-    throw err;
+    console.error('Error saving to WordPress:', err)
+    throw err
   }
 }
 
-function formatQuizContent(questions) {
-  let html = '';
-  questions.forEach((q, i) => {
-    html += `<table><tbody><tr><td>Question ${i + 1}: ${escapeHtml(q.question)}</td></tr>`;
-    q.options.forEach((opt) => {
-      html += `<tr><td>– ${escapeHtml(opt)}</td></tr>`;
-    });
-    html += `<tr><td>Answer 👉 ${escapeHtml(q.answer)}</td></tr></tbody></table>`;
-  });
-  return html;
-}
-
-export async function GET(request) {
+export async function GET() {
   if (!(await hasAdminSession())) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const post = await getMainQuizPost();
+    const post = await getMainQuizPost()
     if (!post) {
-      return NextResponse.json({ questions: [], date: getKarachiDateISO() });
+      return NextResponse.json({ questions: [], date: getKarachiDateISO() })
     }
 
-    const questions = parseQuizContent(post.content.rendered);
+    const questions = parseQuizTables(post.content.rendered)
     return NextResponse.json({
       questions,
       date: getKarachiDateISO(),
       id: post.id,
-    });
+    })
   } catch (err) {
-    const status = err instanceof QuizWordPressError ? 503 : 500;
+    const status = err instanceof QuizWordPressError ? 503 : 500
     return NextResponse.json(
       {
         message:
@@ -184,80 +172,33 @@ export async function GET(request) {
             : 'Error fetching quiz: ' + err.message,
       },
       { status }
-    );
-  }
-}
-
-function parseQuizContent(content) {
-  try {
-    if (!content) return [];
-    
-    // Match ALL tables, not just the first one
-    const tableMatches = [...content.matchAll(/<table[^>]*>([\s\S]*?)<\/table>/g)];
-    if (tableMatches.length === 0) return [];
-
-    const questions = [];
-
-    for (const tableMatch of tableMatches) {
-      const rows = tableMatch[1].match(/<tr[^>]*>([\s\S]*?)<\/tr>/g) || [];
-      let question = '';
-      let options = [];
-      let answer = '';
-
-      for (const row of rows) {
-        const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
-        if (cells.length === 0) continue;
-
-        const cellText = decodeHtmlEntities(
-          cells[0].replace(/<[^>]*>/g, '').trim()
-        );
-
-        if (/^Question\s+\d+:/i.test(cellText)) {
-          const match = cellText.match(/^Question\s+\d+:\s*(.+?)$/i);
-          question = match ? match[1] : cellText;
-        } else if (/^–\s*/.test(cellText)) {
-          options.push(cellText.replace(/^–\s*/, ''));
-        } else if (/^Answer\s*👉/.test(cellText)) {
-          const match = cellText.match(/^Answer\s*👉\s*(.+?)$/);
-          answer = match ? match[1] : cellText;
-        }
-      }
-
-      if (question && answer) {
-        questions.push({ question, options: options.slice(0, 4), answer });
-      }
-    }
-
-    return questions;
-  } catch (err) {
-    console.error('Error parsing quiz content:', err);
-    return [];
+    )
   }
 }
 
 export async function POST(request) {
   if (!(await hasAdminSession())) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const body = await request.json();
-    const { questions } = body;
+    const body = await request.json()
+    const { questions } = body
 
-    let normalizedQuestions;
+    let normalizedQuestions
     try {
-      normalizedQuestions = normalizeQuizQuestions(questions);
+      normalizedQuestions = normalizeQuizQuestions(questions)
     } catch (error) {
       return NextResponse.json(
         { message: error.message },
         { status: 400 }
-      );
+      )
     }
 
-    const post = await saveQuizToWordPress(normalizedQuestions);
+    const post = await saveQuizToWordPress(normalizedQuestions)
 
-    // Invalidate cached quiz data so home page shows updated quiz
-    revalidateTag('quiz');
+    // Invalidate cached quiz data so home page shows updated quiz.
+    revalidateTag('quiz')
 
     return NextResponse.json({
       message: 'Quiz saved successfully to WordPress',
@@ -266,10 +207,10 @@ export async function POST(request) {
         date: getKarachiDateISO(),
         id: post.id,
       },
-    });
+    })
   } catch (err) {
-    console.error('Error in POST /api/quiz:', err.message);
-    const status = err instanceof QuizWordPressError ? 503 : 500;
+    console.error('Error in POST /api/quiz:', err.message)
+    const status = err instanceof QuizWordPressError ? 503 : 500
     return NextResponse.json(
       {
         message:
@@ -278,6 +219,6 @@ export async function POST(request) {
             : 'Error saving quiz: ' + err.message,
       },
       { status }
-    );
+    )
   }
 }

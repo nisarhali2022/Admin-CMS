@@ -5,6 +5,7 @@ import {
   formatQuizContent,
   normalizeQuizQuestions,
 } from '../lib/quiz.js'
+import { parseQuizTables } from '../lib/quizParser.js'
 
 function makeQuestions() {
   return Array.from({ length: 5 }, (_, index) => ({
@@ -45,4 +46,31 @@ test('quiz HTML escapes admin-controlled text', () => {
   assert.match(html, /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/)
   assert.match(html, /A &amp; B/)
   assert.equal(escapeHtml(`'"<&>`), '&#39;&quot;&lt;&amp;&gt;')
+})
+
+test('quiz parser accepts fill-in-the-blank questions without question marks', () => {
+  const questions = normalizeQuizQuestions(makeQuestions())
+  questions[0].question = 'The synonym of brave is ____'
+
+  const parsed = parseQuizTables(formatQuizContent(questions))
+
+  assert.equal(parsed.length, 5)
+  assert.equal(parsed[0].question, 'The synonym of brave is ____')
+  assert.deepEqual(parsed[0].options, ['One', 'Two', 'Three', 'Four'])
+  assert.equal(parsed[0].answer, 'One')
+})
+
+test('quiz parser skips incomplete rows with blank question text', () => {
+  const html = [
+    '<table><tbody>',
+    '<tr><td>Question 1: </td></tr>',
+    '<tr><td>â€“ Cowardly</td></tr>',
+    '<tr><td>â€“ Lazy</td></tr>',
+    '<tr><td>â€“ Fearless</td></tr>',
+    '<tr><td>â€“ Weak</td></tr>',
+    '<tr><td>Answer ðŸ‘‰ Fearless</td></tr>',
+    '</tbody></table>',
+  ].join('')
+
+  assert.deepEqual(parseQuizTables(html), [])
 })
