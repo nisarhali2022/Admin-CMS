@@ -5,6 +5,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 80px;
     overflow-x: hidden;
   }
 
@@ -17,6 +18,22 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-inter), system-ui, sans-serif;
+  }
+
+  main [id],
+  .prose [id] {
+    scroll-margin-top: 80px;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      scroll-padding-top: 110px;
+    }
+
+    main [id],
+    .prose [id] {
+      scroll-margin-top: 110px;
+    }
   }
 }
 
