@@ -335,6 +335,13 @@ performance changes after that audit include:
 - Homepage Latest News fetches a larger post-card pool, keeps the newest two
   posts fixed, and randomizes the remaining visible cards client-side.
 - Contact form no longer navigates to insecure `mailto:` URLs.
+- Global readable text now defaults to 16px without forced font-size
+  `!important` overrides.
+- Homepage quiz options now render as a 2x2 grid, improving scanability without
+  adding JavaScript.
+- Local AdSense `403` console errors on `localhost` are documented separately
+  in `ADSENSE_CONSOLE_ERROR_REPORT.md`; they are not PageSpeed production
+  failures by themselves.
 
 Current validation needed:
 

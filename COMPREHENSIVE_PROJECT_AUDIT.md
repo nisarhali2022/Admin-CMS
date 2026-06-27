@@ -276,6 +276,20 @@ with static fallback only if needed. Keep `ads.txt` static.
 **Verification:** Vercel production uses real IDs; preview either disables ads
 or uses test-safe configuration.
 
+### MED-09: Local AdSense requests return 403 on localhost
+
+**Status:** Documented in source after this audit.
+
+**Area:** Ads, developer experience
+**Evidence:** Local console requests to
+`googleads.g.doubleclick.net/pagead/ads` include
+`url=http://localhost:3000/` and return HTTP `403`.
+**Impact:** No production code crash; local console noise can confuse testing.
+**Recommended fix:** Treat as expected for localhost or add a dev-only ad
+placeholder later. Verify real ad behavior only on the approved production
+domain.
+**Verification:** See `ADSENSE_CONSOLE_ERROR_REPORT.md`.
+
 ## 7. Low-Priority Findings
 
 ### LOW-01: `FooterRecentPosts.jsx` appears unused
@@ -367,6 +381,10 @@ Recently resolved in source:
 - Removed unused `FooterRecentPosts.jsx`, `SearchWidget.jsx`, and
   `hooks/useSearch.js`.
 - Expanded Contact page metadata description.
+- Documented local AdSense `403` behavior in
+  `ADSENSE_CONSOLE_ERROR_REPORT.md`.
+- Updated homepage quiz options to a 2x2 grid and current typography defaults
+  to 16px readable text.
 
 ## 10. References
 

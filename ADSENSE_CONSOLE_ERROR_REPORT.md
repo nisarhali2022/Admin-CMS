@@ -102,3 +102,10 @@ Expected behavior:
 - Do not change the ad slot unless AdSense requires it.
 
 This would reduce local console noise without affecting live ad serving or RPM.
+
+## Documentation Status
+
+This report was added on June 27, 2026 and is referenced from the project
+overview, structure, SEO, audit, Lighthouse, and deployment notes so future
+local console checks do not confuse AdSense localhost `403` responses with
+Next.js application errors.

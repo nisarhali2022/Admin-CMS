@@ -7,6 +7,7 @@ import {
   getFeaturedImageAlt,
   getFeaturedImageUrl,
   getFirstCategory,
+  isWordPressMediaUrl,
 } from '@/lib/utils';
 
 function shufflePosts(posts) {
@@ -49,6 +50,7 @@ export default function RecentPosts({ posts = [], limit = 5 }) {
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-200"
                     sizes="64px"
+                    unoptimized={isWordPressMediaUrl(imageUrl)}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-primary to-accent" />

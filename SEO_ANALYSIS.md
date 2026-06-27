@@ -989,7 +989,7 @@ After fixes:
 
 - The June 26, 2026 production build compiled, type-checked, and generated all
   29 routes successfully.
-- `npm.cmd run test` passed 27 tests, `npm.cmd run lint` passed, and a
+- `npm.cmd run test` passed 45 tests, `npm.cmd run lint` passed, and a
   tracked-source scan found no backend WordPress URL, WordPress API path, old
   main-domain upload path, or hardcoded secret/password matches.
 - Local browser and HTTP checks verified site, Article, Person, breadcrumb,
@@ -1061,6 +1061,13 @@ Completed SEO/usability changes:
   submitted message.
 - AdSense duplicate-push errors are guarded so ad initialization cannot crash
   the page.
+- Homepage quiz options now use a predictable 2x2 layout, improving mobile
+  readability and answer scanning.
+- Main readable text defaults to 16px, while sidebar post-title snippets remain
+  compact for five-item Recent/Popular lists.
+- Local AdSense `403` console errors are documented in
+  `ADSENSE_CONSOLE_ERROR_REPORT.md`; production ad validation should be done on
+  the approved live domain, not `localhost`.
 
 Current SEO caveats:
 

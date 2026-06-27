@@ -154,7 +154,7 @@ and reusable `useSearch` hook were removed because they were no longer rendered.
 
 | File | Input | Responsibility |
 | --- | --- | --- |
-| `QuizAnswerCards.jsx` | parsed questions | Questions, options, correct answers |
+| `QuizAnswerCards.jsx` | parsed questions | Questions, 2x2 options, correct answers, and fallback state |
 | `LatestNewsGrid.jsx` | WordPress posts | Homepage news cards without visible dates |
 | `QuizInfoSections.jsx` | none | Static SEO/information sections |
 | `StepsSection.jsx` | none | Participation steps and images |
@@ -422,12 +422,11 @@ with the implemented routes.
 
 | Priority | Area | Required change |
 | --- | --- | --- |
-| High | Quiz UI | Render a visible unavailable state when quiz HTML is empty or malformed |
 | Medium | Contact form | Wire submitted messages to email/API/storage if real inbox review is required |
 | Medium | Category archives | Replace visible pagination with infinite scroll if that product change is approved |
 | Deployment | Live routing | Verify category/article URLs and production-source parity after deployment |
 
-Quality tooling now includes `eslint.config.mjs`, `npm run lint`, and 36 tests
+Quality tooling now includes `eslint.config.mjs`, `npm run lint`, and 45 tests
 under `test/`. Shared quiz validation/escaping lives in `lib/quiz.js`.
 `optimizeContentImages()` preserves WordPress responsive markup and fills
 missing dimensions, optimizer `srcset`, `sizes`, loading, and decoding
@@ -452,7 +451,7 @@ New or recently changed files and responsibilities:
 | `components/layout/Footer.jsx` | Static footer copy and requested social links/icons. |
 | `components/layout/Header.jsx` | Mobile-safe header shell and logo sizing. |
 | `components/layout/HeaderControls.jsx` | Search and mobile menu state; closes mobile menu after link selection. |
-| `components/home/QuizAnswerCards.jsx` | Quiz answer card UI, including centered number badge text. |
+| `components/home/QuizAnswerCards.jsx` | Quiz answer card UI, 2x2 option grid, centered number badge text, and unavailable fallback. |
 | `app/contact-us/page.jsx` | Public contact form layout using the public email address. |
 | `components/contact/ContactForm.jsx` | Client form that prevents insecure `mailto:` submission and shows local submitted state. |
 | `app/about-us/page.jsx` | Improved public About page card and alignment. |
@@ -478,6 +477,8 @@ Recent structure changes:
 - `components/layout/Header.jsx` now renders a fixed header wrapper plus a
   mobile/desktop spacer.
 - `styles/globals.css` now owns global fixed-header anchor offsets.
+- `styles/globals.css` sets the public non-heading/body default text size to
+  16px without font-size `!important` overrides.
 - `test/anchorOffset.test.js` and `test/fixedHeader.test.js` protect the
   header and TOC/hash-scroll behavior.
 - `lib/date.js`, `app/page.jsx`, `lib/sitemap.js`, and `vercel.json` implement
@@ -485,3 +486,9 @@ Recent structure changes:
   refresh.
 - `lib/quizParser.js` parses quiz tables row-by-row and accepts question text
   that does not end in `?`.
+- `components/home/QuizAnswerCards.jsx` renders quiz options in two columns and
+  two rows, with question, option, and answer text at 16px.
+- `components/widgets/RecentPosts.jsx` and `components/widgets/PopularPosts.jsx`
+  keep sidebar post-title snippets at `text-sm` while main content remains 16px.
+- `ADSENSE_CONSOLE_ERROR_REPORT.md` records local AdSense `403` console
+  behavior and the production verification checklist.

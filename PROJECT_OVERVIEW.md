@@ -32,6 +32,8 @@ separate application database.
 ## 3. Main Features
 
 - Daily quiz answers on the homepage.
+- Homepage quiz cards show four options in a two-column, two-row layout with
+  16px quiz text.
 - Dynamic Karachi date that changes daily without requiring a quiz update.
 - Homepage SEO date that moves six hours earlier than the visible date for
   metadata, schema, and sitemap freshness.
@@ -153,7 +155,8 @@ when quiz answers were not edited.
 - Sidebar cards have a consistent `24px` vertical gap.
 - The sidebar currently renders Recent Posts, Popular Posts, and Categories
   without visible publication dates. Its Search and advertisement cards are
-  not rendered.
+  not rendered. Recent and Popular post titles intentionally use compact
+  `text-sm` styling while normal body text remains 16px.
 - The footer is a static four-column layout with About, Menu, More Link, and
   Disclaimer content plus real social profile icon links. It no longer fetches
   WordPress posts.
@@ -162,6 +165,8 @@ when quiz answers were not edited.
   TOC/hash targets visible below the header.
 - Article pages display an author box with name, optional description, and
   avatar or initial fallback.
+- Global body, prose, article, quiz, and general non-heading text default to
+  16px. Heading sizes remain controlled by heading classes.
 - Article and dynamic WordPress page templates render one visible page-title
   H1.
 - Visible publish dates are hidden from articles, related cards, blog cards,
@@ -251,9 +256,9 @@ Reviewed and updated on June 27, 2026:
 | `git diff --check` | Previously passed; current verification focused on lint/test/build |
 | Focused TOC behavior simulation | Covered by automated tests and build |
 | Admin WordPress lookup simulations | Covered by automated tests |
-| `npm.cmd run build` | Passed on June 26, 2026 |
+| `npm.cmd run build` | Passed on June 27, 2026 |
 | ESLint | Passed with `npm.cmd run lint` |
-| Automated test suite | 27 tests passed with `npm.cmd run test` |
+| Automated test suite | 45 tests passed with `npm.cmd run test` |
 
 The production build compiled, linted, type-checked, and generated all 29 routes.
 Browser checks verified Organization/WebSite, Article, Person, author profile,
@@ -269,12 +274,10 @@ article routes. The shared `102 kB` is primarily the Next.js/React runtime.
 
 ### Required functional fixes
 
-1. Show a visible temporary-unavailable message when quiz HTML is missing or
-   malformed instead of rendering an empty quiz section.
-2. Connect the public contact form to a real delivery/storage backend if
+1. Connect the public contact form to a real delivery/storage backend if
    submitted messages need to be reviewed later. The current form intentionally
    prevents insecure `mailto:` submission and shows a local success message.
-3. Category pages still use classic pagination. Infinite scroll for category
+2. Category pages still use classic pagination. Infinite scroll for category
    archives has been requested but has not been implemented yet.
 
 ### Remaining SEO and deployment validation
@@ -369,3 +372,12 @@ Recent completed work:
   message.
 - AdSense unit initialization now avoids duplicate `adsbygoogle.push()` calls
   and catches duplicate-fill errors without crashing the page.
+- Global readable text defaults to 16px, with forced font-size `!important`
+  rules removed.
+- Homepage quiz options now render as a 2x2 grid, and quiz option/answer text
+  uses 16px sizing.
+- Sidebar Recent Posts and Popular Posts title snippets intentionally use
+  `text-sm` so the five-item sidebar lists stay compact.
+- `ADSENSE_CONSOLE_ERROR_REPORT.md` documents local AdSense `403` console
+  errors on `localhost` and explains that they are Google ad-serving responses,
+  not Next.js build failures.

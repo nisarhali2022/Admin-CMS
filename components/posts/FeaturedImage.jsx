@@ -1,5 +1,11 @@
 import Image from 'next/image'
-import { getFeaturedImageUrl, getFeaturedImageAlt, getCategoryColor, getFirstCategory } from '@/lib/utils'
+import {
+  getFeaturedImageUrl,
+  getFeaturedImageAlt,
+  getCategoryColor,
+  getFirstCategory,
+  isWordPressMediaUrl,
+} from '@/lib/utils'
 
 export default function FeaturedImage({
   post,
@@ -13,6 +19,7 @@ export default function FeaturedImage({
   const alt = getFeaturedImageAlt(post)
   const category = getFirstCategory(post)
   const fallbackColor = getCategoryColor(category?.slug || 'default')
+  const unoptimized = isWordPressMediaUrl(src)
 
   if (!src) {
     return (
@@ -35,6 +42,7 @@ export default function FeaturedImage({
         className={`object-cover ${className}`}
         sizes={sizes}
         quality={quality}
+        unoptimized={unoptimized}
       />
     )
   }
@@ -50,6 +58,7 @@ export default function FeaturedImage({
       className={`w-full h-auto object-cover ${className}`}
       sizes={sizes}
       quality={quality}
+      unoptimized={unoptimized}
     />
   )
 }

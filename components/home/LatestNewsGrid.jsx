@@ -7,6 +7,7 @@ import {
   getCategoryColor,
   getFeaturedImageAlt,
   getFeaturedImageUrl,
+  isWordPressMediaUrl,
 } from '@/lib/utils';
 import { createHomepageAnchorId } from '@/lib/homeAnchors';
 import { LATEST_NEWS_HEADING } from '@/lib/homeHeadings';
@@ -50,6 +51,7 @@ export default function LatestNewsGrid({ posts, limit = 6 }) {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 273px"
                     quality={60}
+                    unoptimized={isWordPressMediaUrl(img)}
                   />
                 ) : (
                   <div className={`w-full h-full ${getCategoryColor(category?.slug || 'default')}`} />

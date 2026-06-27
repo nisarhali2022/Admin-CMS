@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   normalizeWordPressContentLinks,
   optimizeContentImages,
+  isWordPressMediaUrl,
   removeContentH1Blocks,
 } from '../lib/utils.js'
 
@@ -28,18 +29,29 @@ test('body images infer dimensions from WordPress filenames', () => {
   assert.match(result, /width="683"/)
   assert.match(result, /height="1024"/)
   assert.match(result, /sizes="\(max-width: 768px\) 100vw, 768px"/)
-  assert.match(result, /\bsrcset="\/_next\/image\?url=/)
+  assert.doesNotMatch(result, /\/_next\/image\?url=/)
+  assert.match(result, /src="https:\/\/example\.com\/photo-683x1024\.webp"/)
 })
 
-test('body images receive fallback dimensions and optimizer sources', () => {
+test('body images receive fallback dimensions without optimizer sources', () => {
   const result = optimizeContentImages(
     '<img src="https://example.com/photo.webp" alt="Example">'
   )
 
   assert.match(result, /width="800"/)
   assert.match(result, /height="450"/)
-  assert.match(result, /%3A%2F%2Fexample\.com%2Fphoto\.webp/)
-  assert.match(result, /750w/)
+  assert.doesNotMatch(result, /\/_next\/image\?url=/)
+  assert.match(result, /src="https:\/\/example\.com\/photo\.webp"/)
+})
+
+test('wordpress media URLs are detected for optimizer bypass', () => {
+  assert.equal(
+    isWordPressMediaUrl(
+      'https://wp.telenorquiztoday.com.pk/wp-content/uploads/2026/03/example.webp'
+    ),
+    true
+  )
+  assert.equal(isWordPressMediaUrl('/assets/local-logo.webp'), false)
 })
 
 test('content h1 blocks are removed while lower headings remain', () => {

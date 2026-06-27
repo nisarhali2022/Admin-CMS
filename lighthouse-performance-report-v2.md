@@ -342,6 +342,10 @@ This v2 report is also historical. Current implementation status:
 - Duplicate AdSense push errors are guarded in `AdSenseUnit`.
 - Homepage SEO date and sitemap freshness now revalidate six hours before the
   visible H1 date.
+- Homepage quiz options use a static 2x2 CSS grid and 16px text, avoiding
+  additional client JavaScript.
+- AdSense `403` responses on localhost are documented as local ad-serving
+  behavior, with production checks kept on the approved live domain.
 
 Current validation needed:
 

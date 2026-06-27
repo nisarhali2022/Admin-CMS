@@ -286,3 +286,6 @@ Current deployment-sensitive behavior:
   for deriving the allowed WordPress media host in `next.config.js`.
 - The public site remains canonical on the non-www root domain in source
   metadata, schema, robots, and sitemaps.
+- Local AdSense `403` console errors on `http://localhost:3000` are documented
+  in `ADSENSE_CONSOLE_ERROR_REPORT.md`; production ad checks should be run on
+  `https://telenorquiztoday.com.pk` after DNS and Vercel deployment are live.

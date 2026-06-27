@@ -8,9 +8,9 @@ Commands checked:
 
 | Check | Result |
 | --- | --- |
-| `npm.cmd run build` | Passed; all 29 routes generated on June 26, 2026 |
+| `npm.cmd run build` | Passed; all 29 routes generated on June 27, 2026 |
 | `npm.cmd run lint` | Passed with no warnings or errors |
-| `npm.cmd run test` | Passed: 36 tests |
+| `npm.cmd run test` | Passed: 45 tests |
 | Hardcoded backend/API secret scan | Passed: no tracked-source backend URL or secret matches |
 | `.env.local` tracking check | Passed: ignored by Git and not tracked |
 
@@ -983,8 +983,9 @@ Completed during the June 16-19, 2026 migration and polish pass:
 - Removed WordPress content H1 blocks during public rendering while keeping the
   dynamic page-title H1.
 - Added the dynamic H1 to article/page table of contents.
-- Standardized WordPress-rendered article content to the site font and reduced
-  article body text size to `15px`.
+- Standardized WordPress-rendered article content to the site font. The current
+  global/body/article content default is 16px, without font-size `!important`
+  overrides.
 - Removed sidebar publication dates.
 - Rebuilt the footer as static requested copy with social icons.
 - Moved fixed WordPress upload assets into `public/assets/`.
@@ -1082,6 +1083,14 @@ Completed fixes:
 - Changed the Contact form to a safe client-side submitted state instead of
   insecure `mailto:` navigation.
 - Added a visible fallback when quiz content is missing or malformed.
+- Updated homepage quiz cards so four options render as a two-column, two-row
+  grid between the question and answer.
+- Set quiz question, option, and answer text to 16px while keeping sidebar
+  Recent Posts and Popular Posts title snippets compact with `text-sm`.
+- Removed leftover forced font-size `!important` rules and removed the
+  remaining explicit `text-[15px]` TOC link class.
+- Added `ADSENSE_CONSOLE_ERROR_REPORT.md` explaining local AdSense `403`
+  console errors on `localhost` and how to verify production ad behavior.
 
 Current remaining functional work:
 
