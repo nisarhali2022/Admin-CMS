@@ -47,7 +47,7 @@ export default function TableOfContents({ toc, defaultExpanded = false }) {
                 >
                   <a 
                     href={`#${item.id}`} 
-                    className="underline decoration-slate-400 decoration-1 underline-offset-[3px] hover:text-primary hover:decoration-primary transition-colors text-[15px]"
+                    className="underline decoration-slate-400 decoration-1 underline-offset-[3px] hover:text-primary hover:decoration-primary transition-colors"
                   >
                     {item.text}
                   </a>

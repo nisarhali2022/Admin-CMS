@@ -11,6 +11,7 @@
 
   body {
     font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 16px;
     color: #0f172a;
     background-color: #ffffff;
     overflow-x: hidden;
@@ -18,6 +19,54 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-inter), system-ui, sans-serif;
+  }
+
+  :where(
+    p,
+    li,
+    div,
+    span,
+    a,
+    blockquote,
+    table,
+    thead,
+    tbody,
+    tfoot,
+    tr,
+    td,
+    th,
+    label,
+    button,
+    input,
+    textarea,
+    select,
+    option,
+    summary,
+    figcaption,
+    dd,
+    dt,
+    strong,
+    em,
+    small,
+    code,
+    pre
+  ):not(:where(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    h1 *,
+    h2 *,
+    h3 *,
+    h4 *,
+    h5 *,
+    h6 *,
+    svg,
+    svg *
+  )) {
+    font-size: 16px;
   }
 
   main [id],
@@ -67,12 +116,19 @@
     contain-intrinsic-size: auto 1800px;
   }
 
+  [data-ad-container][data-collapse-unfilled="true"][data-ad-container-status="unfilled"] {
+    min-height: 0 !important;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
   .article-content {
-    font-size: 15px !important;
+    font-size: 16px;
   }
 
   .prose {
     font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 16px;
     color: #0f172a;
     line-height: 1.75;
   }
@@ -159,7 +215,7 @@
   .prose table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.875rem;
+    font-size: 16px;
   }
 
   .prose th,

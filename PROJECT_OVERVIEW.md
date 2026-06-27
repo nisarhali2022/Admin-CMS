@@ -33,7 +33,10 @@ separate application database.
 
 - Daily quiz answers on the homepage.
 - Dynamic Karachi date that changes daily without requiring a quiz update.
-- Latest-news homepage cards.
+- Homepage SEO date that moves six hours earlier than the visible date for
+  metadata, schema, and sitemap freshness.
+- Latest News homepage cards with the two newest posts fixed first and four
+  randomized cards selected client-side from the remaining post pool.
 - Category, tag, blog, and search archives with pagination.
 - Canonical `/<category>/<post>` article routes.
 - Related posts, table of contents, breadcrumbs, share buttons, and sidebar.
@@ -42,6 +45,7 @@ separate application database.
 - Protected five-question quiz editor.
 - On-demand and scheduled cache revalidation.
 - Temporary-unavailable pages for repeated WordPress failures.
+- Fixed desktop/mobile header with global anchor offsets for TOC/hash links.
 
 ## 4. Architecture
 
@@ -66,7 +70,7 @@ for network failures, HTTP 429/5xx responses, and invalid JSON.
 
 ```text
 getDailyQuizPost()
-getPosts({ perPage: 6, excludeSlugs: ["daily-quiz"], tag: "news" })
+getLatestPostCards(60)
 ```
 
 `getDailyQuizPost()` explicitly requests the fixed WordPress slug
@@ -78,6 +82,8 @@ The page parses quiz tables and FAQs, calculates the current
 sections, participation steps, ads, FAQs, and the sidebar.
 
 Homepage Latest News cards intentionally do not display publication dates.
+The first two cards are the newest WordPress posts; cards three through six
+are randomized in the browser from the rest of the fetched pool on reload.
 
 ### Category and Blog Archives
 
@@ -131,9 +137,14 @@ an outage from being mistaken for a missing post.
 
 ### Daily Date Refresh
 
-`vercel.json` calls `/api/cron/midnight` at `19:00 UTC`, which is midnight in
-Karachi. The endpoint revalidates `/`; the next request regenerates the
-homepage with the new date even when quiz answers were not edited.
+`vercel.json` calls `/api/cron/midnight` twice:
+
+- `13:00 UTC` / `18:00 PKT` for the six-hour early SEO date refresh.
+- `19:00 UTC` / `00:00 PKT` for the visible homepage date refresh.
+
+The endpoint revalidates `/`, `/sitemap_index.xml`, and `/page-sitemap.xml`;
+the next request regenerates the homepage and sitemap freshness values even
+when quiz answers were not edited.
 
 ## 6. Current UI Behavior
 
@@ -144,17 +155,19 @@ homepage with the new date even when quiz answers were not edited.
   without visible publication dates. Its Search and advertisement cards are
   not rendered.
 - The footer is a static four-column layout with About, Menu, More Link, and
-  Disclaimer content plus social icon placeholders. It no longer fetches
+  Disclaimer content plus real social profile icon links. It no longer fetches
   WordPress posts.
+- The header is fixed on desktop and mobile. A spacer prevents content from
+  hiding under it, and global `scroll-padding` / `scroll-margin` offsets keep
+  TOC/hash targets visible below the header.
 - Article pages display an author box with name, optional description, and
   avatar or initial fallback.
 - Article and dynamic WordPress page templates render one visible page-title
   H1.
 - Visible publish dates are hidden from articles, related cards, blog cards,
   category cards, and homepage Latest News cards.
-- The root document uses `lang="en-PK"`, footer social icons use placeholder
-  `#` URLs until real profiles are supplied, and AdSense does not load while
-  its publisher ID is a placeholder.
+- The root document uses `lang="en-PK"`, and AdSense does not load while its
+  publisher ID is a placeholder.
 - A branded 1200x630 fallback social image is available at
   `public/og-default.jpg`.
 - Fixed logo, favicon, and homepage participation-step images are served from
@@ -167,20 +180,14 @@ homepage with the new date even when quiz answers were not edited.
 | --- | --- |
 | `WORDPRESS_API_URL` | Required server-side WordPress REST API URL |
 | `NEXT_PUBLIC_WORDPRESS_API_URL` | Backward-compatible URL fallback |
-| `NEXT_PUBLIC_ADSENSE_ID` | Public AdSense publisher/client ID |
-| `NEXT_PUBLIC_AD_SLOT_TOP` | Top horizontal ad slot |
-| `NEXT_PUBLIC_AD_SLOT_MID` | Mid-page horizontal ad slot |
-| `NEXT_PUBLIC_AD_SLOT_IN_ARTICLE` | In-article fluid ad slot |
-| `NEXT_PUBLIC_AD_SLOT_SIDEBAR` | Sidebar ad slot |
-| `NEXT_PUBLIC_AD_SLOT_AFTER_CONTENT` | After-content ad slot |
-| `NEXT_PUBLIC_AD_SLOT_BOTTOM` | Bottom horizontal ad slot |
 | `WP_ADMIN_USER` | WordPress API username |
 | `WP_ADMIN_PASS` | WordPress application password |
 | `ADMIN_SECRET` | Admin login and session-signing secret |
 | `REVALIDATE_SECRET` | Protects POST cache revalidation |
 | `CRON_SECRET` | Protects scheduled midnight revalidation |
 
-Site constants, route sizes, AdSense slots, navigation, colors, local image
+Site constants, route sizes, Google Analytics ID, Search Console verification
+token, AdSense publisher ID, AdSense slots, navigation, colors, local image
 paths, and the one-hour revalidation duration are defined in
 `lib/constants.js`.
 
@@ -234,7 +241,7 @@ publishing partial XML. Homepage `lastmod` follows the Karachi date rollover.
 
 ## 10. Verification Status
 
-Reviewed and updated on June 19, 2026:
+Reviewed and updated on June 27, 2026:
 
 | Check | Current result |
 | --- | --- |
@@ -244,11 +251,11 @@ Reviewed and updated on June 19, 2026:
 | `git diff --check` | Previously passed; current verification focused on lint/test/build |
 | Focused TOC behavior simulation | Covered by automated tests and build |
 | Admin WordPress lookup simulations | Covered by automated tests |
-| `npm.cmd run build` | Passed on June 19, 2026 |
+| `npm.cmd run build` | Passed on June 26, 2026 |
 | ESLint | Passed with `npm.cmd run lint` |
-| Automated test suite | 15 tests passed with `npm.cmd run test` |
+| Automated test suite | 27 tests passed with `npm.cmd run test` |
 
-The production build compiled, linted, type-checked, and generated all 28 routes.
+The production build compiled, linted, type-checked, and generated all 29 routes.
 Browser checks verified Organization/WebSite, Article, Person, author profile,
 canonical, image-priority, no-hydration header, disabled-ad, responsive-image,
 and deferred-rendering output. Local HTTP checks verified sitemap author
@@ -262,9 +269,13 @@ article routes. The shared `102 kB` is primarily the Next.js/React runtime.
 
 ### Required functional fixes
 
-1. Fix quiz parsing so a question does not need to end with `?`.
-2. Show a visible temporary-unavailable message when quiz HTML is missing or
+1. Show a visible temporary-unavailable message when quiz HTML is missing or
    malformed instead of rendering an empty quiz section.
+2. Connect the public contact form to a real delivery/storage backend if
+   submitted messages need to be reviewed later. The current form intentionally
+   prevents insecure `mailto:` submission and shows a local success message.
+3. Category pages still use classic pagination. Infinite scroll for category
+   archives has been requested but has not been implemented yet.
 
 ### Remaining SEO and deployment validation
 
@@ -337,3 +348,24 @@ Current production note:
   slot status in DevTools. `data-ad-status="unfilled"` means Google loaded the
   ad request but did not return inventory; that is an AdSense fill issue, not a
   rendering bug in the project.
+
+## Latest Update - 2026-06-27
+
+Recent completed work:
+
+- Header was changed from sticky to truly fixed on desktop and mobile with a
+  matching layout spacer.
+- Global anchor offsets were added so homepage TOC and article/page hash links
+  stop below the fixed header.
+- Homepage TOC uses clean hyphen anchor IDs and includes the visible H1, H2
+  sections, and step H3 entries.
+- Quiz parsing now accepts fill-in-the-blank question text that does not end
+  with a question mark.
+- Homepage SEO date now updates six hours early for metadata, WebPage schema,
+  `/page-sitemap.xml`, and `/sitemap_index.xml`; visible content date still
+  changes at midnight Karachi time.
+- Contact form no longer uses insecure `mailto:` submission. It prevents
+  navigation away from the page, resets the fields, and shows a success
+  message.
+- AdSense unit initialization now avoids duplicate `adsbygoogle.push()` calls
+  and catches duplicate-fill errors without crashing the page.

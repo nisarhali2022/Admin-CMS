@@ -2,7 +2,7 @@
 
 export default function GlobalError({ reset }) {
   return (
-    <html lang="en-PK">
+    <html lang="en-PK" data-scroll-behavior="smooth">
       <body>
         <main className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
           <h1 className="text-2xl font-bold mb-3">Temporarily unavailable</h1>

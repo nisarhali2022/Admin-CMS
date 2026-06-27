@@ -31,6 +31,8 @@ import QuizInfoSections, {
 
 export const revalidate = 3600;
 
+const QUICK_ANSWER_HEADING = 'Quick Answer - Today Telenor Answer';
+
 function createTocItem(text, level) {
   return {
     id: createHomepageAnchorId(text),
@@ -42,6 +44,7 @@ function createTocItem(text, level) {
 function buildHomeToc(articleTitle, quizHeading) {
   return [
     createTocItem(articleTitle, 1),
+    createTocItem(QUICK_ANSWER_HEADING, 2),
     createTocItem(quizHeading, 2),
     createTocItem(LATEST_NEWS_HEADING, 2),
     ...Object.values(QUIZ_INFO_HEADINGS).map((heading) =>
@@ -58,8 +61,8 @@ export async function generateMetadata() {
   const post = await getDailyQuizPost();
   const seoDateLabel = getSeoKarachiDateLabel();
 
-  const title = `Telenor Quiz Today ${seoDateLabel} - Latest My Telenor Answer Today`;
-  const description = `Get all correct Telenor Quiz Today ${seoDateLabel}. Check daily updated My Telenor answers today to boost your score instantly and win exciting rewards.`;
+  const title = `Today Telenor Answer ${seoDateLabel} - My Telenor Quiz Answers`;
+  const description = `Check today Telenor answer for the My Telenor app quiz. Get all 5 correct Telenor quiz answers today and win free internet MBs daily.`;
   const ogImage =
     post?._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
     `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
@@ -85,10 +88,10 @@ export default async function HomePage() {
 
   const todayLabel = getKarachiDateLabel();
   const seoDateLabel = getSeoKarachiDateLabel();
-  const seoTitle = `Telenor Quiz Today ${seoDateLabel} - Latest My Telenor Answer Today`;
-  const seoDescription = `Get all correct Telenor Quiz Today ${seoDateLabel}. Check daily updated My Telenor answers today to boost your score instantly and win exciting rewards.`;
-  const articleTitle = `Telenor Quiz Today ${todayLabel} - Latest My Telenor Answer Today`;
-  const quizHeading = `Today Telenor Answer ${todayLabel}`;
+  const seoTitle = `Today Telenor Answer ${seoDateLabel} - My Telenor Quiz Answers`;
+  const seoDescription = `Check today Telenor answer for the My Telenor app quiz. Get all 5 correct Telenor quiz answers today and win free internet MBs daily.`;
+  const articleTitle = `Today Telenor Answer ${todayLabel} - My Telenor Quiz Answers`;
+  const quizHeading = `Today Telenor 5 Question Answer ${todayLabel}`;
   const homeToc = buildHomeToc(articleTitle, quizHeading);
   const homepageSchema = {
     '@context': 'https://schema.org',
@@ -122,7 +125,7 @@ export default async function HomePage() {
               {articleTitle}</h1>
 
             {/* Intro */}
-            <div className="text-text-secondary text-sm sm:text-base leading-relaxed space-y-3 mb-6">
+            <div className="text-text-secondary sm:text-base leading-relaxed space-y-3 mb-6">
               <p>
                 <strong>
                   <Link href="/" className="text-accent hover:underline">Telenor quiz today</Link>
@@ -143,6 +146,21 @@ export default async function HomePage() {
                 {' '}as your main number, you can still participate using your Telenor SIM in the second slot. This makes the Telenor daily quiz accessible, fast, and convenient for everyone.
               </p>
             </div>
+
+            <section
+              id={createHomepageAnchorId(QUICK_ANSWER_HEADING)}
+              className="my-6 rounded-xl border border-primary/20 bg-primary/5 p-5"
+            >
+              <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
+                {QUICK_ANSWER_HEADING}
+              </h2>
+              <p className="sm:text-base leading-relaxed text-text-secondary">
+                Today&apos;s My Telenor quiz answers are listed below. Open the
+                My Telenor app, go to the Play &amp; Win or Test Your Skills
+                section, enter the correct answers, and claim your free MBs
+                after completing the daily quiz.
+              </p>
+            </section>
 
             <TableOfContents toc={homeToc} />
 

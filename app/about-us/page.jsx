@@ -3,12 +3,14 @@ import { getPageBySlug } from '@/lib/wordpress'
 import {
   normalizeWordPressContentLinks,
   optimizeContentImages,
+  removeContentH1Blocks,
   toPlainText,
   truncateText,
 } from '@/lib/utils'
 import { buildMetadata } from '@/lib/seo'
 import { SITE_CONFIG } from '@/lib/constants'
 import Breadcrumbs from '@/components/navigation/Breadcrumbs'
+import TrustPageLinks from '@/components/navigation/TrustPageLinks'
 
 export const revalidate = 3600
 
@@ -36,7 +38,7 @@ export default async function AboutPage() {
       />
       <article className="mt-4 overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
         <header className="bg-surface px-5 py-6 sm:px-8">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-accent">
+          <p className="mb-2 font-semibold uppercase tracking-wide text-accent">
             About
           </p>
           <h1 className="font-heading font-bold text-3xl sm:text-4xl text-text-primary">
@@ -47,10 +49,15 @@ export default async function AboutPage() {
           className="prose prose-lg max-w-none px-5 py-6 sm:px-8 prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm prose-blockquote:border-l-4 prose-blockquote:border-accent prose-blockquote:text-text-secondary"
           dangerouslySetInnerHTML={{
             __html: optimizeContentImages(
-              normalizeWordPressContentLinks(page.content?.rendered || '')
+              normalizeWordPressContentLinks(
+                removeContentH1Blocks(page.content?.rendered || '')
+              )
             ),
           }}
         />
+        <div className="px-5 pb-6 sm:px-8">
+          <TrustPageLinks />
+        </div>
       </article>
     </div>
   )

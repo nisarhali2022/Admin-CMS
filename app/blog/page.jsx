@@ -62,7 +62,7 @@ export default async function BlogPage({ searchParams }) {
         <h1 className="font-heading font-bold text-2xl sm:text-3xl text-text-primary">
           Our Blog
         </h1>
-        <p className="text-text-secondary mt-2 text-sm max-w-2xl">
+        <p className="text-text-secondary mt-2 max-w-2xl">
           Latest news, updates, and articles.
         </p>
       </div>

@@ -161,7 +161,7 @@ export default function AdminQuizPage() {
   if (authed === null) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
-        <p className="text-sm text-text-secondary">Checking admin session...</p>
+        <p className="text-text-secondary">Checking admin session...</p>
       </div>
     );
   }
@@ -176,7 +176,7 @@ export default function AdminQuizPage() {
             <h1 className="font-heading font-bold text-xl text-text-primary mt-2">
               Admin Panel
             </h1>
-            <p className="text-text-secondary text-sm mt-1">Enter your admin secret to continue</p>
+            <p className="text-text-secondary mt-1">Enter your admin secret to continue</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <input
@@ -188,7 +188,7 @@ export default function AdminQuizPage() {
               autoFocus
             />
             {authMessage && (
-              <p className="text-sm text-red-600" role="alert">
+              <p className="text-red-600" role="alert">
                 {authMessage}
               </p>
             )}

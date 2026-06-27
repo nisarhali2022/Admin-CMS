@@ -76,7 +76,7 @@ export default async function SearchPage({ searchParams }) {
           <span className="text-accent">&ldquo;{query}&rdquo;</span>
         </h1>
         {posts.length > 0 && (
-          <p className="text-text-secondary text-sm mt-1">
+          <p className="text-text-secondary mt-1">
             Showing page {currentPage} of {totalPages}
           </p>
         )}
@@ -88,7 +88,7 @@ export default async function SearchPage({ searchParams }) {
           <p className="font-heading font-bold text-xl text-text-primary mb-2">
             No results found
           </p>
-          <p className="text-text-secondary text-sm">
+          <p className="text-text-secondary">
             Try different keywords or browse our categories.
           </p>
         </div>

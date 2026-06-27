@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { buildMetadata } from '@/lib/seo'
 import Breadcrumbs from '@/components/navigation/Breadcrumbs'
+import TrustPageLinks from '@/components/navigation/TrustPageLinks'
 
 export const metadata = buildMetadata({
   title: 'Corrections Policy',
@@ -34,6 +35,7 @@ export default function CorrectionsPolicyPage() {
           spelling and formatting fixes may be made directly; substantive
           factual corrections are reviewed before publication.
         </p>
+        <TrustPageLinks />
       </article>
     </div>
   )

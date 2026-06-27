@@ -20,6 +20,7 @@ import TableOfContents from '@/components/posts/TableOfContents';
 import { generateTocAndInjectIds } from '@/lib/toc';
 import AdInArticle from '@/components/ads/AdInArticle';
 import ShareButtons from '@/components/ui/ShareButtons';
+import TrustPageLinks from '@/components/navigation/TrustPageLinks';
 import {
   injectAdAfterFirstParagraph,
   normalizeWordPressContentLinks,
@@ -32,6 +33,7 @@ import {
   buildMetadata,
   canonicalPath,
   getCategoryDescription,
+  getPageMetadataOverride,
   isInvalidArchivePage,
   parsePageNumber,
 } from '@/lib/seo';
@@ -75,9 +77,11 @@ export async function generateMetadata({ params, searchParams }) {
   // 2. Is it a page?
   const page = await getPageBySlug(slug);
   if (page) {
+    const metadataOverride = getPageMetadataOverride(slug);
     const yoast = page.yoast_head_json;
-    const title = yoast?.title || page.title?.rendered;
+    const title = metadataOverride?.title || yoast?.title || page.title?.rendered;
     const description =
+      metadataOverride?.description ||
       yoast?.description ||
       truncateText(page.excerpt?.rendered || page.content?.rendered || '', 160);
     const imageUrl = page._embedded?.['wp:featuredmedia']?.[0]?.source_url || `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
@@ -85,11 +89,11 @@ export async function generateMetadata({ params, searchParams }) {
       title,
       description,
       path: `/${slug}`,
-      type: 'article',
+      type: metadataOverride?.type || 'article',
       image: imageUrl,
-      publishedTime: page.date,
+      publishedTime: metadataOverride ? undefined : page.date,
       modifiedTime: page.modified,
-      absoluteTitle: Boolean(yoast?.title),
+      absoluteTitle: metadataOverride ? false : Boolean(yoast?.title),
     });
   }
 
@@ -126,7 +130,7 @@ export default async function SlugPage({ params, searchParams }) {
         />
         <div className="mb-6">
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-text-primary">{category.name}</h1>
-          <p className="text-text-secondary mt-2 text-sm max-w-2xl">{description}</p>
+          <p className="text-text-secondary mt-2 max-w-2xl">{description}</p>
           <p className="text-xs text-text-secondary mt-1">{category.count} post{category.count !== 1 ? 's' : ''}</p>
         </div>
         <AdBanner position="top" />
@@ -146,6 +150,7 @@ export default async function SlugPage({ params, searchParams }) {
   // 2. Check if Page
   const page = await getPageBySlug(slug);
   if (page) {
+    const metadataOverride = getPageMetadataOverride(slug);
     const contentHtml = normalizeWordPressContentLinks(
       removeContentH1Blocks(page.content?.rendered || '')
     );
@@ -177,6 +182,7 @@ export default async function SlugPage({ params, searchParams }) {
             <AdInArticle />
             {afterAd && <div className="article-content prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-text-primary prose-a:text-accent hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-sm" dangerouslySetInnerHTML={{ __html: afterAd }} />}
             <div className="mt-8"><AdBanner position="after-content" /></div>
+            {metadataOverride && <TrustPageLinks />}
             <ShareButtons title={toPlainText(page.title?.rendered)} url={`${SITE_CONFIG.siteUrl}/${slug}`} />
           </article>
           <Suspense fallback={<LoadingSpinner size="lg" className="py-10" />}><Sidebar /></Suspense>

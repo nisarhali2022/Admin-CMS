@@ -150,7 +150,7 @@ export default function Footer() {
               />
             </Link>
             <FooterHeading>About us</FooterHeading>
-            <p className="text-gray-300 text-sm leading-relaxed">
+            <p className="text-gray-300 leading-relaxed">
               We offer accurate and reliable information to help users in
               Pakistan earn free internet and rewards. This platform is
               independently operated and is not associated with Telenor
@@ -171,7 +171,7 @@ export default function Footer() {
 
           <div>
             <FooterHeading>Disclaimer</FooterHeading>
-            <p className="text-gray-300 text-sm leading-relaxed">
+            <p className="text-gray-300 leading-relaxed">
               This website is an independent platform that provides general
               quiz-related information and tips for the My Telenor App. We are
               not affiliated with, authorized by, or endorsed by Telenor

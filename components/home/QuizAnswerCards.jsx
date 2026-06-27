@@ -1,5 +1,19 @@
 export default function QuizAnswerCards({ questions }) {
-  if (!questions?.length) return null
+  if (!questions?.length) {
+    return (
+      <div
+        className="my-6 rounded-lg border border-border bg-surface px-4 py-5 text-sm text-text-secondary shadow-sm"
+        role="status"
+      >
+        <p className="font-semibold text-text-primary">
+          Today's quiz answers are temporarily unavailable.
+        </p>
+        <p className="mt-1">
+          Please refresh this page or check again shortly.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3 my-6">
@@ -12,13 +26,13 @@ export default function QuizAnswerCards({ questions }) {
             <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent text-center text-xs font-bold leading-none text-white">
               {i + 1}
             </span>
-            <p className="text-white font-semibold text-sm leading-snug">
+            <p className="text-white font-semibold leading-snug">
               {q.question}
             </p>
           </div>
 
           {q.options.length > 0 && (
-            <div className="bg-surface px-4 py-3 flex flex-wrap gap-2 border-b border-border">
+            <div className="bg-surface px-4 py-3 grid grid-cols-2 gap-2 border-b border-border">
               {q.options.map((opt, j) => {
                 const correct =
                   opt.toLowerCase().trim() === q.answer.toLowerCase().trim()
@@ -26,7 +40,7 @@ export default function QuizAnswerCards({ questions }) {
                 return (
                   <span
                     key={j}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                    className={`block w-full px-3 py-1.5 rounded-full text-center text-base font-medium border ${
                       correct
                         ? 'bg-green-50 border-green-500 text-green-800 font-bold'
                         : 'bg-white border-border text-text-secondary'
@@ -40,8 +54,8 @@ export default function QuizAnswerCards({ questions }) {
           )}
 
           <div className="bg-green-50 px-4 py-2 flex items-center gap-2">
-            <span className="text-green-800 font-bold text-sm">Answer:</span>
-            <span className="text-green-800 font-bold text-sm">{q.answer}</span>
+            <span className="text-green-800 font-bold">Answer:</span>
+            <span className="text-green-800 font-bold">{q.answer}</span>
           </div>
         </div>
       ))}

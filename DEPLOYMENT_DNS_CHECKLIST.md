@@ -50,8 +50,12 @@ WP_ADMIN_PASS
 ADMIN_SECRET
 REVALIDATE_SECRET
 CRON_SECRET
-NEXT_PUBLIC_ADSENSE_ID
 ```
+
+Google Analytics, Search Console verification, and AdSense IDs are currently
+defined in `lib/constants.js`. If the project is later changed back to
+environment-driven public IDs, add those `NEXT_PUBLIC_*` variables in Vercel
+before deployment.
 
 - [ ] Vercel Domains settings includes:
 
@@ -190,7 +194,21 @@ Expected: opens the Vercel Next.js website.
 https://www.telenorquiztoday.com.pk
 ```
 
+Set `telenorquiztoday.com.pk` as the primary domain in Vercel. Keep
+`www.telenorquiztoday.com.pk` connected and let Vercel handle any `www` to
+non-www redirect. Do not add an app-level host redirect in `next.config.js`;
+that previously risked redirect loops when platform/domain redirects also
+existed.
+
 Expected: opens or redirects to the Vercel website.
+
+Preferred final SEO URL:
+
+```text
+https://telenorquiztoday.com.pk
+```
+
+If `www` is connected, it should perform one redirect to the non-www domain.
 
 ```text
 https://wp.telenorquiztoday.com.pk/wp-admin
@@ -242,6 +260,8 @@ https://wp.telenorquiztoday.com.pk/wp-json/wp/v2/posts
 Expected results:
 
 - Root domain and `www` domain both serve the Vercel Next.js site.
+- Non-www is the primary/canonical domain; `www` should redirect once to
+  non-www if Vercel is configured that way.
 - `/ads.txt` returns the Google seller line.
 - `/robots.txt` allows public crawling, blocks `/api/`, and lists the sitemap
   index.
@@ -252,3 +272,17 @@ Expected results:
 
 Do not delete the Hostinger WordPress installation, database, or `wp.`
 subdomain. Only the public root domain should point to Vercel.
+
+## Latest Deployment Update - 2026-06-27
+
+Current deployment-sensitive behavior:
+
+- `vercel.json` runs `/api/cron/midnight` at `13:00 UTC` and `19:00 UTC`.
+- `13:00 UTC` updates SEO-facing homepage date data six hours early.
+- `19:00 UTC` updates the visible homepage date at midnight Pakistan time.
+- The cron endpoint revalidates `/`, `/sitemap_index.xml`, and
+  `/page-sitemap.xml`.
+- `WORDPRESS_API_URL` remains the required source for WordPress REST data and
+  for deriving the allowed WordPress media host in `next.config.js`.
+- The public site remains canonical on the non-www root domain in source
+  metadata, schema, robots, and sitemaps.

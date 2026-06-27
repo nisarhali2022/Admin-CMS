@@ -44,7 +44,7 @@ export default function AuthorBox({ post }) {
           </Link>
         </h2>
         {description && (
-          <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+          <p className="mt-2 leading-relaxed text-text-secondary">
             {description}
           </p>
         )}

@@ -4,11 +4,13 @@ import { SITE_CONFIG } from '@/lib/constants';
 import {
   normalizeWordPressContentLinks,
   optimizeContentImages,
+  removeContentH1Blocks,
   toPlainText,
   truncateText,
 } from '@/lib/utils';
 import Breadcrumbs from '@/components/navigation/Breadcrumbs';
 import { buildMetadata } from '@/lib/seo';
+import TrustPageLinks from '@/components/navigation/TrustPageLinks';
 
 export const revalidate = 3600;
 
@@ -59,7 +61,9 @@ export default async function PrivacyPolicyPage() {
             prose-td:border-border"
           dangerouslySetInnerHTML={{
             __html: optimizeContentImages(
-              normalizeWordPressContentLinks(page.content?.rendered || '')
+              normalizeWordPressContentLinks(
+                removeContentH1Blocks(page.content?.rendered || '')
+              )
             ),
           }}
         />
@@ -72,6 +76,7 @@ export default async function PrivacyPolicyPage() {
             year: 'numeric',
           }).format(new Date(page.modified))}
         </p>
+        <TrustPageLinks />
       </article>
     </div>
   );

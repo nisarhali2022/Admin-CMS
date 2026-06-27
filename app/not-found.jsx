@@ -19,7 +19,7 @@ export default function NotFound() {
         Page Not Found
       </h1>
 
-      <p className="text-text-secondary max-w-md mb-8 text-sm sm:text-base">
+      <p className="text-text-secondary max-w-md mb-8 sm:text-base">
         Oops! The page you&apos;re looking for doesn&apos;t exist or has been
         moved. Try searching for what you need or go back to the homepage.
       </p>

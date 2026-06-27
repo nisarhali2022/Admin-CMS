@@ -51,7 +51,7 @@ export default function PostCard({
         </Link>
 
         {!isLarge && (
-          <p className="text-text-secondary text-sm leading-relaxed line-clamp-2">
+          <p className="text-text-secondary leading-relaxed line-clamp-2">
             {getExcerpt(post, 110)}
           </p>
         )}

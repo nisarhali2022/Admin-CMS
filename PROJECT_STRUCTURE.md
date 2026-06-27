@@ -25,7 +25,7 @@ telenor-quiz/
 
 | URL | File | Data/API calls | Main output |
 | --- | --- | --- | --- |
-| `/` | `app/page.jsx` | `getDailyQuizPost`, `getPosts`, quiz/FAQ parsers | Daily quiz and latest news |
+| `/` | `app/page.jsx` | `getDailyQuizPost`, `getLatestPostCards`, quiz/FAQ parsers | Daily quiz and latest news |
 | `/blog` | `app/blog/page.jsx` | `getPosts` | Paginated all-post archive |
 | `/search?q=...` | `app/search/page.jsx` | `searchPosts` | Dynamic search results |
 | `/<slug>` | `app/[slug]/page.jsx` | Category API, then page API | Category archive or WP page |
@@ -51,9 +51,10 @@ telenor-quiz/
 `app/layout.jsx` wraps every route with `Header`, `Footer`, one self-hosted
 Inter font, global CSS, metadata defaults, and the conditional AdSense script.
 
-`Header` is server-rendered. Search uses a native GET form, and search/mobile
-navigation toggles use native HTML/CSS controls, so the global header adds no
-hydration, pathname subscription, or scroll listener.
+`Header` is server-rendered and delegates search/menu interaction to the small
+client `HeaderControls` component. Search uses a native GET form, the mobile
+menu closes after link selection, and the header is fixed on desktop and
+mobile with a spacer to protect page content from being covered.
 
 ## 3. Library Modules
 
@@ -133,11 +134,10 @@ generation, and authenticated quiz writes. It requires `WORDPRESS_API_URL` or,
 for backward compatibility, `NEXT_PUBLIC_WORDPRESS_API_URL`. There is no
 hardcoded WordPress API fallback in tracked source.
 
-### `hooks/useSearch.js`
+### Search
 
-A reusable client search-form hook retained for `SearchWidget`. The global
-header no longer uses it because header search is a native server-rendered GET
-form.
+The global header uses a native GET search form. The old sidebar search widget
+and reusable `useSearch` hook were removed because they were no longer rendered.
 
 ## 4. Component Map
 
@@ -146,9 +146,8 @@ form.
 | File | Type | Calls/uses |
 | --- | --- | --- |
 | `components/layout/Header.jsx` | Server | navigation, logo, `HeaderControls` |
-| `components/layout/HeaderControls.jsx` | Server | native search and CSS-only mobile navigation |
+| `components/layout/HeaderControls.jsx` | Client | native search form and mobile-menu state |
 | `components/layout/Footer.jsx` | Server | static four-column footer and social icon row |
-| `components/layout/FooterRecentPosts.jsx` | Async Server | Legacy/unused recent-post footer helper |
 | `components/layout/Sidebar.jsx` | Server | recent, popular, and category widgets |
 
 ### Home
@@ -176,7 +175,6 @@ form.
 
 | File | Intended input | Current behavior |
 | --- | --- | --- |
-| `SearchWidget.jsx` | none | Client search form |
 | `CategoryList.jsx` | categories | Renders categories supplied by `Sidebar` |
 | `RecentPosts.jsx` | posts | Renders recent posts supplied by `Sidebar` |
 | `PopularPosts.jsx` | posts | Renders popular posts supplied by `Sidebar` |
@@ -184,20 +182,21 @@ form.
 ### Navigation, Ads, and UI
 
 - `Pagination.jsx`: builds previous, numbered, and next links while preserving
-  route-specific query parameters such as search terms.
+  route-specific query parameters such as search terms. Category archives still
+  use pagination; infinite scroll has not been implemented.
 - `Breadcrumbs.jsx`: visual breadcrumbs plus JSON-LD; the final title uses
   responsive truncation limits up to `560px`.
-- `AdSenseUnit.jsx`: client-side AdSense unit.
+- `AdSenseUnit.jsx`: client-side AdSense unit that skips duplicate
+  initialization and catches duplicate-fill errors.
 - `AdBanner.jsx`: position-to-slot wrapper that renders only with valid
-  environment configuration and reserves stable layout space.
+  configuration, reserves stable layout space, and keeps the top placement
+  eager while lower placements lazy-load through `LazyAdSenseUnit`.
 - `AdInArticle.jsx`: fluid in-article ad.
 - `ShareButtons.jsx`: WhatsApp, Facebook, X, and clipboard sharing.
 - `lib/schema.js`: safely serializes JSON-LD for site, article, breadcrumb,
   and author schemas.
 - `app/author/[slug]/page.jsx`: crawlable author profile with bio, Person
   schema, and paginated posts.
-- `components/layout/FooterRecentPosts.jsx`: legacy helper retained in source
-  but no longer used by the current static footer.
 - `LoadingSpinner.jsx`: Suspense fallback.
 
 ## 5. Detailed Call Flows
@@ -222,10 +221,12 @@ app/page.jsx
   -> getDailyQuizPost()
      -> WordPress /posts?_embed&slug=daily-quiz
      -> cache tag "quiz"
-  -> getPosts({ perPage: 6, excludeSlugs: ["daily-quiz"], tag: "news" })
+  -> getLatestPostCards(60)
   -> parseQuizTables(post.content.rendered)
   -> QuizAnswerCards
   -> LatestNewsGrid without visible publication dates
+     -> first two posts stay newest
+     -> remaining four posts randomize client-side from the rest of the pool
 ```
 
 ### Article page
@@ -283,7 +284,7 @@ Current behavior:
 Footer
   -> static About us, Menu, More Link, and Disclaimer columns
   -> local logo asset from SITE_CONFIG.logoUrl
-  -> social icon row with placeholder href values
+  -> social icon row with verified profile href values
   -> no WordPress request from the root layout footer
 ```
 
@@ -350,8 +351,9 @@ Vercel Cron calls this endpoint daily using:
 Authorization: Bearer CRON_SECRET
 ```
 
-It invalidates `/`, allowing the next request to regenerate the ISR homepage
-with the current Karachi date.
+It invalidates `/`, `/sitemap_index.xml`, and `/page-sitemap.xml`.
+`vercel.json` calls it at `13:00 UTC` for the six-hour early SEO date refresh
+and again at `19:00 UTC` for the visible midnight Karachi date refresh.
 
 ### `POST /api/revalidate`
 
@@ -406,6 +408,9 @@ Performance-specific behavior:
   `public/assets/`.
 - `.render-deferred` uses `content-visibility: auto` for long below-fold
   homepage information.
+- `styles/globals.css` sets `scroll-padding-top` on `html` and
+  `scroll-margin-top` on anchor targets so TOC/hash navigation works with the
+  fixed header.
 - Inter is the only application font; headings, body, and WordPress-rendered
   article content share the same file family. The former Tailwind Typography
   plugin was replaced by compact custom `.prose` CSS.
@@ -417,11 +422,12 @@ with the implemented routes.
 
 | Priority | Area | Required change |
 | --- | --- | --- |
-| High | Quiz parsing | Parse question text without requiring a trailing `?` |
 | High | Quiz UI | Render a visible unavailable state when quiz HTML is empty or malformed |
+| Medium | Contact form | Wire submitted messages to email/API/storage if real inbox review is required |
+| Medium | Category archives | Replace visible pagination with infinite scroll if that product change is approved |
 | Deployment | Live routing | Verify category/article URLs and production-source parity after deployment |
 
-Quality tooling now includes `eslint.config.mjs`, `npm run lint`, and 15 tests
+Quality tooling now includes `eslint.config.mjs`, `npm run lint`, and 36 tests
 under `test/`. Shared quiz validation/escaping lives in `lib/quiz.js`.
 `optimizeContentImages()` preserves WordPress responsive markup and fills
 missing dimensions, optimizer `srcset`, `sizes`, loading, and decoding
@@ -437,6 +443,7 @@ New or recently changed files and responsibilities:
 | `public/ads.txt` | Static AdSense seller authorization file served from `/ads.txt`. |
 | `app/layout.jsx` | Root metadata, Search Console verification meta tag, Google Analytics script, and global AdSense script. |
 | `components/ads/LazyAdSenseUnit.jsx` | Client-side ad loader that uses `IntersectionObserver` so below-fold ads load as the user approaches them. |
+| `components/ads/AdSenseUnit.jsx` | Safe AdSense initializer that avoids duplicate `adsbygoogle.push()` calls. |
 | `components/ads/AdBanner.jsx` | Shared display ad wrapper; top placement is eager, lower placements are lazy. |
 | `components/ads/AdInArticle.jsx` | In-article ad placement using the same lazy AdSense loader. |
 | `components/home/LatestNewsGrid.jsx` | Client-side randomization for homepage Latest News cards. |
@@ -447,6 +454,7 @@ New or recently changed files and responsibilities:
 | `components/layout/HeaderControls.jsx` | Search and mobile menu state; closes mobile menu after link selection. |
 | `components/home/QuizAnswerCards.jsx` | Quiz answer card UI, including centered number badge text. |
 | `app/contact-us/page.jsx` | Public contact form layout using the public email address. |
+| `components/contact/ContactForm.jsx` | Client form that prevents insecure `mailto:` submission and shows local submitted state. |
 | `app/about-us/page.jsx` | Improved public About page card and alignment. |
 | `app/sitemap.xml/route.js` | Permanent redirect from `/sitemap.xml` to `/sitemap_index.xml`. |
 | `app/robots.js` | Public crawl policy and sitemap index reference. |
@@ -462,3 +470,18 @@ Important call flow updates:
   initializes AdSense when the placement is eager or near the viewport.
 - WordPress-rendered content is normalized before public rendering so users do
   not see backend URLs in ordinary page text.
+
+## 10. Latest Structure Update - 2026-06-27
+
+Recent structure changes:
+
+- `components/layout/Header.jsx` now renders a fixed header wrapper plus a
+  mobile/desktop spacer.
+- `styles/globals.css` now owns global fixed-header anchor offsets.
+- `test/anchorOffset.test.js` and `test/fixedHeader.test.js` protect the
+  header and TOC/hash-scroll behavior.
+- `lib/date.js`, `app/page.jsx`, `lib/sitemap.js`, and `vercel.json` implement
+  the six-hour early SEO date strategy alongside the midnight visible-date
+  refresh.
+- `lib/quizParser.js` parses quiz tables row-by-row and accepts question text
+  that does not end in `?`.

@@ -2,15 +2,15 @@
 
 ## 1. Review Result
 
-Review date: June 19, 2026.
+Review date: June 27, 2026.
 
 Commands checked:
 
 | Check | Result |
 | --- | --- |
-| `npm.cmd run build` | Passed; all 28 routes generated on June 19, 2026 |
+| `npm.cmd run build` | Passed; all 29 routes generated on June 26, 2026 |
 | `npm.cmd run lint` | Passed with no warnings or errors |
-| `npm.cmd run test` | Passed: 15 tests |
+| `npm.cmd run test` | Passed: 36 tests |
 | Hardcoded backend/API secret scan | Passed: no tracked-source backend URL or secret matches |
 | `.env.local` tracking check | Passed: ignored by Git and not tracked |
 
@@ -367,7 +367,7 @@ Routes pass values such as `position="mid"` and `position="bottom"`, but
 position-to-slot map inside `AdBanner`.
 
 **Implemented result:** `AdBanner` maps supported position names to
-environment-backed slots and renders only when publisher and slot values are
+constant-backed slots and renders only when publisher and slot values are
 valid.
 
 ### BF-14: AdSense script loads even with placeholder configuration
@@ -464,10 +464,11 @@ Add focused tests for:
 - API authentication and payload validation.
 - Karachi date boundaries.
 
-**Implemented result:** `npm run test` executes 15 tests through `tsx` and
+**Implemented result:** `npm run test` executes 36 tests through `tsx` and
 Node's native test runner. Coverage includes quiz normalization and escaping,
-canonical and pagination behavior, archive validation, Karachi midnight, and
-WordPress missing-versus-unavailable behavior and body-image enhancement.
+canonical and pagination behavior, archive validation, Karachi midnight,
+WordPress missing-versus-unavailable behavior, body-image enhancement, Latest
+News selection, fixed-header spacing, and anchor-offset behavior.
 
 ### BF-19: API failures are silently swallowed
 
@@ -507,15 +508,15 @@ longer written to production build or render logs.
 
 **Status:** Resolved on June 14, 2026.
 
-`Header`, `SearchWidget`, and `hooks/useSearch.js` contain overlapping search
-logic, but the hook is unused.
+`Header`, `SearchWidget`, and `hooks/useSearch.js` contained overlapping search
+logic, and the sidebar search widget was no longer rendered.
 
 **Fix:** Reuse the hook in client search forms or remove it.
 
-**Implemented result:** `Header` and `SearchWidget` now both use
-`hooks/useSearch.js` for query state, trimming, encoding, and navigation. The
-hook supports an optional callback and clearing behavior so the header still
-closes and resets after a successful search.
+**Implemented result:** The global header uses a native GET search form inside
+`HeaderControls`, which keeps the fixed header lightweight and avoids
+route-listener complexity. The unused sidebar `SearchWidget` and `useSearch`
+hook were removed.
 
 ### BF-22: TOC slug generation can create empty or invalid duplicate IDs
 
@@ -576,15 +577,14 @@ Currently unused:
 - `PostContent`
 - `CSSPreloader`
 - `ErrorBoundary`
-- `useSearch`
 - `getComments`
 
 **Fix:** Remove them after confirming they are not planned, or document their
 future purpose and add usage tests.
 
 **Implemented result:** Removed `data/quiz.json`, `CategoryMenu`,
-`PostContent`, `CSSPreloader`, `ErrorBoundary`, and the unused `getComments`
-helper. `useSearch` was retained because it is now used by both search forms.
+`PostContent`, `CSSPreloader`, `ErrorBoundary`, the unused `getComments`
+helper, and the later-unused `useSearch` sidebar search hook.
 
 ### BF-26: `PostContent` does not place the React ad at its marker
 
@@ -752,9 +752,9 @@ the env-derived WordPress backend media host.
 
 **Implemented result:** The footer now renders four static columns: About us,
 Menu, More Link, and Disclaimer. The bottom row keeps the copyright text and
-shows social icons for Facebook, LinkedIn, YouTube, Twitter/X, Instagram, and
-Pinterest using placeholder `#` links until real profile URLs are provided. The
-footer no longer fetches recent posts.
+shows social icons for Facebook, LinkedIn, YouTube, Twitter/X, Instagram,
+TikTok, and Pinterest using real profile URLs. The footer no longer fetches
+recent posts.
 
 ### BF-37: Duplicate public H1s could appear on the Vercel-rendered post route
 
@@ -792,47 +792,111 @@ quality were tuned. Tailwind Typography was removed and replaced with compact
 custom `.prose` CSS, reducing the CSS bundle substantially while preserving
 WordPress content styling.
 
+### BF-39: Homepage quiz parser missed valid fill-in-the-blank questions
+
+**Severity:** High
+
+**Status:** Resolved on June 26, 2026.
+
+**Files:** `lib/quizParser.js`, `test/quiz.test.js`
+
+**Problem:** The frontend parser was stricter than the admin parser and could
+miss question text unless it ended with a question mark.
+
+**Implemented result:** Quiz tables are parsed row-by-row. `Question N:` rows
+now accept any non-empty question text, including fill-in-the-blank sentences
+without trailing punctuation. Incomplete rows with no question or no answer are
+skipped instead of rendering blank quiz cards.
+
+### BF-40: TOC/hash links could land under the fixed header
+
+**Severity:** Medium
+
+**Status:** Resolved on June 26, 2026.
+
+**Files:** `styles/globals.css`, `test/anchorOffset.test.js`
+
+**Implemented result:** Global `scroll-padding-top` and `scroll-margin-top`
+offsets were added for mobile and desktop/tablet. TOC and direct hash links
+now stop below the fixed header instead of hiding headings underneath it.
+
+### BF-41: Header was sticky instead of truly fixed
+
+**Severity:** Medium
+
+**Status:** Resolved on June 26, 2026.
+
+**Files:** `components/layout/Header.jsx`, `test/fixedHeader.test.js`
+
+**Implemented result:** The header now uses a real fixed wrapper on desktop
+and mobile. A responsive spacer prevents page content from sliding underneath
+the header, while mobile menu and search dropdowns remain attached below the
+fixed header.
+
+### BF-42: Duplicate AdSense push could crash the page in development
+
+**Severity:** Medium
+
+**Status:** Resolved on June 20, 2026.
+
+**Files:** `components/ads/AdSenseUnit.jsx`,
+`components/ads/LazyAdSenseUnit.jsx`, `components/ads/AdBanner.jsx`
+
+**Implemented result:** Each ad `<ins>` element is marked before
+initialization and skipped if Google or the app has already pushed an ad into
+it. Duplicate fill errors are caught so the page does not crash, while top ads
+remain eager and lower placements lazy-load near the viewport.
+
+### BF-43: Contact form used insecure `mailto:` submission
+
+**Severity:** Low
+
+**Status:** Resolved on June 26, 2026.
+
+**Files:** `app/contact-us/page.jsx`, `components/contact/ContactForm.jsx`
+
+**Implemented result:** The public contact form now prevents browser navigation
+to a `mailto:` URL, resets fields, and displays a local submitted message.
+There is still no message delivery or storage backend.
+
 ## 5. Open Improvements
 
-### IMP-01: Quiz parser requires a trailing question mark
+### IMP-01: Quiz parser previously required a trailing question mark
 
 **Priority:** High
 
-**Status:** Open and required.
+**Status:** Resolved on June 26, 2026.
 
-`lib/quizParser.js` currently captures question text with a pattern ending in
-`\?`. Admin validation allows a question without a question mark, so valid
-saved input can parse into an empty question.
-
-**Recommendation:** Parse question text until the first option or answer
-marker instead of requiring punctuation.
+`lib/quizParser.js` now parses quiz table rows by marker instead of requiring
+punctuation. Regression tests cover fill-in-the-blank question text without a
+question mark and incomplete rows with blank question text.
 
 ### IMP-02: Empty or malformed quiz content has no visible fallback
 
 **Priority:** High
 
-**Status:** Open and required.
+**Status:** Resolved on June 27, 2026.
 
 `QuizAnswerCards` returns `null` when parsing produces no questions. The page
 can display a quiz heading followed by empty space.
 
-**Recommendation:** Render a temporary-unavailable message and log malformed
-quiz content server-side.
+**Implemented result:** `QuizAnswerCards` now renders a visible
+temporary-unavailable message when parsing produces no questions, so the
+homepage does not leave an empty quiz section.
 
 ### IMP-03: Ad banner position values do not select slots
 
 **Status:** Resolved on June 15, 2026.
 
 `AdBanner` now maps `top`, `mid`, `bottom`, and `after-content` positions to
-validated slots. Slot values can be configured through public environment
-variables.
+validated slots from `lib/constants.js`.
 
 ### IMP-04: Placeholder AdSense configuration still loads the script
 
 **Status:** Resolved on June 15, 2026.
 
-The client ID now reads `NEXT_PUBLIC_ADSENSE_ID`. Placeholder clients and
-slots render neither the global script nor empty ad containers. Configured ad
+The client ID is defined in `lib/constants.js`. Placeholder clients and slots
+render neither the global script nor empty ad containers. Configured ad
 containers reserve height to reduce layout shift.
 
 ### IMP-05: Font configuration is inconsistent
@@ -900,10 +964,11 @@ Completed during the June 15, 2026 complex SEO pass:
 
 Completed during the June 15, 2026 performance pass:
 
-- Zero-hydration global header navigation using native HTML controls.
+- Lightweight global header navigation using a server-rendered shell, native
+  search form, and small client menu/search controls.
 - Removed global pathname/scroll listeners and router-backed header search.
 - Removed the unused Merriweather font family.
-- Added validated environment-backed ad slots and stable ad dimensions.
+- Added validated constant-backed ad slots and stable ad dimensions.
 - Removed blank ad spacing while AdSense is not configured.
 - Added AVIF/WebP image negotiation and a one-day optimized-image cache.
 - Selected smaller WordPress media variants for news and sidebar cards.
@@ -931,9 +996,11 @@ Completed during the June 16-19, 2026 migration and polish pass:
 
 ## 7. Recommended Fix Order
 
-1. IMP-01: accept valid quiz questions without trailing punctuation.
-2. IMP-02: prevent an empty quiz section when WordPress content is malformed.
-3. Verify live category/article routing and production parity after deployment.
+1. Add a real delivery/storage backend for the Contact form if message review
+   is required.
+2. Verify live category/article routing and production parity after deployment.
+3. Replace category archive pagination with infinite scroll if that requested
+   product change is approved for implementation.
 
 IMP-07 is optional cleanup and is not required for correctness.
 
@@ -1000,3 +1067,25 @@ Recommended next checks after deploy:
 5. In AdSense, create separate ad units for top, middle, sidebar, in-article,
    after-content, and bottom placements if RPM testing requires per-placement
    reporting.
+
+## 10. Latest Fixes - 2026-06-27
+
+Completed fixes:
+
+- Made the header truly fixed on desktop and mobile.
+- Added responsive layout spacing below the fixed header.
+- Added global anchor offsets for homepage TOC and article/page hash links.
+- Added regression tests for fixed header and anchor offsets.
+- Fixed quiz parsing for valid questions that do not end with `?`.
+- Added six-hour early SEO date revalidation for homepage metadata/schema and
+  sitemap freshness while preserving midnight visible-date rollover.
+- Changed the Contact form to a safe client-side submitted state instead of
+  insecure `mailto:` navigation.
+- Added a visible fallback when quiz content is missing or malformed.
+
+Current remaining functional work:
+
+1. Add a real contact-message backend if submitted messages must be stored or
+   emailed.
+2. Implement category infinite scroll if pagination should be removed from
+   category pages.

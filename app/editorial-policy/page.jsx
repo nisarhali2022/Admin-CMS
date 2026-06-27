@@ -1,5 +1,6 @@
 import { buildMetadata } from '@/lib/seo'
 import Breadcrumbs from '@/components/navigation/Breadcrumbs'
+import TrustPageLinks from '@/components/navigation/TrustPageLinks'
 
 export const metadata = buildMetadata({
   title: 'Editorial Policy',
@@ -41,6 +42,7 @@ export default function EditorialPolicyPage() {
           factual errors are corrected promptly and material changes are
           reflected in the updated content.
         </p>
+        <TrustPageLinks />
       </article>
     </div>
   )

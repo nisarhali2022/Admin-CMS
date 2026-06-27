@@ -324,3 +324,29 @@ Next RPM/performance checks:
 4. If all placements currently use one ad slot, create separate AdSense ad
    units for top, middle, sidebar, in-article, after-content, and bottom so RPM
    can be measured per placement.
+
+## Current Status Update - 2026-06-27
+
+This v2 report is also historical. Current implementation status:
+
+- The project no longer recommends adding `priority` to Latest News card
+  images by default because duplicate/competing preloads were removed in favor
+  of a lighter homepage.
+- The logo remains the intentional priority image in the fixed header.
+- Header is now truly fixed on all screen sizes, with responsive spacing below
+  it.
+- Global `scroll-padding-top` and `scroll-margin-top` protect TOC/hash targets
+  from being covered by the fixed header.
+- AdSense uses one global `lazyOnload` script, eager top placement, and lazy
+  lower placements with early viewport loading.
+- Duplicate AdSense push errors are guarded in `AdSenseUnit`.
+- Homepage SEO date and sitemap freshness now revalidate six hours before the
+  visible H1 date.
+
+Current validation needed:
+
+1. Run fresh mobile and desktop PageSpeed tests on the final production domain.
+2. Compare results with ads filled and unfilled because AdSense inventory can
+   materially change JavaScript and network cost.
+3. Use AdSense placement reports to decide whether lower ads should load even
+   earlier for RPM or later for speed.

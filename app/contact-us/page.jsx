@@ -2,12 +2,11 @@ import { notFound } from 'next/navigation'
 import { getPageBySlug } from '@/lib/wordpress'
 import {
   toPlainText,
-  truncateText,
 } from '@/lib/utils'
 import { buildMetadata } from '@/lib/seo'
-import { SITE_CONFIG } from '@/lib/constants'
 import Breadcrumbs from '@/components/navigation/Breadcrumbs'
 import ContactForm from '@/components/contact/ContactForm'
+import TrustPageLinks from '@/components/navigation/TrustPageLinks'
 
 export const revalidate = 3600
 
@@ -16,9 +15,8 @@ export async function generateMetadata() {
   const title = page?.title?.rendered
     ? toPlainText(page.title.rendered)
     : 'Contact Us'
-  const description = page?.excerpt?.rendered
-    ? truncateText(page.excerpt.rendered, 160)
-    : `Contact the ${SITE_CONFIG.name} team.`
+  const description =
+    'Contact Telenor Quiz Today for questions, corrections, feedback, and support related to quiz answers, telecom guides, and website content.'
 
   return buildMetadata({ title, description, path: '/contact-us' })
 }
@@ -36,18 +34,19 @@ export default async function ContactPage() {
       />
       <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <article className="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-accent">
+          <p className="mb-2 font-semibold uppercase tracking-wide text-accent">
             Contact
           </p>
           <h1 className="font-heading font-bold text-3xl sm:text-4xl text-text-primary">
             {pageTitle}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-text-secondary sm:text-base">
+          <p className="mt-4 max-w-2xl leading-relaxed text-text-secondary sm:text-base">
             Have a question, correction, or suggestion? Send us a message and
             our team will review it as soon as possible.
           </p>
 
           <ContactForm />
+          <TrustPageLinks />
         </article>
 
         <aside className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">

@@ -94,7 +94,7 @@ export default async function AuthorPage({ params, searchParams }) {
             />
           )}
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
+            <p className="font-semibold uppercase tracking-wide text-text-secondary">
               Author
             </p>
             <h1 className="mt-1 font-heading text-3xl font-bold text-text-primary">

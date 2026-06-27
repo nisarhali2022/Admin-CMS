@@ -1,6 +1,10 @@
 import { createHomepageAnchorId } from '@/lib/homeAnchors'
 
 export const QUIZ_INFO_HEADINGS = {
+  todayAnswer: 'What is Today Telenor Answer?',
+  whereToEnter: 'Where to Enter My Telenor App Answer Today?',
+  fiveQuestionAnswer: 'What is Today Telenor 5 Question Answer?',
+  testYourSkills: 'What is Test Your Skills Today?',
   whatIs: 'What is the Telenor Daily Quiz?',
   findCorrectAnswers: 'How to Find the Correct My Telenor Quiz Answers Today Instantly?',
   howToPlay: 'How to Play the Telenor Quiz Today and Win Free MBs?',
@@ -21,6 +25,53 @@ export const CONCLUSION_HEADING = 'Conclusion'
 export default function QuizInfoSections() {
   return (
     <div className="render-deferred">
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.todayAnswer)} className="my-8">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
+          {QUIZ_INFO_HEADINGS.todayAnswer}
+        </h2>
+        <p className="text-text-secondary leading-relaxed">
+          Today Telenor answer means the correct daily quiz answers for the My
+          Telenor app. Users check these answers before submitting the quiz so
+          they can complete all questions correctly and claim free internet MBs.
+        </p>
+      </section>
+
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.whereToEnter)} className="my-8">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
+          {QUIZ_INFO_HEADINGS.whereToEnter}
+        </h2>
+        <p className="text-text-secondary leading-relaxed">
+          Enter the My Telenor app answer today inside the app&apos;s quiz area.
+          Open the My Telenor app, sign in with your Telenor number, then check
+          the Play &amp; Win, Rewards, Quiz, or Test Your Skills section to submit
+          the daily answers.
+        </p>
+      </section>
+
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.fiveQuestionAnswer)} className="my-8">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
+          {QUIZ_INFO_HEADINGS.fiveQuestionAnswer}
+        </h2>
+        <p className="text-text-secondary leading-relaxed">
+          Today Telenor 5 question answer refers to the full set of five correct
+          answers for the daily My Telenor quiz. Answering all five questions
+          correctly gives users the best chance to receive the daily free MB
+          reward.
+        </p>
+      </section>
+
+      <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.testYourSkills)} className="my-8">
+        <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
+          {QUIZ_INFO_HEADINGS.testYourSkills}
+        </h2>
+        <p className="text-text-secondary leading-relaxed">
+          Test Your Skills Today is one of the My Telenor app sections where
+          daily quiz questions can appear. It lets users answer simple
+          multiple-choice questions, test general knowledge, and win free
+          internet rewards when the answers are correct.
+        </p>
+      </section>
+
       <section id={createHomepageAnchorId(QUIZ_INFO_HEADINGS.whatIs)} className="my-8">
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           {QUIZ_INFO_HEADINGS.whatIs}
@@ -335,11 +386,11 @@ export default function QuizInfoSections() {
             },
           ].map((problem) => (
             <div key={problem.title} className="border-l-4 border-accent pl-4">
-              <p className="font-semibold text-sm text-text-primary">{problem.title}</p>
-              <p className="text-sm text-text-secondary mt-1">{problem.fix}</p>
+              <p className="font-semibold text-text-primary">{problem.title}</p>
+              <p className="text-text-secondary mt-1">{problem.fix}</p>
             </div>
           ))}
-          <p className="text-sm text-text-secondary leading-relaxed">
+          <p className="text-text-secondary leading-relaxed">
             Following these steps keeps your Telenor Quiz answer experience
             seamless and ensures you never miss a chance to play and win.
           </p>
@@ -350,7 +401,7 @@ export default function QuizInfoSections() {
         <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
           {QUIZ_INFO_HEADINGS.educationalBenefits}
         </h2>
-        <p className="text-sm text-text-secondary leading-relaxed">
+        <p className="text-text-secondary leading-relaxed">
           Participating in daily quizzes offers more than just free MBs. Each
           question challenges your knowledge across subjects like science,
           history, and Islamic studies. Regular participation strengthens

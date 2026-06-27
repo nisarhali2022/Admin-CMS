@@ -18,12 +18,30 @@ export default function AdSenseUnit({
   useEffect(() => {
     const adElement = adRef.current
     if (!adElement) return
+    const adContainer = adElement.closest('[data-ad-container]')
+
+    const updateContainerStatus = () => {
+      if (
+        adContainer?.dataset.collapseUnfilled === 'true' &&
+        adElement.dataset.adStatus === 'unfilled'
+      ) {
+        adContainer.dataset.adContainerStatus = 'unfilled'
+      }
+    }
+
+    const observer = new MutationObserver(updateContainerStatus)
+    observer.observe(adElement, {
+      attributes: true,
+      attributeFilter: ['data-ad-status'],
+    })
 
     if (
       adElement.dataset.adsbygoogleStatus ||
       adElement.dataset.adStatus ||
       adElement.dataset.adPushed
     ) {
+      updateContainerStatus()
+      observer.disconnect()
       return
     }
 
@@ -36,6 +54,10 @@ export default function AdSenseUnit({
         console.warn('AdSense push failed', error)
       }
     }
+
+    updateContainerStatus()
+
+    return () => observer.disconnect()
   }, [])
 
   return (

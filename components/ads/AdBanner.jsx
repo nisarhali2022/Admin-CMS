@@ -13,6 +13,7 @@ export default function AdBanner({
   eager = position === 'top',
 }) {
   const resolvedSlot = slot || AD_POSITIONS[position] || AD_SLOTS.TOP_LEADERBOARD
+  const collapseUnfilled = position !== 'top'
   const isConfigured =
     SITE_CONFIG.googleAdsenseId &&
     !SITE_CONFIG.googleAdsenseId.includes('XXXX') &&
@@ -24,6 +25,8 @@ export default function AdBanner({
     <div
       className={`my-6 min-h-[250px] w-full overflow-hidden sm:min-h-[120px] ${className}`}
       aria-label="Advertisement"
+      data-ad-container
+      data-collapse-unfilled={collapseUnfilled ? 'true' : 'false'}
     >
       <LazyAdSenseUnit
         slot={resolvedSlot}

@@ -318,3 +318,29 @@ Remaining validation:
 - Compare LCP/CLS with ads active and with real mobile network throttling.
 - If performance drops, reduce lower-ad preload distance or move noncritical
   placements farther below the fold.
+
+## Current Status Update - 2026-06-27
+
+This file remains a historical Lighthouse note. Current source-level
+performance changes after that audit include:
+
+- Header is now fixed on desktop and mobile with a spacer, avoiding layout
+  overlap while scrolling.
+- Global anchor offsets keep TOC/hash jumps below the fixed header.
+- AdSense script still uses `lazyOnload`.
+- Top ad placement remains eager for RPM; lower ad placements lazy-load near
+  the viewport.
+- `AdSenseUnit` now prevents duplicate `adsbygoogle.push()` calls from
+  crashing local development or client navigation.
+- Homepage Latest News fetches a larger post-card pool, keeps the newest two
+  posts fixed, and randomizes the remaining visible cards client-side.
+- Contact form no longer navigates to insecure `mailto:` URLs.
+
+Current validation needed:
+
+1. Re-run PageSpeed against the deployed production domain after the latest
+   fixed-header and ad-guard changes.
+2. Confirm field LCP/INP/CLS in real Chrome User Experience data after ads are
+   active.
+3. Keep this report as historical context; use the newest PageSpeed run as the
+   current performance source of truth.

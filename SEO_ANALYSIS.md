@@ -2,7 +2,7 @@
 
 ## 1. Audit Scope
 
-Audit date: June 19, 2026.
+Audit date: June 27, 2026.
 
 This review covers:
 
@@ -422,7 +422,7 @@ same convention.
 
 ### SEO-13: Homepage metadata date and visible H1 can diverge
 
-**Status:** Resolved on June 14, 2026.
+**Status:** Resolved with controlled behavior on June 26, 2026.
 
 **Source:** Code
 
@@ -434,8 +434,12 @@ the WordPress `daily-quiz` Yoast/title data, which may not update at midnight.
 **Fix:** Generate the homepage title and description from the same Karachi
 date helper, while retaining only stable Yoast fields that do not conflict.
 
-**Implemented result:** The homepage metadata title and visible H1 now use the
-same Karachi date helper. The stable Yoast description can still be used.
+**Implemented result:** The project now intentionally uses two date modes.
+The visible H1/content date changes at midnight Karachi time, while metadata,
+Open Graph/Twitter text, homepage WebPage schema, `/page-sitemap.xml`, and
+`/sitemap_index.xml` use a six-hour early SEO date. From `18:00` to `23:59`
+PKT, Google-facing metadata may show tomorrow while the visible H1 still shows
+today.
 
 ### SEO-14: Homepage sitemap `lastmod` does not reflect midnight date changes
 
@@ -647,11 +651,11 @@ errors rather than a not-found response.
 non-integer, zero, negative, and out-of-range page values with `notFound()`.
 WordPress invalid-page 400 responses are normalized into the same 404 path.
 
-### SEO-26: Social profile links are placeholders
+### SEO-26: Footer social profile links needed real URLs
 
 **Source:** Code
 
-**Status:** Partially resolved; awaiting real profile URLs.
+**Status:** Resolved on June 20, 2026.
 
 Footer links point to generic destinations:
 
@@ -663,11 +667,11 @@ https://wa.me/
 
 **Impact:** Weak trust signals and poor user experience.
 
-**Implemented result:** Generic text/profile links were removed from the footer
-bottom row. A social icon row now exists for Facebook, LinkedIn, YouTube,
-Twitter/X, Instagram, and Pinterest, but the icon links currently use `#`
-placeholders. Add verified profile URLs before using them in Organization
-schema.
+**Implemented result:** Generic footer text/profile links were removed from the
+copyright row. The footer now includes real social icon links for Facebook,
+LinkedIn, YouTube, Twitter/X, Instagram, TikTok, and Pinterest. These links are
+not automatically added to Organization schema; schema social profiles should
+only be added after final brand/profile verification.
 
 ## 6. Low-Priority Issues
 
@@ -888,7 +892,7 @@ Noindex or remove one-post, duplicate, or near-synonymous tags.
 - SEO-03: fallback Open Graph image.
 - SEO-06: dynamic WordPress page H1.
 - SEO-24: sanitized image alt text.
-- SEO-26: placeholder social profile removal.
+- SEO-26: real footer social profile links.
 - SEO-27: `en-PK` document language.
 - SEO-28: obsolete preconnect removal.
 - SEO-29: conditional AdSense script.
@@ -928,7 +932,8 @@ SEO-32 was completed with the complex metadata/schema work on June 15, 2026.
    static.
 4. Measure and correct image preload priorities. Completed.
 5. Optimize WordPress body images. Completed.
-6. Replace footer social icon placeholders with real social profile URLs.
+6. Add verified social profile URLs to Organization schema only after final
+   brand/profile review.
 7. Add/expand sourcing methodology where relevant.
 
 ### Phase 5: Headless deployment readiness
@@ -949,10 +954,9 @@ SEO-32 was completed with the complex metadata/schema work on June 15, 2026.
    deployed.
 2. **SEO-09 deployment check:** Confirm the production domain serves this
    repository's metadata, schema, sitemap, language, and routing output.
-3. Replace footer social icon `#` placeholders with real verified social URLs
-   or remove icons until profile URLs are available.
-4. Measure field Core Web Vitals after deployment; build bundle sizes alone
+3. Measure field Core Web Vitals after deployment; build bundle sizes alone
    do not confirm real-user LCP, INP, or CLS.
+4. Add a real contact-message backend if contact submissions must be retained.
 
 ## 10. Validation Checklist
 
@@ -983,9 +987,9 @@ After fixes:
 
 ## 11. Current Verification Limitations
 
-- The June 19, 2026 production build compiled, type-checked, and generated all
-  28 routes successfully using an isolated output directory.
-- `npm.cmd run test` passed 15 tests, `npm.cmd run lint` passed, and a
+- The June 26, 2026 production build compiled, type-checked, and generated all
+  29 routes successfully.
+- `npm.cmd run test` passed 27 tests, `npm.cmd run lint` passed, and a
   tracked-source scan found no backend WordPress URL, WordPress API path, old
   main-domain upload path, or hardcoded secret/password matches.
 - Local browser and HTTP checks verified site, Article, Person, breadcrumb,
@@ -1038,3 +1042,30 @@ Remaining SEO/performance recommendations:
    User Experience data.
 5. Keep the WordPress `wp.` subdomain blocked from indexing while allowing REST
    API and media access for the Vercel frontend.
+
+## 13. Latest SEO Update - 2026-06-27
+
+Completed SEO/usability changes:
+
+- Homepage metadata, Open Graph/Twitter text, WebPage schema, and sitemap
+  freshness now update six hours before the visible H1 date.
+- Vercel cron revalidates `/`, `/page-sitemap.xml`, and
+  `/sitemap_index.xml` at both `13:00 UTC` and `19:00 UTC`.
+- Fixed header plus global anchor offsets keep TOC/hash navigation readable on
+  mobile and desktop.
+- Homepage TOC uses clean hyphen IDs and includes the visible H1, major H2
+  sections, and step H3 headings.
+- Quiz parser now supports fill-in-the-blank questions without a trailing
+  question mark, preventing blank first-question cards.
+- Contact form no longer opens insecure `mailto:` URLs; it shows a safe local
+  submitted message.
+- AdSense duplicate-push errors are guarded so ad initialization cannot crash
+  the page.
+
+Current SEO caveats:
+
+1. Category pages still use pagination. Infinite scroll has been requested but
+   is not implemented yet.
+2. Contact submissions are not delivered or stored until a backend is added.
+3. Live deployment parity, Search Console indexing, and field Core Web Vitals
+   still require production verification.

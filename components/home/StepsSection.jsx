@@ -50,7 +50,7 @@ export default function StepsSection() {
             </span>
             <div className="flex-1">
               <h3 id={createHomepageAnchorId(step.title)} className="font-semibold text-text-primary mb-1">{step.title}</h3>
-              <p className="text-sm text-text-secondary leading-relaxed">{step.desc}</p>
+              <p className="text-text-secondary leading-relaxed">{step.desc}</p>
               {step.img && (
                 <div className="mt-3 relative w-80 aspect-[2/3] rounded-lg overflow-hidden shadow-sm border border-border">
                   <Image

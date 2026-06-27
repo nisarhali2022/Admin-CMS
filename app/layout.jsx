@@ -74,7 +74,11 @@ export default function RootLayout({ children }) {
   }
 
   return (
-    <html lang="en-PK" className={inter.variable}>
+    <html
+      lang="en-PK"
+      className={inter.variable}
+      data-scroll-behavior="smooth"
+    >
       <body className="font-body bg-white text-text-primary">
         <script
           type="application/ld+json"
@@ -99,11 +103,10 @@ export default function RootLayout({ children }) {
           `}
         </Script>
         {hasAdSenseClient && (
-          <Script
+          <script
             async
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${SITE_CONFIG.googleAdsenseId}`}
             crossOrigin="anonymous"
-            strategy="lazyOnload"
           />
         )}
       </body>

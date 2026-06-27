@@ -17,6 +17,8 @@ export default function AdInArticle() {
     <div
       className="my-8 min-h-[250px] clear-both"
       aria-label="Advertisement"
+      data-ad-container
+      data-collapse-unfilled="true"
     >
       <LazyAdSenseUnit
         slot={AD_SLOTS.IN_ARTICLE}
