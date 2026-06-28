@@ -1,211 +1,466 @@
-import { Suspense } from 'react';
-import Link from 'next/link';
-import { getDailyQuizPost, getLatestPostCards } from '@/lib/wordpress';
-import { SITE_CONFIG } from '@/lib/constants';
-import {
-  getKarachiDateLabel,
-  getSeoKarachiDateLabel,
-  getSeoKarachiDayStartISO,
-} from '@/lib/date';
-import { buildMetadata } from '@/lib/seo';
-import { parseQuizTables, parseFaqs } from '@/lib/quizParser';
-import { serializeJsonLd } from '@/lib/schema';
-import { createHomepageAnchorId } from '@/lib/homeAnchors';
-import { LATEST_NEWS_HEADING } from '@/lib/homeHeadings';
+'use client'
 
-import Sidebar from '@/components/layout/Sidebar';
-import AdBanner from '@/components/ads/AdBanner';
-import AdInArticle from '@/components/ads/AdInArticle';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import TableOfContents from '@/components/posts/TableOfContents';
+import { useEffect, useState } from 'react'
+import { getKarachiDateLabel } from '@/lib/date'
 
-import QuizAnswerCards from '@/components/home/QuizAnswerCards';
-import LatestNewsGrid from '@/components/home/LatestNewsGrid';
-import StepsSection, { HOME_STEPS, STEPS_HEADING } from '@/components/home/StepsSection';
-import FaqSection, { FAQ_HEADING } from '@/components/home/FaqSection';
-import QuizInfoSections, {
-  CONCLUSION_HEADING,
-  ConclusionSection,
-  QUIZ_INFO_HEADINGS,
-} from '@/components/home/QuizInfoSections';
+const EMPTY_QUESTION = { question: '', options: ['', '', '', ''], answer: '' }
 
-export const revalidate = 3600;
+const DEFAULT_QUESTIONS = Array.from({ length: 5 }, () => ({
+  ...EMPTY_QUESTION,
+  options: ['', '', '', ''],
+}))
 
-const QUICK_ANSWER_HEADING = 'Quick Answer - Today Telenor Answer';
-
-function createTocItem(text, level) {
-  return {
-    id: createHomepageAnchorId(text),
-    text,
-    level,
-  };
+function cloneDefaultQuestions() {
+  return DEFAULT_QUESTIONS.map((question) => ({
+    ...question,
+    options: [...question.options],
+  }))
 }
 
-function buildHomeToc(articleTitle, quizHeading) {
-  return [
-    createTocItem(articleTitle, 1),
-    createTocItem(QUICK_ANSWER_HEADING, 2),
-    createTocItem(quizHeading, 2),
-    createTocItem(LATEST_NEWS_HEADING, 2),
-    ...Object.values(QUIZ_INFO_HEADINGS).map((heading) =>
-      createTocItem(heading, 2)
-    ),
-    createTocItem(STEPS_HEADING, 2),
-    ...HOME_STEPS.map((step) => createTocItem(step.title, 3)),
-    createTocItem(FAQ_HEADING, 2),
-    createTocItem(CONCLUSION_HEADING, 2),
-  ];
-}
-
-export async function generateMetadata() {
-  const post = await getDailyQuizPost();
-  const seoDateLabel = getSeoKarachiDateLabel();
-
-  const title = `Today Telenor Answer ${seoDateLabel} - My Telenor Quiz Answers`;
-  const description = `Check today Telenor answer for the My Telenor app quiz. Get all 5 correct Telenor quiz answers today and win free internet MBs daily.`;
-  const ogImage =
-    post?._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
-    `${SITE_CONFIG.siteUrl}${SITE_CONFIG.defaultOgImage}`;
-
-  return buildMetadata({
-    title,
-    description,
-    path: '/',
-    image: ogImage,
-    absoluteTitle: true,
-  });
-}
-
-export default async function HomePage() {
-  const [quizPost, newsData] = await Promise.all([
-    getDailyQuizPost(),
-    getLatestPostCards(60),
-  ]);
-
-  const newsPosts = newsData || [];
-  const quizQuestions = parseQuizTables(quizPost?.content?.rendered || '');
-  const faqs = parseFaqs(quizPost?.content?.rendered || '');
-
-  const todayLabel = getKarachiDateLabel();
-  const seoDateLabel = getSeoKarachiDateLabel();
-  const seoTitle = `Today Telenor Answer ${seoDateLabel} - My Telenor Quiz Answers`;
-  const seoDescription = `Check today Telenor answer for the My Telenor app quiz. Get all 5 correct Telenor quiz answers today and win free internet MBs daily.`;
-  const articleTitle = `Today Telenor Answer ${todayLabel} - My Telenor Quiz Answers`;
-  const quizHeading = `Today Telenor 5 Question Answer ${todayLabel}`;
-  const homeToc = buildHomeToc(articleTitle, quizHeading);
-  const homepageSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'WebPage',
-    '@id': `${SITE_CONFIG.siteUrl}/#webpage`,
-    url: SITE_CONFIG.siteUrl,
-    name: seoTitle,
-    description: seoDescription,
-    inLanguage: 'en-PK',
-    isPartOf: { '@id': `${SITE_CONFIG.siteUrl}/#website` },
-    dateModified: getSeoKarachiDayStartISO(),
-  };
+function SiteResultList({ results }) {
+  if (!results?.length) return null
 
   return (
-    <div>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(homepageSchema) }}
-      />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
-
-          {/* Main Content */}
-          <article className="min-w-0">
-            {/* Title */}
-      
-            <h1
-              id={createHomepageAnchorId(articleTitle)}
-              className="font-heading font-bold text-2xl sm:text-3xl text-text-primary leading-tight mb-4"
+    <div className="mt-4 space-y-2" aria-label="Website publish results">
+      {results.map((result) => (
+        <div
+          key={result.key || result.label}
+          className={`rounded-lg border px-3 py-2 text-sm ${
+            result.ok
+              ? 'border-green-300 bg-green-50 text-green-800'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <span className="font-semibold">{result.label}</span>
+            <span className="text-xs font-bold uppercase">
+              {result.ok ? 'Updated' : 'Failed'}
+            </span>
+          </div>
+          <p className="mt-1 text-sm">
+            {result.ok
+              ? `Post ${result.id ? `#${result.id} ` : ''}saved successfully.`
+              : result.message || 'This website could not be updated.'}
+          </p>
+          {result.ok && result.revalidate && (
+            <p
+              className={`mt-1 text-sm ${
+                result.revalidate.ok === false
+                  ? 'text-amber-800'
+                  : 'text-green-800'
+              }`}
             >
-              {articleTitle}</h1>
+              Revalidate:{' '}
+              {result.revalidate.configured
+                ? result.revalidate.message
+                : 'Not configured.'}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
 
-            {/* Intro */}
-            <div className="text-text-secondary sm:text-base leading-relaxed space-y-3 mb-6">
-              <p>
-                <strong>
-                  <Link href="/" className="text-accent hover:underline">Telenor quiz today</Link>
-                </strong>{' '}
-                is a popular daily feature inside the My Telenor app question answer section. It gives Telenor users a simple way to earn free internet MBs, balance, and bonus rewards. You just answer a few quick questions and enjoy instant benefits while learning something new.
-              </p>
-              <p>
-                <Link href="/" className="text-accent hover:underline"><strong>Telenor Answer Today</strong></Link>{' '}
-                suits every type of user. Students can grab extra data for online classes, freelancers can stay connected for work, and regular users can collect daily rewards without any hassle. The quiz takes only a few seconds, and the questions stay easy, relevant, and engaging.
-              </p>
-              <p>
-                We update the today Telenor 5 question answer every day so you never miss a winning chance. Even if you use a dual SIM phone with{' '}
-                <strong>
-                  <a href="https://jazz.com.pk/" target="_blank" rel="noopener noreferrer nofollow" className="text-accent hover:underline">Jazz</a>,{' '}
-                  <a href="https://www.zong.com.pk/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Zong</a>, or{' '}
-                  <a href="https://www.ufone.com/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Ufone</a>
-                </strong>
-                {' '}as your main number, you can still participate using your Telenor SIM in the second slot. This makes the Telenor daily quiz accessible, fast, and convenient for everyone.
-              </p>
-            </div>
+export default function AdminQuizPage() {
+  const [secret, setSecret] = useState('')
+  const [authed, setAuthed] = useState(null)
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authMessage, setAuthMessage] = useState('')
+  const [questions, setQuestions] = useState(cloneDefaultQuestions)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState(null)
+  const [siteResults, setSiteResults] = useState([])
+  const [loading, setLoading] = useState(false)
 
-            <section
-              id={createHomepageAnchorId(QUICK_ANSWER_HEADING)}
-              className="my-6 rounded-xl border border-primary/20 bg-primary/5 p-5"
+  useEffect(() => {
+    fetch('/api/admin/session', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((data) => setAuthed(Boolean(data.authenticated)))
+      .catch(() => setAuthed(false))
+  }, [])
+
+  useEffect(() => {
+    if (!authed) return
+
+    setLoading(true)
+    fetch('/api/quiz', { cache: 'no-store' })
+      .then(async (response) => {
+        if (response.status === 401) {
+          setAuthed(false)
+          throw new Error('Your admin session has expired.')
+        }
+
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.message || 'Unable to load the current quiz.')
+        }
+
+        return data
+      })
+      .then((data) => {
+        if (data?.questions?.length) {
+          setQuestions(data.questions)
+        }
+      })
+      .catch((error) => setAuthMessage(error.message))
+      .finally(() => setLoading(false))
+  }, [authed])
+
+  async function handleLogin(event) {
+    event.preventDefault()
+    if (!secret.trim()) return
+
+    setAuthLoading(true)
+    setAuthMessage('')
+
+    try {
+      const response = await fetch('/api/admin/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        setAuthMessage(data.message || 'Login failed.')
+        return
+      }
+
+      setSecret('')
+      setAuthed(true)
+    } catch {
+      setAuthMessage('Unable to contact the server.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  async function handleLogout() {
+    await fetch('/api/admin/session', { method: 'DELETE' }).catch(() => {})
+    setAuthed(false)
+    setQuestions(cloneDefaultQuestions())
+    setMessage(null)
+    setSiteResults([])
+  }
+
+  function updateQuestion(questionIndex, field, value) {
+    setQuestions((prev) =>
+      prev.map((question, index) =>
+        index === questionIndex ? { ...question, [field]: value } : question
+      )
+    )
+  }
+
+  function updateOption(questionIndex, optionIndex, value) {
+    setQuestions((prev) =>
+      prev.map((question, index) =>
+        index === questionIndex
+          ? {
+              ...question,
+              options: question.options.map((option, currentOptionIndex) =>
+                currentOptionIndex === optionIndex ? value : option
+              ),
+            }
+          : question
+      )
+    )
+  }
+
+  function setAnswer(questionIndex, option) {
+    setQuestions((prev) =>
+      prev.map((question, index) =>
+        index === questionIndex ? { ...question, answer: option } : question
+      )
+    )
+  }
+
+  async function handleSave() {
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i]
+
+      if (!question.question.trim()) {
+        setMessage({ type: 'error', text: `Question ${i + 1} is empty.` })
+        setSiteResults([])
+        return
+      }
+
+      if (!question.answer.trim()) {
+        setMessage({
+          type: 'error',
+          text: `Question ${i + 1} has no answer selected.`,
+        })
+        setSiteResults([])
+        return
+      }
+    }
+
+    setSaving(true)
+    setMessage(null)
+    setSiteResults([])
+
+    try {
+      const response = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questions }),
+      })
+      const data = await response.json()
+
+      if (response.status === 401) {
+        setAuthed(false)
+        setAuthMessage('Your admin session has expired. Please log in again.')
+        return
+      }
+
+      setSiteResults(data.results || [])
+
+      if (response.ok) {
+        const failedCount = data.results?.filter((result) => !result.ok).length || 0
+        const revalidateFailedCount =
+          data.results?.filter(
+            (result) => result.ok && result.revalidate?.ok === false
+          ).length || 0
+        setMessage({
+          type:
+            failedCount > 0 || revalidateFailedCount > 0
+              ? 'warning'
+              : 'success',
+          text:
+            failedCount > 0
+              ? `Quiz saved with ${failedCount} website update failure.`
+              : revalidateFailedCount > 0
+                ? `Quiz saved, but ${revalidateFailedCount} website cache revalidate failed.`
+              : `Quiz saved for ${getKarachiDateLabel()} on all websites.`,
+        })
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to save.' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleClear() {
+    if (window.confirm('Clear all questions? This will erase unsaved data.')) {
+      setQuestions(cloneDefaultQuestions())
+      setMessage(null)
+      setSiteResults([])
+    }
+  }
+
+  if (authed === null) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <p className="text-text-secondary">Checking admin session...</p>
+      </div>
+    )
+  }
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center px-4">
+        <div className="w-full max-w-sm bg-white rounded-lg shadow-lg p-8 border border-border">
+          <div className="text-center mb-6">
+            <h1 className="font-heading font-bold text-xl text-text-primary">
+              Quiz Admin
+            </h1>
+            <p className="text-text-secondary mt-1">
+              Enter your admin secret to continue
+            </p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="password"
+              value={secret}
+              onChange={(event) => setSecret(event.target.value)}
+              placeholder="Admin secret key"
+              className="w-full px-4 py-3 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
+            {authMessage && (
+              <p className="text-red-600" role="alert">
+                {authMessage}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <h2 className="font-heading font-bold text-xl text-text-primary mb-3">
-                {QUICK_ANSWER_HEADING}
-              </h2>
-              <p className="sm:text-base leading-relaxed text-text-secondary">
-                Today&apos;s My Telenor quiz answers are listed below. Open the
-                My Telenor app, go to the Play &amp; Win or Test Your Skills
-                section, enter the correct answers, and claim your free MBs
-                after completing the daily quiz.
-              </p>
-            </section>
-
-            <TableOfContents toc={homeToc} />
-
-            {/* Top Ad */}
-            <AdBanner position="top" />
-
-            {/* Quiz Answers */}
-            <section className="my-6" id={createHomepageAnchorId(quizHeading)}>
-              <h2 className="font-heading font-bold text-xl text-text-primary mb-4">
-                {quizHeading}
-              </h2>
-              <QuizAnswerCards questions={quizQuestions} />
-            </section>
-
-            {/* In-Article Ad */}
-            <AdInArticle />
-
-            {/* Latest News */}
-            <LatestNewsGrid posts={newsPosts} />
-
-            {/* Static info sections */}
-            <QuizInfoSections />
-
-            {/* Steps */}
-            <StepsSection />
-
-            {/* Mid Ad */}
-            <AdBanner position="mid" />
-
-            {/* FAQs */}
-            <FaqSection faqs={faqs} />
-
-            {/* Conclusion */}
-            <ConclusionSection />
-
-            {/* Bottom Ad */}
-            <AdBanner position="bottom" />
-          </article>
-
-          {/* Sidebar */}
-          <Suspense fallback={<LoadingSpinner size="lg" className="py-10" />}>
-            <Sidebar />
-          </Suspense>
+              {authLoading ? 'Checking...' : 'Login'}
+            </button>
+          </form>
         </div>
       </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-surface">
+      <div className="bg-primary text-white px-6 py-4 flex items-center justify-between shadow">
+        <div>
+          <h1 className="font-heading font-bold text-lg">Quiz Admin</h1>
+          <p className="text-blue-100 text-sm mt-0.5">
+            Karachi date: {getKarachiDateLabel()}
+          </p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="text-sm text-blue-100 hover:text-white transition-colors border border-blue-300 px-3 py-1.5 rounded"
+        >
+          Logout
+        </button>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        {loading ? (
+          <div className="text-center py-10 text-text-secondary">
+            Loading existing quiz...
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {questions.map((question, questionIndex) => (
+              <div
+                key={questionIndex}
+                className="bg-white border border-border rounded-lg shadow-sm overflow-hidden"
+              >
+                <div className="bg-primary px-5 py-3 flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    {questionIndex + 1}
+                  </span>
+                  <span className="text-white text-sm font-semibold">
+                    Question {questionIndex + 1}
+                  </span>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1 uppercase">
+                      Question Text
+                    </label>
+                    <input
+                      type="text"
+                      value={question.question}
+                      onChange={(event) =>
+                        updateQuestion(
+                          questionIndex,
+                          'question',
+                          event.target.value
+                        )
+                      }
+                      placeholder="e.g. H2O is commonly known as ____?"
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-2 uppercase">
+                      Options - choose the correct answer
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {question.options.map((option, optionIndex) => {
+                        const isAnswer =
+                          option.trim() !== '' &&
+                          option.toLowerCase().trim() ===
+                            question.answer.toLowerCase().trim()
+
+                        return (
+                          <div key={optionIndex} className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                option.trim() &&
+                                setAnswer(questionIndex, option.trim())
+                              }
+                              title="Mark as correct answer"
+                              className={`flex-shrink-0 w-7 h-7 rounded-full border-2 text-xs font-bold transition-colors ${
+                                isAnswer
+                                  ? 'bg-green-500 border-green-500 text-white'
+                                  : 'border-border text-text-secondary hover:border-green-400'
+                              }`}
+                            >
+                              {isAnswer ? 'OK' : String.fromCharCode(65 + optionIndex)}
+                            </button>
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={(event) => {
+                                updateOption(
+                                  questionIndex,
+                                  optionIndex,
+                                  event.target.value
+                                )
+                                if (isAnswer) {
+                                  setAnswer(questionIndex, event.target.value)
+                                }
+                              }}
+                              placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
+                              className={`flex-1 min-w-0 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
+                                isAnswer ? 'border-green-400 bg-green-50' : 'border-border'
+                              }`}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {question.answer && (
+                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                      <span className="text-green-800 text-xs font-bold">
+                        Answer:
+                      </span>
+                      <span className="text-green-800 text-sm font-bold">
+                        {question.answer}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {message && (
+          <div
+            className={`mt-6 px-4 py-3 rounded-lg text-sm font-medium ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-800 border border-green-300'
+                : message.type === 'warning'
+                  ? 'bg-amber-50 text-amber-800 border border-amber-300'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+            role="status"
+          >
+            {message.text}
+          </div>
+        )}
+
+        <SiteResultList results={siteResults} />
+
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 py-3 bg-accent text-white font-bold rounded-lg hover:bg-accent-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm"
+          >
+            {saving ? 'Saving...' : 'Save Quiz To All Websites'}
+          </button>
+          <button
+            onClick={handleClear}
+            className="px-5 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-semibold"
+          >
+            Clear All
+          </button>
+        </div>
+
+        <p className="mt-4 text-xs text-text-secondary text-center">
+          Saving publishes the same quiz to every configured WordPress website.
+        </p>
+      </div>
     </div>
-  );
+  )
 }

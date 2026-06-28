@@ -1,6 +1,5 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import {
   escapeHtml,
   formatQuizContent,
@@ -76,10 +75,3 @@ test('quiz parser skips incomplete rows with blank question text', () => {
   assert.deepEqual(parseQuizTables(html), [])
 })
 
-test('homepage quiz cards include an unavailable fallback instead of returning null', () => {
-  const source = readFileSync('components/home/QuizAnswerCards.jsx', 'utf8')
-
-  assert.match(source, /temporarily unavailable/i)
-  assert.match(source, /role="status"/)
-  assert.doesNotMatch(source, /if \(!questions\?\.length\) return null/)
-})

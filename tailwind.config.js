@@ -2,9 +2,7 @@
 module.exports = {
   content: [
     './app/**/*.{js,jsx}',
-    './components/**/*.{js,jsx}',
     './lib/**/*.{js,jsx}',
-    './hooks/**/*.{js,jsx}',
   ],
   theme: {
     extend: {
@@ -23,8 +21,8 @@ module.exports = {
         'text-muted': '#94a3b8',
       },
       fontFamily: {
-        heading: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        heading: ['system-ui', 'sans-serif'],
+        body: ['system-ui', 'sans-serif'],
       },
     },
   },
