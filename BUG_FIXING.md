@@ -1083,10 +1083,12 @@ Completed fixes:
 - Changed the Contact form to a safe client-side submitted state instead of
   insecure `mailto:` navigation.
 - Added a visible fallback when quiz content is missing or malformed.
-- Updated homepage quiz cards so four options render as a two-column, two-row
-  grid between the question and answer.
-- Set quiz question, option, and answer text to 16px while keeping sidebar
-  Recent Posts and Popular Posts title snippets compact with `text-sm`.
+- Updated homepage quiz cards to a form-like public display with a blue header,
+  bordered question box, two-column/two-row option grid, green correct-option
+  marker, and green answer box.
+- Removed the visible `Question Text` label from the public quiz cards and set
+  question/option text to 15px while keeping sidebar Recent Posts and Popular
+  Posts title snippets compact with `text-sm`.
 - Removed leftover forced font-size `!important` rules and removed the
   remaining explicit `text-[15px]` TOC link class.
 - Added `ADSENSE_CONSOLE_ERROR_REPORT.md` explaining local AdSense `403`

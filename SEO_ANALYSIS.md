@@ -1061,8 +1061,10 @@ Completed SEO/usability changes:
   submitted message.
 - AdSense duplicate-push errors are guarded so ad initialization cannot crash
   the page.
-- Homepage quiz options now use a predictable 2x2 layout, improving mobile
-  readability and answer scanning.
+- Homepage quiz cards now use a form-like public layout with a blue header,
+  bordered question box without a visible `Question Text` label, 15px
+  question/option text, 2x2 options, green correct-option marker, and green
+  answer box, improving mobile readability and answer scanning.
 - Main readable text defaults to 16px, while sidebar post-title snippets remain
   compact for five-item Recent/Popular lists.
 - Local AdSense `403` console errors are documented in

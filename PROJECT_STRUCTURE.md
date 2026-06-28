@@ -154,7 +154,7 @@ and reusable `useSearch` hook were removed because they were no longer rendered.
 
 | File | Input | Responsibility |
 | --- | --- | --- |
-| `QuizAnswerCards.jsx` | parsed questions | Questions, 2x2 options, correct answers, and fallback state |
+| `QuizAnswerCards.jsx` | parsed questions | Form-like quiz cards with blue headers, unlabeled question boxes, 15px question/options, 2x2 options, green answer boxes, and fallback state |
 | `LatestNewsGrid.jsx` | WordPress posts | Homepage news cards without visible dates |
 | `QuizInfoSections.jsx` | none | Static SEO/information sections |
 | `StepsSection.jsx` | none | Participation steps and images |
@@ -486,8 +486,10 @@ Recent structure changes:
   refresh.
 - `lib/quizParser.js` parses quiz tables row-by-row and accepts question text
   that does not end in `?`.
-- `components/home/QuizAnswerCards.jsx` renders quiz options in two columns and
-  two rows, with question, option, and answer text at 16px.
+- `components/home/QuizAnswerCards.jsx` renders form-like public quiz cards
+  with a blue header, bordered question box without a visible `Question Text`
+  label, 15px question/option text, 2x2 option grid, green correct-option
+  marker, and green answer box.
 - `components/widgets/RecentPosts.jsx` and `components/widgets/PopularPosts.jsx`
   keep sidebar post-title snippets at `text-sm` while main content remains 16px.
 - `ADSENSE_CONSOLE_ERROR_REPORT.md` records local AdSense `403` console

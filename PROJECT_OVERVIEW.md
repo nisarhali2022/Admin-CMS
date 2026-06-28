@@ -32,8 +32,10 @@ separate application database.
 ## 3. Main Features
 
 - Daily quiz answers on the homepage.
-- Homepage quiz cards show four options in a two-column, two-row layout with
-  16px quiz text.
+- Homepage quiz cards use a form-like public display with a blue header,
+  numbered question label, bordered question box without a separate question
+  label, 15px question/option text, 2x2 option grid, green correct-option
+  marker, and green answer box.
 - Dynamic Karachi date that changes daily without requiring a quiz update.
 - Homepage SEO date that moves six hours earlier than the visible date for
   metadata, schema, and sitemap freshness.
@@ -374,8 +376,10 @@ Recent completed work:
   and catches duplicate-fill errors without crashing the page.
 - Global readable text defaults to 16px, with forced font-size `!important`
   rules removed.
-- Homepage quiz options now render as a 2x2 grid, and quiz option/answer text
-  uses 16px sizing.
+- Homepage quiz cards now use a form-like public design: blue card header,
+  bordered question box without the previous `Question Text` label, 15px
+  question/option text, 2x2 option grid, green correct-option marker, and green
+  answer box.
 - Sidebar Recent Posts and Popular Posts title snippets intentionally use
   `text-sm` so the five-item sidebar lists stay compact.
 - `ADSENSE_CONSOLE_ERROR_REPORT.md` documents local AdSense `403` console
