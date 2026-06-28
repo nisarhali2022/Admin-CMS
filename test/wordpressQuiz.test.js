@@ -35,6 +35,24 @@ function makeRevalidateTarget(key, label, apiUrl, revalidateUrl, revalidatePath 
   }
 }
 
+function makeQuizTypeRevalidateTarget({
+  key = '1',
+  label = 'Main Site',
+  apiUrl = 'https://one.test/wp-json/wp/v2',
+  revalidateUrl = 'https://one.test/api/revalidate',
+  hasSlug = false,
+  slug = '',
+  warmPaths = ['/'],
+} = {}) {
+  return {
+    ...makeRevalidateTarget(key, label, apiUrl, revalidateUrl),
+    revalidateType: 'quiz',
+    hasRevalidateSlug: hasSlug,
+    revalidateSlug: slug,
+    revalidatePaths: warmPaths,
+  }
+}
+
 test('getQuizFromPrimaryTarget reads the quiz from the first target', async () => {
   const originalFetch = globalThis.fetch
   const questions = makeQuestions()
@@ -164,7 +182,8 @@ test('saveQuizToTargets reports revalidate failures after successful save', asyn
     assert.equal(results[0].ok, true)
     assert.equal(results[0].revalidate.configured, true)
     assert.equal(results[0].revalidate.ok, false)
-    assert.match(results[0].revalidate.message, /Invalid revalidate secret/)
+    assert.match(results[0].revalidate.message, /failed for 1 request/)
+    assert.match(results[0].revalidate.requests[0].message, /Invalid revalidate secret/)
     assert.deepEqual(
       calls.map((call) => call.method),
       ['GET', 'PUT', 'POST']
@@ -218,7 +237,152 @@ test('saveQuizToTargets sends configured revalidate path', async () => {
 
     assert.equal(results[0].ok, true)
     assert.equal(results[0].revalidate.ok, true)
+    assert.match(results[0].revalidate.message, /accepted/)
     assert.deepEqual(revalidateBody, { path: '/telenor/telenor-packages' })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('saveQuizToTargets sends every configured revalidate path', async () => {
+  const originalFetch = globalThis.fetch
+  const questions = makeQuestions()
+  const revalidateBodies = []
+
+  globalThis.fetch = async (url, options = {}) => {
+    const href = String(url)
+
+    if (href.includes('/api/revalidate')) {
+      revalidateBodies.push(JSON.parse(options.body))
+      return new Response(JSON.stringify({ revalidated: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (options.method === 'PUT') {
+      return new Response(JSON.stringify({ id: 101 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    return new Response(JSON.stringify([{ id: 101 }]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const target = makeRevalidateTarget(
+      '1',
+      'Tele Answer Today',
+      'https://tele-answer.test/wp-json/wp/v2',
+      'https://tele-answer.test/api/revalidate'
+    )
+    target.revalidatePaths = ['/', '/telenor/telenor-packages']
+
+    const results = await saveQuizToTargets(questions, [target])
+
+    assert.equal(results[0].ok, true)
+    assert.deepEqual(revalidateBodies, [
+      {},
+      { path: '/telenor/telenor-packages' },
+    ])
+    assert.deepEqual(
+      results[0].revalidate.requests.map((request) => request.path),
+      ['/', '/telenor/telenor-packages']
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('saveQuizToTargets sends quiz revalidate body', async () => {
+  const originalFetch = globalThis.fetch
+  const questions = makeQuestions()
+  let revalidateBody = null
+
+  globalThis.fetch = async (url, options = {}) => {
+    const href = String(url)
+
+    if (href.includes('/api/revalidate')) {
+      revalidateBody = JSON.parse(options.body)
+      return new Response(JSON.stringify({ revalidated: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (options.method === 'PUT') {
+      return new Response(JSON.stringify({ id: 101 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    return new Response(JSON.stringify([{ id: 101 }]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const results = await saveQuizToTargets(questions, [
+      makeQuizTypeRevalidateTarget(),
+    ])
+
+    assert.equal(results[0].ok, true)
+    assert.deepEqual(revalidateBody, { type: 'quiz' })
+    assert.equal(results[0].revalidate.requests[0].path, '/')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('saveQuizToTargets sends quiz revalidate body without slug', async () => {
+  const originalFetch = globalThis.fetch
+  const questions = makeQuestions()
+  let revalidateBody = null
+
+  globalThis.fetch = async (url, options = {}) => {
+    const href = String(url)
+
+    if (href.includes('/api/revalidate')) {
+      revalidateBody = JSON.parse(options.body)
+      return new Response(JSON.stringify({ revalidated: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (options.method === 'PUT') {
+      return new Response(JSON.stringify({ id: 101 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    return new Response(JSON.stringify([{ id: 101 }]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const results = await saveQuizToTargets(questions, [
+      makeQuizTypeRevalidateTarget({
+        key: '2',
+        label: 'Tele Answer Today',
+        apiUrl: 'https://tele-answer.test/wp-json/wp/v2',
+        revalidateUrl: 'https://tele-answer.test/api/revalidate',
+        warmPaths: ['/telenor/telenor-packages'],
+      }),
+    ])
+
+    assert.equal(results[0].ok, true)
+    assert.deepEqual(revalidateBody, { type: 'quiz' })
+    assert.equal(results[0].revalidate.requests[0].path, '/telenor/telenor-packages')
   } finally {
     globalThis.fetch = originalFetch
   }

@@ -13,7 +13,8 @@ test('getQuizTargets returns complete numbered targets', () => {
     QUIZ_SITE_1_WP_ADMIN_PASS: 'pass-one',
     QUIZ_SITE_1_REVALIDATE_URL: 'https://one.test/api/revalidate/',
     QUIZ_SITE_1_REVALIDATE_SECRET: 'secret-one',
-    QUIZ_SITE_1_REVALIDATE_PATH: '/telenor/telenor-packages',
+    QUIZ_SITE_1_REVALIDATE_PATHS: '/,/telenor/telenor-packages',
+    QUIZ_SITE_1_REVALIDATE_TYPE: 'quiz',
     QUIZ_SITE_2_LABEL: 'Second',
     QUIZ_SITE_2_WORDPRESS_API_URL: 'https://two.test/wp-json/wp/v2',
     QUIZ_SITE_2_WP_ADMIN_USER: 'admin-two',
@@ -31,6 +32,10 @@ test('getQuizTargets returns complete numbered targets', () => {
         revalidateUrl,
         revalidateSecret,
         revalidatePath,
+        revalidatePaths,
+        revalidateType,
+        hasRevalidateSlug,
+        revalidateSlug,
       }) => ({
         key,
         label,
@@ -40,6 +45,10 @@ test('getQuizTargets returns complete numbered targets', () => {
         revalidateUrl,
         revalidateSecret,
         revalidatePath,
+        revalidatePaths,
+        revalidateType,
+        hasRevalidateSlug,
+        revalidateSlug,
       })
     ),
     [
@@ -51,7 +60,11 @@ test('getQuizTargets returns complete numbered targets', () => {
         pass: 'pass-one',
         revalidateUrl: 'https://one.test/api/revalidate',
         revalidateSecret: 'secret-one',
-        revalidatePath: '/telenor/telenor-packages',
+        revalidatePath: '',
+        revalidatePaths: ['/', '/telenor/telenor-packages'],
+        revalidateType: 'quiz',
+        hasRevalidateSlug: false,
+        revalidateSlug: '',
       },
       {
         key: '2',
@@ -62,6 +75,10 @@ test('getQuizTargets returns complete numbered targets', () => {
         revalidateUrl: '',
         revalidateSecret: '',
         revalidatePath: '',
+        revalidatePaths: [],
+        revalidateType: '',
+        hasRevalidateSlug: false,
+        revalidateSlug: '',
       },
     ]
   )

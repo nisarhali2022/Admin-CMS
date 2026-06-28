@@ -56,6 +56,14 @@ function SiteResultList({ results }) {
                 : 'Not configured.'}
             </p>
           )}
+          {result.ok && result.revalidate?.requests?.length > 0 && (
+            <p className="mt-1 text-xs text-text-secondary">
+              Requested:{' '}
+              {result.revalidate.requests
+                .map((request) => request.path)
+                .join(', ')}
+            </p>
+          )}
         </div>
       ))}
     </div>

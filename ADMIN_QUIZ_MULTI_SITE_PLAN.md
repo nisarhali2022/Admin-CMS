@@ -31,6 +31,8 @@ When the admin submits the quiz:
   WordPress website.
 - If revalidation is configured for that website, the app calls its
   revalidate endpoint after the WordPress save succeeds.
+- After a revalidate request is accepted, the app requests the public page once
+  to warm the regenerated route before the admin checks the site.
 - The admin sees a per-site result after saving.
 
 This app will not show blog posts, article pages, categories, tags, search,
@@ -117,6 +119,8 @@ QUIZ_SITE_1_WP_ADMIN_PASS=
 QUIZ_SITE_1_REVALIDATE_URL=
 QUIZ_SITE_1_REVALIDATE_SECRET=
 QUIZ_SITE_1_REVALIDATE_PATH=
+QUIZ_SITE_1_REVALIDATE_PATHS=
+QUIZ_SITE_1_REVALIDATE_TYPE=
 
 QUIZ_SITE_2_LABEL=
 QUIZ_SITE_2_WORDPRESS_API_URL=
@@ -125,6 +129,8 @@ QUIZ_SITE_2_WP_ADMIN_PASS=
 QUIZ_SITE_2_REVALIDATE_URL=
 QUIZ_SITE_2_REVALIDATE_SECRET=
 QUIZ_SITE_2_REVALIDATE_PATH=
+QUIZ_SITE_2_REVALIDATE_PATHS=
+QUIZ_SITE_2_REVALIDATE_TYPE=
 ```
 
 Reason:
@@ -152,9 +158,19 @@ For every configured target, the app will:
 
 Revalidate body behavior:
 
+- If `QUIZ_SITE_N_REVALIDATE_TYPE` is set, send `{ "type": "..." }`.
+- For both current public websites, use `QUIZ_SITE_N_REVALIDATE_TYPE=quiz` so
+  the body is `{ "type": "quiz" }`.
 - If `QUIZ_SITE_N_REVALIDATE_PATH` is set, send `{ "path": "..." }`.
 - If `QUIZ_SITE_N_REVALIDATE_PATH` is empty, send `{}` for homepage-only
   revalidation.
+- If `QUIZ_SITE_N_REVALIDATE_PATHS` is set as comma-separated paths without
+  `REVALIDATE_TYPE`, send one path-based revalidate request for each path.
+- If `REVALIDATE_TYPE` is set, `REVALIDATE_PATHS` is used only for public page
+  warm-up after the revalidate request is accepted.
+- After each accepted request, fetch the public URL for that path once to warm
+  the cache. If warm-up fails, show a warning instead of claiming the visible
+  page is fully refreshed.
 
 Reason:
 
@@ -206,6 +222,7 @@ Remaining app surface:
 - `/api/quiz` for loading the source quiz and publishing to all configured
   WordPress websites.
 - Optional per-site revalidate calls after successful WordPress saves.
+- Public page warm-up requests after accepted revalidate calls.
 - `/robots.txt` to disallow crawling of the private admin app.
 - Not-found and error screens for admin-only fallback states.
 
