@@ -2,25 +2,25 @@
 
 ## Summary
 
-Build this project as a separate admin CMS deployed on its own Vercel domain. The public websites are already deployed separately, keep their own UI/theme/design, and read published CMS data from Supabase.
+Build this project as a separate admin CMS deployed on its own Vercel domain. The public websites are already deployed separately, keep their own UI/theme/design, and read public-safe CMS data from Supabase.
 
 There is one admin user using the existing `ADMIN_SECRET` session. After login, the admin selects a website to manage. Normal CMS resources are scoped by `website_id`. Quiz is global: no website selection is required, and one quiz update applies to all websites.
 
-The CMS manages website data only: text, links, images, fixed-template page content, blog posts, categories, redirects, SEO fields, robots, sitemap settings, and website settings. Public websites own their layouts, frontend themes, visual components, and visitor-facing rendering.
+The CMS manages website data only: text, links, images, fixed-template page content, blog posts, blog authors, categories, redirects, SEO fields, robots, sitemap settings, and website settings. Public websites own their layouts, frontend themes, visual components, and visitor-facing rendering.
 
 ## Locked Decisions
 
 - One admin user only; no roles/users table in v1.
 - Keep the current `ADMIN_SECRET` login/session model for v1.
 - Admin app has its own separate Vercel domain.
-- Public websites are separate apps/sites and read published CMS data from Supabase.
+- Public websites are separate apps/sites and read public-safe CMS data from Supabase.
 - Public websites use Supabase anon key with RLS.
 - Public websites read through public read-only Supabase RPCs/views, not raw admin write APIs.
 - Public websites identify themselves by domain lookup.
-- Public websites can read published content only.
+- Public websites can read public-safe CMS data only.
 - Admin app uses Supabase service key only inside server route handlers after admin-session validation.
 - `website_id` is the foreign key for normal website-specific resources.
-- Website selection controls template content, posts, media, categories, redirects, SEO, sitemap, robots, and settings.
+- Website selection controls template content, posts, authors, media, categories, redirects, SEO, sitemap, robots, and settings.
 - Website selection is explicit in the URL with `websiteId`.
 - Quiz publishing is global and not limited by selected website.
 - Tags are not included in v1.
@@ -29,18 +29,21 @@ The CMS manages website data only: text, links, images, fixed-template page cont
 - Cloudflare R2 is the media storage backend.
 - Public website layouts are fixed.
 - Blog layouts are fixed, but blog article bodies support structured content blocks.
+- Blog authors are website-scoped profile records, not login users.
+- Template content and blog posts do not support future scheduling in v1.
+- Quiz keeps its own global date rollover behavior separate from CMS page/post scheduling.
 - Template content schemas are code-defined.
 - No page builder or layout builder in v1.
 - Separation of concerns is required in code and docs.
 
 ## Current Repo Context
 
-The current project is a small Next.js App Router admin app. It currently has:
+The current project is a cleaned Next.js App Router rebuild workspace. It currently has:
 
-- A single large quiz admin page in `app/page.jsx`.
+- A minimal CMS rebuild placeholder in `app/page.jsx`.
 - Admin-secret cookie auth in `lib/adminAuth.js`.
-- Quiz API routes in `app/api/quiz/route.js`.
-- Quiz publishing helpers in `lib/wordpressQuiz.js`, `lib/quizTargets.js`, and `lib/quiz.js`.
+- Admin session API route in `app/api/admin/session/route.js`.
+- Legacy WordPress quiz publishing code removed from this rebuild copy.
 - No Supabase integration yet.
 
 The CMS implementation should keep the useful auth/session pattern, but split the current single-page style into feature modules before adding CMS functionality.
@@ -68,6 +71,10 @@ Website creation behavior:
 - V1 admin UI shows one primary domain field.
 - Schema keeps a `cms_website_domains` table so aliases can be supported later.
 - Public websites resolve `website_id` by matching their domain in `cms_website_domains`.
+- Adding a website is managed through admin/database records, not by editing the admin CMS `.env`.
+- Website data is stored in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables.
+- Website media uses the shared R2 bucket with `websites/{website_id}/media/...` object prefixes.
+- Creating a website should also create or initialize its default `cms_site_settings` row.
 
 Website removal behavior:
 
@@ -120,7 +127,6 @@ V1 UI uses one primary domain, but this table allows aliases later.
 - Open Graph image
 - sitemap include flag
 - status
-- schedule fields
 - trash fields
 
 Supported v1 template keys:
@@ -142,16 +148,17 @@ Rules:
 - CMS owns editable text, links, images, and SEO fields.
 - No drag/drop page builder.
 - No layout editing.
+- No future scheduling for template content in v1.
 
 ### Blog Posts
 
 `cms_posts`
 
 - `website_id`
+- author ID
 - title
 - slug
 - excerpt
-- author
 - publish date
 - category ID
 - featured image ID
@@ -163,7 +170,6 @@ Rules:
 - Open Graph image
 - sitemap include flag
 - status
-- schedule fields
 - trash fields
 
 Supported v1 `body_blocks`:
@@ -184,7 +190,10 @@ Rules:
 - Blog post page layout stays fixed in public website code.
 - Admin can add/reorder article body blocks.
 - Each post has one category in v1.
+- Each post has one website-scoped author in v1.
+- Authors are selected from the selected website's author records.
 - Multiple categories per post are not included in v1.
+- Future scheduling for posts is not included in v1.
 - TOC placeholder block controls where TOC appears.
 - TOC entries are generated from heading blocks.
 - FAQ uses a structured question/answer block.
@@ -215,6 +224,16 @@ Rules:
 - name
 - slug
 - description
+- trash fields
+
+`cms_authors`
+
+- `website_id`
+- name
+- slug
+- bio
+- avatar image ID
+- active flag
 - trash fields
 
 `cms_redirects`
@@ -263,7 +282,7 @@ CMS owns:
 - template content fields
 - blog article body blocks
 - SEO fields
-- status/schedule/trash state
+- status/trash state
 
 For fixed pages such as home/about/contact/privacy/terms/packages:
 
@@ -276,6 +295,7 @@ For blog posts:
 - CMS stores repeatable post records.
 - Public websites render posts using their fixed blog layout.
 - Admin can compose the article body with supported structured blocks.
+- Admin selects one website-scoped author for each post.
 
 Rules:
 
@@ -285,6 +305,7 @@ Rules:
 - Admin has an internal preview panel only.
 - Public draft preview tokens are not included in v1.
 - Revision history and rollback are not included in v1.
+- Page/post future scheduling is not included in v1.
 
 ## Access Rules
 
@@ -311,11 +332,10 @@ Public reads should:
 - Resolve the website by domain from `cms_website_domains`.
 - Return only data for the resolved `website_id`.
 - Return only active websites.
-- Return only published content.
-- Hide future scheduled content.
+- Return published template/post content, active authors, active redirects, safe public settings, and referenced media only.
 - Hide trashed content.
 
-Public reads rely on Supabase RLS so draft, unpublished, trashed, future scheduled, and inactive website records cannot leak to public sites.
+Public reads rely on Supabase RLS so draft, unpublished, trashed, and inactive website records cannot leak to public sites.
 
 Recommended public interfaces:
 
@@ -324,6 +344,7 @@ Recommended public interfaces:
 - `get_public_post(domain, slug)`
 - `list_public_posts(domain, filters)`
 - `list_public_categories(domain)`
+- `list_public_authors(domain)`
 - `get_public_site_settings(domain)`
 - `list_public_redirects(domain)`
 
@@ -336,6 +357,12 @@ The CMS should support an initial one-time import from existing WordPress websit
 Import source:
 
 - WordPress REST API.
+- Public WordPress REST data is used without credentials when available.
+- Optional WordPress username and application password can be entered during import when REST data is protected or incomplete.
+- OAuth client ID/client secret is not required in v1.
+- WordPress import credentials are not stored in `.env` and are not stored permanently.
+- If background import needs temporary credential persistence, encrypt credentials with `CMS_ENCRYPTION_KEY` and delete them after success, failure, or reset.
+- Import reports, logs, public responses, and errors must never include WordPress credentials.
 
 Import timing:
 
@@ -383,8 +410,9 @@ SEO import:
 Failed import behavior:
 
 - If import fails halfway, clear all website-scoped data for that inactive website and rerun import.
-- Clearing import data removes that inactive website's template content, posts, media, categories, redirects, and settings as needed.
+- Clearing import data removes that inactive website's template content, posts, media, categories, authors, redirects, and settings as needed.
 - Clearing import data also deletes that inactive website's imported R2 objects by using known `cms_media.r2_object_key` values or the `websites/{website_id}/...` prefix.
+- Import progress and reports are tracked in a website-scoped `cms_import_jobs` table.
 - The website row and domain setup should remain so the import can rerun for the same inactive website.
 - This is a setup-only dangerous action.
 - Active websites cannot be cleared/reimported in v1.
@@ -422,13 +450,16 @@ websites/{website_id}/media/{yyyy}/{mm}/{uuid}-thumb.webp
 - Use `website_id` in R2 paths because it does not change when website slugs or domains change.
 - Original filenames are stored only as metadata and are not trusted as unique object names.
 - Uploads are converted/compressed to WebP.
+- Public WebP uploads use `Cache-Control: public, max-age=31536000, immutable`.
+- Image objects are immutable; replacing image content creates a new UUID object key and updates CMS references instead of overwriting an existing public URL.
 - Imported WordPress images are copied to R2.
 - Featured images and inline content images are copied.
 - Old WordPress image URLs are rewritten to R2 media URLs.
 - Public images are served through a custom media domain, such as `media.example.com` or `cdn.example.com`.
 - Do not use `r2.dev` URLs in production.
 - Store media metadata in Supabase.
-- Public websites consume media URLs directly.
+- Template/post JSON stores image references by `mediaId`; public RPCs resolve those IDs to image objects for the resolved `website_id`.
+- Public websites consume resolved image URLs directly.
 - Supabase service-role key and R2 write credentials must never be exposed to public websites.
 - Public websites must not list R2. They only receive media URLs returned by public Supabase RPCs/views for their resolved `website_id`.
 - Media picker screens only list `cms_media` rows for the selected `website_id`.
@@ -470,8 +501,11 @@ V1 behavior:
 - Admin visits `/admin/quiz` without selecting a website.
 - Website selection must not filter quiz targets.
 - One quiz update applies to all websites.
-- Preserve the current global quiz behavior as much as possible.
+- Port or rebuild the global quiz behavior during the quiz milestone, using the separate live quiz copy as reference if needed.
 - Quiz code stays isolated from website-scoped CMS modules.
+- Quiz date behavior is separate from CMS page/post scheduling.
+- Visible quiz/page title uses the current Karachi date.
+- SEO/meta/schema date can roll over 6 hours early.
 
 Long-term direction:
 
@@ -490,6 +524,7 @@ V1 admin features:
 - Dashboard for selected website.
 - Template Content Management for fixed pages.
 - Posts CRUD with structured block editor.
+- Authors CRUD.
 - Media library with WebP/R2 upload.
 - Categories CRUD.
 - Redirect manager.
@@ -506,7 +541,7 @@ V1 admin features:
 
 ## Trash And Delete Behavior
 
-For template content, posts, media, categories, redirects, and other deletable content:
+For template content, posts, media, categories, authors, redirects, and other deletable content:
 
 - Delete first moves item to trash.
 - Trashed items are hidden from public websites.
@@ -518,7 +553,14 @@ Media permanent delete rules:
 - Trashing media does not delete the R2 object.
 - Permanent media delete must first check references in posts, template content, featured images, Open Graph images, and body block image references.
 - If media is still referenced, permanent delete is blocked and the admin sees where it is used.
-- If media is unused, delete the R2 object first, then permanently delete or hard-mark the `cms_media` row.
+- If media is unused, delete the R2 object first, then hard delete the `cms_media` row.
+- If R2 deletion fails, keep the media row trashed and show an error.
+
+Author permanent delete rules:
+
+- Authors are content records, not login users.
+- Trashed or inactive authors are not selectable for new posts.
+- Permanent author delete is blocked while posts reference the author, unless posts are reassigned first.
 
 Website deletion is different:
 
@@ -537,6 +579,7 @@ Manual export should include:
 - Template content.
 - Posts.
 - Categories.
+- Authors.
 - Redirects.
 - Media metadata.
 
@@ -577,6 +620,7 @@ app/
       import/
       template-content/
       posts/
+      authors/
       media/
       redirects/
       settings/
@@ -588,6 +632,7 @@ app/
       import/
       template-content/
       posts/
+      authors/
       media/
       redirects/
       settings/
@@ -598,6 +643,7 @@ features/
   import/
   template-content/
   posts/
+  authors/
   media/
   redirects/
   settings/
@@ -668,12 +714,13 @@ Each deployed website should:
 
 - Use Supabase public/anon credentials.
 - Resolve its current domain through public read RPCs/views.
-- Fetch only published content for its resolved `website_id`.
+- Fetch only public-safe CMS data for its resolved `website_id`.
 - Fetch R2 media URLs from CMS media records.
+- Fetch author display data from CMS author records where posts need it.
 - Render template content and posts according to its existing UI/theme.
 - Treat CMS data as content only, not as layout ownership.
 - Cache public reads where possible.
-- Expose a server-only revalidation webhook endpoint so the admin CMS can refresh cached pages after publish, unpublish, delete, redirect, SEO, or settings changes.
+- Expose a server-only revalidation webhook endpoint so the admin CMS can refresh cached pages after content, SEO, redirect, settings, media, or author changes that affect public rendering.
 - Keep revalidation webhook secrets per website in admin-only configuration or encrypted website settings.
 
 The admin CMS manages:
@@ -683,6 +730,7 @@ The admin CMS manages:
 - images
 - fixed-template page content
 - blog posts and article body blocks
+- blog authors
 - categories
 - SEO metadata
 - redirects
@@ -704,13 +752,17 @@ The separate public websites own:
 - Prevent duplicate redirect paths per website.
 - Validate template `content_data` against code-defined schemas before saving.
 - Validate post `body_blocks` against supported block schemas before saving.
+- Block cross-website author selection and cross-website author avatar assignment.
+- Block permanent author deletion while posts still reference the author.
 - Do not expose Supabase service-role key to public websites.
 - Do not expose R2 write credentials to public websites.
 - Keep media URLs safe for public use.
 - Use one R2 bucket with `websites/{website_id}/...` object prefixes.
 - Block cross-website media selection and cross-website media URL assignment.
 - Block permanent media deletion while the media is still referenced.
+- Public RPCs must resolve `mediaId` references to public image objects before returning template or post content.
 - Trigger public website revalidation after content, SEO, redirect, settings, or media changes that affect public rendering.
+- Trigger public website revalidation after author changes that affect public posts.
 - Add clear empty states for websites with no template content/posts/media.
 - Keep quiz code separate from website-scoped CMS code.
 - Avoid hidden selected-website state; use URL `websiteId` for clarity.
@@ -722,16 +774,18 @@ Create and maintain documentation like the referenced project:
 
 - `docs/INDEX.md`
 - `docs/PROJECT_PLAN.md`
-- `docs/PRODUCT_SPEC.md`
+- `docs/DECISIONS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DATA_MODEL.md`
 - `docs/RLS_POLICIES.md`
 - `docs/API_CONTRACTS.md`
 - `docs/USER_FLOWS.md`
+- `docs/IMPLEMENTATION_GUIDE.md`
+- `docs/IMPLEMENTATION_MILESTONES.md`
 - `docs/SETUP.md`
 - `docs/TESTING.md`
-- `docs/DECISIONS.md`
-- `docs/CHANGELOG.md`
+
+Do not create `docs/PRODUCT_SPEC.md` in the first documentation phase. `PROJECT_PLAN.md` already owns product scope. Add a product-only spec later only if non-technical product documentation becomes useful.
 
 Docs must clearly explain:
 
@@ -743,17 +797,24 @@ Docs must clearly explain:
 - `website_id` scopes all normal CMS resources,
 - template content replaces generic pages,
 - post bodies use structured blocks,
+- authors are website-scoped blog profile records,
 - quiz is global,
 - code must stay feature-separated,
 - WordPress import is inactive-website setup flow only.
 
 Recommended next documentation phase:
 
-1. `docs/DATA_MODEL.md`
-2. `docs/RLS_POLICIES.md`
-3. `docs/API_CONTRACTS.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/USER_FLOWS.md`
+1. `docs/INDEX.md`
+2. `docs/DECISIONS.md`
+3. `docs/ARCHITECTURE.md`
+4. `docs/DATA_MODEL.md`
+5. `docs/RLS_POLICIES.md`
+6. `docs/API_CONTRACTS.md`
+7. `docs/USER_FLOWS.md`
+8. `docs/IMPLEMENTATION_GUIDE.md`
+9. `docs/IMPLEMENTATION_MILESTONES.md`
+10. `docs/SETUP.md`
+11. `docs/TESTING.md`
 
 ## Test Plan
 
@@ -770,19 +831,26 @@ Required tests:
 - Post filtering by `website_id`.
 - Media filtering by `website_id`.
 - Category filtering by `website_id`.
+- Author filtering by `website_id`.
 - Redirect filtering by `website_id`.
 - Settings filtering by `website_id`.
 - Cross-website edit/delete rejection.
 - Same slug across different websites.
 - Duplicate slug rejection within the same website.
 - Unique `(website_id, template_key)` enforcement.
-- Public read queries only return published content.
-- RLS hides draft/unpublished/future scheduled/trash content.
+- Public read queries only return public-safe CMS data.
+- RLS hides draft/unpublished/trash content.
 - Trash, restore, and permanent delete.
 - Redirect duplicate prevention.
 - Redirect loop prevention.
 - Template content schema validation.
 - Post body block validation.
+- Author CRUD.
+- Author slug uniqueness per website.
+- Author avatar image ownership validation.
+- Author picker only shows selected website authors.
+- Cross-website author assignment rejection.
+- Referenced author permanent delete is blocked.
 - TOC placeholder generated from headings.
 - FAQ block schema generation.
 - Media upload and WebP optimization.
@@ -803,6 +871,8 @@ Required tests:
 - SEO canonical/sitemap/robots/OG/schema behavior.
 - Public website revalidation webhook is called after public-facing changes.
 - Quiz remains global and independent of selected website.
+- Quiz visible date follows current Karachi date.
+- Quiz SEO/meta/schema date can roll over 6 hours early.
 
 Required checks:
 

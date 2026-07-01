@@ -1,0 +1,250 @@
+# CMS Testing Plan
+
+Testing should prove website scoping, public read safety, media isolation, import behavior, and quiz isolation.
+
+## Required Commands
+
+Run before merging implementation changes:
+
+```powershell
+npm test
+npm run lint
+npm run build
+```
+
+If a command is not available yet, add it or document the gap in the implementation task.
+
+## Admin Auth
+
+Test:
+
+- valid `ADMIN_SECRET` creates admin session
+- invalid secret is rejected
+- protected admin pages require session
+- admin API routes require session
+- service-role operations are only called from server route handlers
+
+## Website Management
+
+Test:
+
+- website creation requires name and primary domain
+- website slug is generated automatically
+- duplicate domain is rejected
+- new websites start inactive
+- website creation creates default site settings
+- adding a website requires no admin CMS `.env` change
+- website deactivation hides public content
+- deactivation keeps associated resources
+- permanent website delete is not available in v1
+
+## Website Scoping
+
+Test:
+
+- selected website appears in URL as `websiteId`
+- template content list filters by `website_id`
+- posts list filters by `website_id`
+- media list filters by `website_id`
+- categories list filters by `website_id`
+- authors list filters by `website_id`
+- redirects list filters by `website_id`
+- settings load by `website_id`
+- edit/delete rejects cross-website resource IDs
+- same post slug can exist on different websites
+- duplicate post slug is rejected within the same website
+- duplicate template key is rejected within the same website
+
+## Template Content
+
+Test:
+
+- supported template keys are accepted
+- unsupported template keys are rejected
+- `content_data` schema is validated
+- image references must belong to the selected website
+- draft content is hidden from public reads
+- published content appears in public reads
+- scheduled status/payloads are rejected for template content in v1
+- trashed template content is hidden
+- sitemap include flag is respected
+
+## Blog Posts
+
+Test:
+
+- one category per post
+- one author per post
+- multiple category payloads are rejected if attempted
+- post author must belong to selected website
+- inactive/trashed authors are not selectable for new posts
+- post `body_blocks` schema is validated
+- supported blocks save and render in public read output
+- TOC placeholder generates entries from heading blocks
+- FAQ block can be used for FAQ schema
+- featured image must belong to selected website
+- OG image must belong to selected website
+- scheduled status/payloads are rejected for posts in v1
+- draft/unpublished/trashed posts are hidden from public reads
+
+## Authors
+
+Test:
+
+- author can be created, edited, trashed, restored, and permanently deleted
+- author slug is unique within website
+- same author slug can exist on different websites
+- avatar image must belong to selected website
+- author picker only shows active, non-trashed authors for selected website
+- cross-website author assignment is rejected
+- referenced author permanent delete is blocked unless posts are reassigned first
+- authors are not login users
+
+## Media And R2
+
+Test:
+
+- image upload validates type and size
+- upload converts/compresses to WebP
+- R2 object key uses `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`
+- public WebP uploads include `Cache-Control: public, max-age=31536000, immutable`
+- image replacement creates a new UUID object key instead of overwriting an existing public URL
+- custom media domain stays public/cacheable without bot, IP verification, or challenge rules
+- media metadata row stores website ID, object key, public URL, alt text, dimensions, MIME type, file size, and source
+- media picker only shows selected website media
+- cross-website media assignment is rejected
+- trashing media does not delete R2 object
+- permanent media delete checks usage
+- referenced media cannot be permanently deleted
+- unused media permanent delete removes R2 object
+- R2 delete failure keeps media row trashed and returns an error
+- public websites receive media URLs from Supabase data and never list R2
+- public template/post reads return resolved image objects, not unresolved `mediaId` values
+- public image objects include URL, alt text, caption, width, and height when available
+
+## Categories
+
+Test:
+
+- category slug is unique within website
+- same category slug can exist on different websites
+- category delete behavior is safe when posts reference it
+- trashed categories are hidden where appropriate
+
+## Redirects
+
+Test:
+
+- 301 redirect can be created
+- 302 redirect can be created
+- duplicate source path is rejected within website
+- same source path can exist on different websites
+- redirect loops are rejected
+- inactive/trashed redirects are hidden from public redirect reads
+- public anon clients cannot update redirect hit tracking fields
+
+## SEO, Robots, Sitemap
+
+Test:
+
+- SEO title and meta description save for templates and posts
+- canonical override saves and returns publicly
+- default canonical is generated from domain and path/slug
+- robots meta saves
+- OG image belongs to selected website
+- sitemap includes published rows with include flag enabled
+- sitemap excludes drafts, trashed content, and disabled include flag rows
+- robots.txt is loaded per website
+
+## Public Reads And RLS
+
+Test with anon credentials:
+
+- public domain lookup returns active website only
+- inactive website returns no public content
+- public template read returns only matching website content
+- public post read returns only matching website content
+- public post list filters by website
+- public categories filter by website
+- public authors filter by website
+- public settings expose only safe fields
+- drafts are hidden
+- unpublished content is hidden
+- trashed content is hidden
+- another website's content is inaccessible
+- anon cannot insert/update/delete CMS rows
+- revalidation secrets are never returned
+
+## WordPress Import
+
+Test:
+
+- import is blocked for active websites
+- import is allowed for inactive websites
+- import creates/updates an import job row
+- import works without WordPress credentials when public REST data is available
+- optional WordPress username/application password works when REST data is protected
+- WordPress import credentials are never stored in `.env`
+- temporary encrypted WordPress credentials are cleared after success, failure, or reset
+- import reports, errors, public responses, and logs never include WordPress credentials
+- known pages map to template keys
+- unmatched pages go to review list
+- posts import into `cms_posts`
+- WordPress content converts to supported `body_blocks` where possible
+- categories import per website
+- authors import or fallback author records are created per website when available/needed
+- import creates or selects website-scoped authors for posts
+- missing WordPress author data uses fallback author `Imported Author`
+- imported posts are rejected or skipped if no `author_id` can be assigned
+- import job rows are admin-only and not exposed to public reads
+- featured images copy to R2
+- inline images copy to R2
+- old inline image URLs rewrite to R2 URLs
+- Yoast/RankMath SEO imports when available
+- fallback SEO uses WordPress title/excerpt/featured image
+- import report includes imported, skipped, unmatched, failed media, and errors
+- failed import reset clears only inactive website scoped rows
+- failed import reset deletes only that inactive website's R2 objects
+
+## Revalidation
+
+Test:
+
+- publish triggers public website revalidation
+- unpublish triggers revalidation
+- trash/permanent delete triggers revalidation
+- redirect changes trigger revalidation
+- SEO/settings changes trigger revalidation
+- media changes affecting public rendering trigger revalidation
+- author changes affecting public posts trigger revalidation
+- webhook secret is required
+- webhook failure is surfaced but does not roll back saved content
+
+## Quiz
+
+Test:
+
+- `/admin/quiz` does not require selected website
+- website selection does not filter quiz targets
+- one quiz update applies globally
+- quiz code stays isolated from CMS website-scoped modules
+- visible quiz/page title follows current Karachi date
+- SEO/meta/schema date uses Karachi date plus 6-hour offset
+- quiz date behavior is not generic CMS page/post scheduling
+
+## Manual Regression Checklist
+
+Before considering v1 ready:
+
+- create two websites
+- import or create content for both
+- verify Website A never sees Website B content/media
+- verify Website A never sees Website B authors
+- publish posts and templates
+- verify public reads show only public-safe CMS data
+- upload media to both websites
+- verify R2 keys use different website ID prefixes
+- attempt cross-website media assignment and confirm rejection
+- attempt cross-website author assignment and confirm rejection
+- deactivate one website and confirm public reads hide it
+- update global quiz and confirm it is not website-scoped

@@ -7,19 +7,19 @@ export const metadata = {
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-surface flex flex-col items-center justify-center text-center px-4">
-      <h1 className="font-heading font-bold text-3xl text-text-primary">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 text-center text-slate-950">
+      <h1 className="text-3xl font-bold">
         Page not found
       </h1>
-      <p className="mt-3 text-text-secondary max-w-md">
-        This project is now a private quiz admin. Public website pages are not
-        available here.
+      <p className="mt-3 max-w-md text-slate-600">
+        This rebuild workspace is for the private admin CMS. Public website
+        pages are not served from this app.
       </p>
       <Link
         href="/"
-        className="mt-6 px-5 py-3 rounded-lg bg-primary text-white font-semibold hover:bg-primary-dark transition-colors"
+        className="mt-6 rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white transition-colors hover:bg-slate-800"
       >
-        Go to admin login
+        Go home
       </Link>
     </div>
   )

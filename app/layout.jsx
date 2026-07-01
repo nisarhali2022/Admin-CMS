@@ -1,8 +1,8 @@
 import '@/styles/globals.css'
 
 export const metadata = {
-  title: 'Quiz Admin',
-  description: 'Private quiz publishing admin.',
+  title: 'Admin CMS',
+  description: 'Private single-admin multi-website CMS.',
   robots: {
     index: false,
     follow: false,
@@ -13,7 +13,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="font-body bg-surface text-text-primary">
+      <body>
         <main>{children}</main>
       </body>
     </html>
