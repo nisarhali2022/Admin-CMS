@@ -11,12 +11,12 @@ flowchart LR
   Admin["Admin user"] --> AdminApp["Admin CMS app"]
   AdminApp --> AdminAPI["Next.js route handlers"]
   AdminAPI --> Supabase["Supabase Postgres"]
-  AdminAPI --> R2["Cloudflare R2"]
+  AdminAPI --> Storage["Supabase Storage"]
   AdminAPI --> Revalidate["Public site revalidation webhooks"]
   PublicSite["Public websites"] --> PublicRPC["Supabase public RPCs/views"]
   PublicRPC --> Supabase
-  PublicSite --> CDN["R2 custom media domain"]
-  CDN --> R2
+  PublicSite --> StorageCDN["Supabase Storage public URL/CDN"]
+  StorageCDN --> Storage
 ```
 
 ## Core Boundaries
@@ -26,9 +26,9 @@ Admin app responsibilities:
 - authenticate the single admin with `ADMIN_SECRET`
 - select website context after login
 - create/edit/deactivate websites
-- manage template content, posts, authors, categories, media, redirects, SEO, robots, sitemap settings, and site settings
+- manage template content, posts, authors, categories, media, redirects, SEO, robots, sitemap settings, AdSense settings, and site settings
 - run WordPress imports for inactive websites
-- upload and delete media in R2 through server-only helpers
+- upload and delete media in Supabase Storage through server-only helpers
 - trigger public website revalidation after public-facing changes
 - keep global quiz behavior separate from selected website context
 
@@ -37,7 +37,8 @@ Public website responsibilities:
 - resolve itself by domain through Supabase public RPCs/views
 - fetch only public-safe CMS data for its resolved `website_id`
 - render CMS data through existing layouts and components
-- serve images from the configured R2 custom media domain
+- serve images from the configured Supabase Storage public URL/CDN
+- render the AdSense script and `/ads.txt` only from safe website settings
 - expose a server-only revalidation webhook
 
 Supabase responsibilities:
@@ -47,12 +48,12 @@ Supabase responsibilities:
 - enforce public read safety with RLS and read-only RPCs/views
 - keep service-role writes server-only
 
-Cloudflare R2 responsibilities:
+Supabase Storage responsibilities:
 
 - store optimized WebP media files
-- serve public images through a custom media domain
-- keep write credentials server-only
-- cache public image assets with `Cache-Control: public, max-age=31536000, immutable`
+- serve public images through Supabase Storage public URLs/CDN
+- keep service-role storage writes server-only
+- cache public image assets with Supabase Storage `cacheControl: '31536000'`
 
 ## Admin Write Flow
 
@@ -74,7 +75,7 @@ sequenceDiagram
 
 Rules:
 
-- UI components never call Supabase or R2 directly.
+- UI components never call Supabase or Supabase Storage directly.
 - Route handlers call services/repositories.
 - Repositories perform database access.
 - Validators enforce schemas and ownership.
@@ -98,7 +99,7 @@ Rules:
 
 - Public websites use anon credentials only.
 - Public websites do not use admin APIs.
-- Public websites do not list R2.
+- Public websites do not upload, delete, or list Supabase Storage objects.
 - Public websites receive media URLs from public read results.
 
 ## Media Flow
@@ -108,18 +109,18 @@ sequenceDiagram
   participant A as Admin Browser
   participant R as Media Route Handler
   participant I as Image Optimizer
-  participant R2 as Cloudflare R2
+  participant Storage as Supabase Storage
   participant DB as Supabase
 
   A->>R: Upload image for selected website
   R->>R: Validate session and websiteId
   R->>I: Convert/compress to WebP
-  R->>R2: Upload WebP with immutable Cache-Control
+  R->>Storage: Upload WebP with immutable storage path
   R->>DB: Insert cms_media metadata row
   R-->>A: Return media record
 ```
 
-Permanent media delete checks all references first. If the media is unused, delete the R2 object and then hard delete the metadata row. If R2 deletion fails, keep the media row trashed and surface the error.
+Permanent media delete checks all references first. If the media is unused, delete the Supabase Storage object and then hard delete the metadata row. If Supabase Storage deletion fails, keep the media row trashed and surface the error.
 
 ## Public Image Resolution Flow
 
@@ -129,7 +130,7 @@ sequenceDiagram
   participant RPC as Supabase RPC/View
   participant DB as Supabase
   participant B as Visitor Browser
-  participant CDN as R2 Custom Media Domain
+  participant StorageCDN as Supabase Storage Public URL/CDN
 
   S->>RPC: Request page/post by domain and slug/template
   RPC->>DB: Resolve active website_id from domain
@@ -137,21 +138,21 @@ sequenceDiagram
   RPC->>DB: Resolve mediaId references through cms_media
   RPC-->>S: Return content with image url, alt, caption, width, height
   S-->>B: Render img tags with returned URLs
-  B->>CDN: Download image from custom media domain
+  B->>StorageCDN: Download image from Supabase Storage public URL/CDN
 ```
 
 Rules:
 
-- Admin upload stores optimized WebP files in R2 under `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
-- Uploaded public WebP images use `Cache-Control: public, max-age=31536000, immutable`.
-- R2 image objects are immutable; replacing image content creates a new UUID object key and updates CMS references.
-- `cms_media` stores the website-scoped metadata, public URL, alt text, caption, dimensions, and R2 object key.
+- Admin upload stores optimized WebP files in Supabase Storage under `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+- Uploaded public WebP images use Supabase Storage `cacheControl: '31536000'`.
+- Supabase Storage image objects are immutable; replacing image content creates a new UUID storage path and updates CMS references.
+- `cms_media` stores the website-scoped metadata, public URL, alt text, caption, dimensions, and Supabase Storage path.
 - Template/post JSON stores `mediaId` as the stable internal reference.
 - Public RPCs resolve `mediaId` references for the resolved `website_id` before returning data.
 - Public responses return image objects with `url`, `alt`, `caption`, `width`, and `height`.
-- Public websites do not receive R2 credentials and do not list R2.
-- Visitor browsers download image bytes from the custom R2 media domain.
-- The custom media domain stays public/cacheable and does not use bot, IP verification, or challenge rules.
+- Public websites do not receive Supabase service-role key and do not upload, delete, or list Supabase Storage objects.
+- Visitor browsers download image bytes from the Supabase Storage public URL/CDN.
+- Supabase Storage public URLs stay public/cacheable for website image assets.
 
 ## WordPress Import Flow
 
@@ -160,7 +161,7 @@ flowchart TD
   Start["Inactive website selected"] --> Fetch["Fetch WordPress REST data"]
   Fetch --> MapPages["Map known pages to template content"]
   Fetch --> MapPosts["Convert posts to body_blocks"]
-  Fetch --> Media["Copy media to R2"]
+  Fetch --> Media["Copy media to Supabase Storage"]
   Media --> Rewrite["Rewrite old image URLs"]
   MapPages --> Save["Save website-scoped CMS rows"]
   MapPosts --> Save
@@ -168,7 +169,7 @@ flowchart TD
   Save --> Report["Show import report"]
 ```
 
-Import is blocked for active websites. Failed import reset clears only the inactive website's scoped data and imported R2 objects.
+Import is blocked for active websites. Failed import reset clears only the inactive website's scoped data and imported Supabase Storage objects.
 
 Import progress is tracked in `cms_import_jobs` so large WordPress imports can report progress and errors without relying on a single request response.
 
@@ -194,7 +195,7 @@ features/
 lib/
   auth/
   supabase/
-  r2/
+  storage/
   cms/
     repositories/
     validators/

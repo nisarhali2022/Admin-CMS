@@ -18,7 +18,6 @@ Admin CMS:
 
 - Browser authenticates with existing `ADMIN_SECRET` session.
 - Browser never receives Supabase service-role key.
-- Browser never receives R2 write credentials.
 - Admin route handlers use service role after session validation.
 - Admin mutations validate selected `website_id` and ownership.
 
@@ -28,7 +27,7 @@ Public websites:
 - Call public read-only RPCs/views.
 - Never call admin route handlers.
 - Never write CMS data.
-- Never list R2.
+- Never upload, delete, or list Supabase Storage objects.
 
 ## Table RLS Baseline
 
@@ -75,9 +74,18 @@ Resource-specific public visibility:
 - Authors require `is_active = true` and `deleted_at is null`.
 - Categories require `deleted_at is null`.
 - Redirects require `is_active = true` and `deleted_at is null`.
-- Site settings expose only safe public fields.
+- Site settings expose only safe public fields, including public AdSense fields.
 - Media rows are returned only when referenced by public-safe content, authors, or settings for the same website.
 - Import jobs are admin-only and never public.
+
+Safe public AdSense fields are:
+
+- `enabled`
+- `publisherId`
+- `autoAdsEnabled`
+- `adsTxt`
+
+Public settings functions must return AdSense as inactive when the saved publisher ID is missing or invalid. They must never expose revalidation secrets or service-only settings.
 
 Recommended visibility condition for template content and post rows:
 

@@ -6,7 +6,7 @@ Build this project as a separate admin CMS deployed on its own Vercel domain. Th
 
 There is one admin user using the existing `ADMIN_SECRET` session. After login, the admin selects a website to manage. Normal CMS resources are scoped by `website_id`. Quiz is global: no website selection is required, and one quiz update applies to all websites.
 
-The CMS manages website data only: text, links, images, fixed-template page content, blog posts, blog authors, categories, redirects, SEO fields, robots, sitemap settings, and website settings. Public websites own their layouts, frontend themes, visual components, and visitor-facing rendering.
+The CMS manages website data only: text, links, images, fixed-template page content, blog posts, blog authors, categories, redirects, SEO fields, robots, sitemap settings, AdSense settings, and website settings. Public websites own their layouts, frontend themes, visual components, and visitor-facing rendering.
 
 ## Locked Decisions
 
@@ -20,19 +20,20 @@ The CMS manages website data only: text, links, images, fixed-template page cont
 - Public websites can read public-safe CMS data only.
 - Admin app uses Supabase service key only inside server route handlers after admin-session validation.
 - `website_id` is the foreign key for normal website-specific resources.
-- Website selection controls template content, posts, authors, media, categories, redirects, SEO, sitemap, robots, and settings.
+- Website selection controls template content, posts, authors, media, categories, redirects, SEO, sitemap, robots, AdSense, and settings.
 - Website selection is explicit in the URL with `websiteId`.
 - Quiz publishing is global and not limited by selected website.
 - Tags are not included in v1.
 - Audit events/activity log are not included in v1.
 - Media is per website only; there is no shared/global media library.
-- Cloudflare R2 is the media storage backend.
+- Supabase Storage is the media storage backend.
 - Public website layouts are fixed.
 - Blog layouts are fixed, but blog article bodies support structured content blocks.
 - Blog authors are website-scoped profile records, not login users.
 - Template content and blog posts do not support future scheduling in v1.
 - Quiz keeps its own global date rollover behavior separate from CMS page/post scheduling.
 - Template content schemas are code-defined.
+- AdSense control is website-scoped, stored in site settings, and not configured through `.env`.
 - No page builder or layout builder in v1.
 - Separation of concerns is required in code and docs.
 
@@ -73,7 +74,7 @@ Website creation behavior:
 - Public websites resolve `website_id` by matching their domain in `cms_website_domains`.
 - Adding a website is managed through admin/database records, not by editing the admin CMS `.env`.
 - Website data is stored in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables.
-- Website media uses the shared R2 bucket with `websites/{website_id}/media/...` object prefixes.
+- Website media uses the shared Supabase Storage bucket with `websites/{website_id}/media/...` storage path prefixes.
 - Creating a website should also create or initialize its default `cms_site_settings` row.
 
 Website removal behavior:
@@ -207,7 +208,7 @@ Rules:
 
 - `website_id`
 - original filename
-- R2 object key
+- Supabase Storage path
 - public URL
 - alt text
 - caption
@@ -254,6 +255,7 @@ Rules:
 - sitemap settings
 - SEO defaults
 - site content/config values
+- AdSense settings: Active/Inactive, publisher ID, auto-ads preference, optional `ads.txt`
 
 Removed from v1:
 
@@ -333,6 +335,7 @@ Public reads should:
 - Return only data for the resolved `website_id`.
 - Return only active websites.
 - Return published template/post content, active authors, active redirects, safe public settings, and referenced media only.
+- Return safe AdSense settings from `get_public_site_settings(domain)`.
 - Hide trashed content.
 
 Public reads rely on Supabase RLS so draft, unpublished, trashed, and inactive website records cannot leak to public sites.
@@ -395,7 +398,7 @@ Post import mapping:
 
 - WordPress posts import into `cms_posts`.
 - WordPress post content should be converted into supported `body_blocks` where possible.
-- Embedded images should be imported to R2 and rewritten.
+- Embedded images should be imported to Supabase Storage and rewritten.
 - Headings should become heading blocks.
 - Paragraphs should become paragraph blocks.
 - Lists should become list blocks.
@@ -411,7 +414,7 @@ Failed import behavior:
 
 - If import fails halfway, clear all website-scoped data for that inactive website and rerun import.
 - Clearing import data removes that inactive website's template content, posts, media, categories, authors, redirects, and settings as needed.
-- Clearing import data also deletes that inactive website's imported R2 objects by using known `cms_media.r2_object_key` values or the `websites/{website_id}/...` prefix.
+- Clearing import data also deletes that inactive website's imported Supabase Storage objects by using known `cms_media.storage_path` values or the `websites/{website_id}/...` prefix.
 - Import progress and reports are tracked in a website-scoped `cms_import_jobs` table.
 - The website row and domain setup should remain so the import can rerun for the same inactive website.
 - This is a setup-only dangerous action.
@@ -430,38 +433,38 @@ Import report:
 - Failed media URLs.
 - Error messages.
 
-## Media And Cloudflare R2
+## Media And Supabase Storage
 
-Use Cloudflare R2 for CMS media instead of Supabase Storage.
+Use Supabase Storage as the v1 CMS media backend.
 
 Media rules:
 
 - Media is scoped by `website_id`.
 - No shared/global media library.
-- Use one R2 bucket for all CMS media.
+- Use one public Supabase Storage bucket named `cms-media` for all CMS media.
 - Separate websites by immutable website ID prefixes, not by separate buckets.
-- R2 object keys must use this pattern:
+- Supabase Storage paths must use this pattern:
 
 ```text
 websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}-thumb.webp
 ```
 
-- Use `website_id` in R2 paths because it does not change when website slugs or domains change.
+- Use `website_id` in Supabase Storage paths because it does not change when website slugs or domains change.
+- V1 stores one optimized public WebP object per media record. Thumbnail/object variants are deferred unless explicitly added later with matching metadata fields.
 - Original filenames are stored only as metadata and are not trusted as unique object names.
 - Uploads are converted/compressed to WebP.
-- Public WebP uploads use `Cache-Control: public, max-age=31536000, immutable`.
-- Image objects are immutable; replacing image content creates a new UUID object key and updates CMS references instead of overwriting an existing public URL.
-- Imported WordPress images are copied to R2.
+- Public WebP uploads use Supabase Storage `cacheControl: '31536000'`.
+- Image objects are immutable; replacing image content creates a new UUID storage path and updates CMS references instead of overwriting an existing public URL.
+- Imported WordPress images are copied to Supabase Storage.
 - Featured images and inline content images are copied.
-- Old WordPress image URLs are rewritten to R2 media URLs.
-- Public images are served through a custom media domain, such as `media.example.com` or `cdn.example.com`.
-- Do not use `r2.dev` URLs in production.
+- Old WordPress image URLs are rewritten to Supabase Storage public URLs.
+- Public images are served through Supabase Storage generated public URLs/CDN.
+- Signed URLs are not used for public website images in v1.
 - Store media metadata in Supabase.
 - Template/post JSON stores image references by `mediaId`; public RPCs resolve those IDs to image objects for the resolved `website_id`.
 - Public websites consume resolved image URLs directly.
-- Supabase service-role key and R2 write credentials must never be exposed to public websites.
-- Public websites must not list R2. They only receive media URLs returned by public Supabase RPCs/views for their resolved `website_id`.
+- Supabase service-role key must never be exposed to public websites.
+- Public websites must not upload, delete, or list Supabase Storage objects. They only receive media URLs returned by public Supabase RPCs/views for their resolved `website_id`.
 - Media picker screens only list `cms_media` rows for the selected `website_id`.
 - Cross-website media selection is blocked.
 - Failed or temporary upload objects should use a temporary prefix and be cleaned up separately from permanent media.
@@ -525,7 +528,7 @@ V1 admin features:
 - Template Content Management for fixed pages.
 - Posts CRUD with structured block editor.
 - Authors CRUD.
-- Media library with WebP/R2 upload.
+- Media library with WebP/Supabase Storage upload.
 - Categories CRUD.
 - Redirect manager.
 - Site settings.
@@ -550,11 +553,11 @@ For template content, posts, media, categories, authors, redirects, and other de
 
 Media permanent delete rules:
 
-- Trashing media does not delete the R2 object.
+- Trashing media does not delete the Supabase Storage object.
 - Permanent media delete must first check references in posts, template content, featured images, Open Graph images, and body block image references.
 - If media is still referenced, permanent delete is blocked and the admin sees where it is used.
-- If media is unused, delete the R2 object first, then hard delete the `cms_media` row.
-- If R2 deletion fails, keep the media row trashed and show an error.
+- If media is unused, delete the Supabase Storage object first, then hard delete the `cms_media` row.
+- If Supabase Storage deletion fails, keep the media row trashed and show an error.
 
 Author permanent delete rules:
 
@@ -583,18 +586,21 @@ Manual export should include:
 - Redirects.
 - Media metadata.
 
-R2 object backup/export can be documented separately because media files live outside Supabase.
+Supabase Storage object backup/export can be documented separately because media files live outside Supabase Postgres.
 
 ## Security
 
 V1 security model:
 
 - Admin session check.
+- Basic brute-force protection for `/api/admin/session` before real deployment.
+- Server-side environment validation for required secrets.
 - Server-only Supabase service-role usage.
 - Public-read RLS.
 - Public read-only RPCs/views.
 - Strict resource validation.
-- R2 write credentials server-only.
+- Supabase service-role key server-only.
+- Stateless signed admin session cookie in v1; logout clears the current cookie, and server-side session revocation is deferred unless a session store is added.
 
 Known security items not included in v1:
 
@@ -652,7 +658,7 @@ features/
 lib/
   auth/
   supabase/
-  r2/
+  storage/
   cms/
     repositories/
     validators/
@@ -672,12 +678,12 @@ docs/
 Rules:
 
 - UI components do not talk directly to Supabase.
-- UI components do not talk directly to R2.
+- UI components do not talk directly to Supabase Storage.
 - Route handlers call services/repositories.
 - Validation lives in validators.
 - Database access lives in repositories.
 - Code-defined template schemas and post block schemas live under `lib/cms/schemas/`.
-- R2 upload/delete helpers live in `lib/r2/`.
+- Supabase Storage upload/delete helpers live in `lib/storage/`.
 - Public read logic is separate from admin write logic.
 - Import logic is separate from normal CRUD logic.
 - Quiz logic stays isolated from CMS website-scoped logic.
@@ -715,12 +721,14 @@ Each deployed website should:
 - Use Supabase public/anon credentials.
 - Resolve its current domain through public read RPCs/views.
 - Fetch only public-safe CMS data for its resolved `website_id`.
-- Fetch R2 media URLs from CMS media records.
+- Fetch Supabase Storage public URLs from CMS media records.
 - Fetch author display data from CMS author records where posts need it.
 - Render template content and posts according to its existing UI/theme.
 - Treat CMS data as content only, not as layout ownership.
 - Cache public reads where possible.
-- Expose a server-only revalidation webhook endpoint so the admin CMS can refresh cached pages after content, SEO, redirect, settings, media, or author changes that affect public rendering.
+- Expose a server-only revalidation webhook endpoint so the admin CMS can refresh cached pages after content, SEO, redirect, settings, AdSense, media, or author changes that affect public rendering.
+- Render AdSense only when safe site settings say AdSense is active and a publisher ID is configured.
+- Serve `/ads.txt` only when AdSense is active and `ads.txt` content exists.
 - Keep revalidation webhook secrets per website in admin-only configuration or encrypted website settings.
 
 The admin CMS manages:
@@ -734,6 +742,7 @@ The admin CMS manages:
 - categories
 - SEO metadata
 - redirects
+- AdSense settings
 - website settings
 
 The separate public websites own:
@@ -755,13 +764,12 @@ The separate public websites own:
 - Block cross-website author selection and cross-website author avatar assignment.
 - Block permanent author deletion while posts still reference the author.
 - Do not expose Supabase service-role key to public websites.
-- Do not expose R2 write credentials to public websites.
 - Keep media URLs safe for public use.
-- Use one R2 bucket with `websites/{website_id}/...` object prefixes.
+- Use one Supabase Storage bucket with `websites/{website_id}/...` storage path prefixes.
 - Block cross-website media selection and cross-website media URL assignment.
 - Block permanent media deletion while the media is still referenced.
 - Public RPCs must resolve `mediaId` references to public image objects before returning template or post content.
-- Trigger public website revalidation after content, SEO, redirect, settings, or media changes that affect public rendering.
+- Trigger public website revalidation after content, SEO, redirect, settings, AdSense, or media changes that affect public rendering.
 - Trigger public website revalidation after author changes that affect public posts.
 - Add clear empty states for websites with no template content/posts/media.
 - Keep quiz code separate from website-scoped CMS code.
@@ -781,6 +789,7 @@ Create and maintain documentation like the referenced project:
 - `docs/API_CONTRACTS.md`
 - `docs/USER_FLOWS.md`
 - `docs/IMPLEMENTATION_GUIDE.md`
+- `docs/IMPLEMENTATION_CONTEXT.md`
 - `docs/IMPLEMENTATION_MILESTONES.md`
 - `docs/SETUP.md`
 - `docs/TESTING.md`
@@ -792,8 +801,8 @@ Docs must clearly explain:
 - admin app is separate,
 - websites are separate,
 - websites read Supabase via public read-only RPCs/views,
-- media is stored in Cloudflare R2,
-- R2 uses one bucket with `websites/{website_id}/...` prefixes,
+- media is stored in Supabase Storage,
+- Supabase Storage uses one bucket with `websites/{website_id}/...` prefixes,
 - `website_id` scopes all normal CMS resources,
 - template content replaces generic pages,
 - post bodies use structured blocks,
@@ -812,9 +821,10 @@ Recommended next documentation phase:
 6. `docs/API_CONTRACTS.md`
 7. `docs/USER_FLOWS.md`
 8. `docs/IMPLEMENTATION_GUIDE.md`
-9. `docs/IMPLEMENTATION_MILESTONES.md`
-10. `docs/SETUP.md`
-11. `docs/TESTING.md`
+9. `docs/IMPLEMENTATION_CONTEXT.md`
+10. `docs/IMPLEMENTATION_MILESTONES.md`
+11. `docs/SETUP.md`
+12. `docs/TESTING.md`
 
 ## Test Plan
 
@@ -854,21 +864,24 @@ Required tests:
 - TOC placeholder generated from headings.
 - FAQ block schema generation.
 - Media upload and WebP optimization.
-- R2 metadata storage.
-- R2 object key uses `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+- Supabase Storage metadata storage.
+- Supabase Storage path uses `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
 - Media picker only shows selected website media.
 - Cross-website media assignment is rejected.
 - Permanent media delete is blocked when media is still referenced.
-- Permanent media delete removes unused R2 object.
+- Permanent media delete removes unused Supabase Storage object.
 - WordPress REST import for inactive websites.
 - Import blocks active websites.
 - Failed import reset clears inactive website-scoped data only.
-- Failed import reset deletes only that inactive website's R2 objects.
-- WordPress image copy to R2.
+- Failed import reset deletes only that inactive website's Supabase Storage objects.
+- WordPress image copy to Supabase Storage.
 - Inline WordPress image URL rewriting.
 - WordPress known page path to template mapping.
 - WordPress unmatched page review list.
 - SEO canonical/sitemap/robots/OG/schema behavior.
+- AdSense defaults inactive for new websites.
+- AdSense cannot be enabled without a valid `ca-pub-...` publisher ID.
+- AdSense Active/Inactive changes affect public settings and trigger revalidation.
 - Public website revalidation webhook is called after public-facing changes.
 - Quiz remains global and independent of selected website.
 - Quiz visible date follows current Karachi date.

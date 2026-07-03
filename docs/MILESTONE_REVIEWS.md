@@ -1,0 +1,372 @@
+# CMS Milestone Reviews
+
+This file is the implementation history and handoff log for completed milestones.
+
+Update this file immediately after each milestone is completed and validated. Before starting the next milestone, read the latest completed review entry and any unresolved follow-up items.
+
+This is not a CMS audit-log feature. It is development documentation for continuity between implementation steps.
+
+## Review Entry Template
+
+Use this structure for every completed milestone:
+
+- Status:
+- Date completed:
+- Milestone goal:
+- Docs followed:
+- What was implemented:
+- Files/modules changed:
+- Inputs/outputs added or changed:
+- Security and architecture checks:
+- Tests and validation run:
+- Known caveats:
+- Follow-up items:
+- Readiness for next milestone:
+
+## Milestone 1: Foundation And Admin Session
+
+- Status: Complete
+- Date completed: 2026-07-03
+- Milestone goal: Establish the safe admin-only foundation before adding Supabase schema, website CRUD, media, import, or public website integration.
+- Docs followed: `PROJECT_PLAN.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `SETUP.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added server-side admin environment validation.
+  - Added validation that `CMS_ENCRYPTION_KEY` decodes to 32 bytes.
+  - Added basic in-memory brute-force protection for `/api/admin/session`.
+  - Kept the existing signed-expiry `ADMIN_SECRET` session model.
+  - Kept logout as current-browser cookie clearing only.
+  - Added the first `/admin` shell route.
+  - Added login/logout UI for the admin shell.
+  - Changed `/` to redirect to `/admin`.
+  - Added focused tests for env validation and login lockout behavior.
+- Files/modules changed:
+  - `lib/env/adminEnv.js`
+  - `lib/auth/adminLoginRateLimit.js`
+  - `lib/adminAuth.js`
+  - `app/api/admin/session/route.js`
+  - `app/(admin)/admin/page.jsx`
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/admin-shell/AdminLoginForm.jsx`
+  - `app/page.jsx`
+  - `test/milestone1-foundation.test.js`
+- Inputs/outputs added or changed:
+  - Admin CMS now requires `ADMIN_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `CMS_ENCRYPTION_KEY`.
+  - `GET /api/admin/session` returns authenticated session state with `Cache-Control: no-store`.
+  - `POST /api/admin/session` creates the signed admin cookie on valid secret.
+  - Failed login attempts are temporarily locked after repeated failures and return `429`.
+  - `DELETE /api/admin/session` clears the current session cookie.
+- Security and architecture checks:
+  - Service-role key remains server-only.
+  - Admin browser still does not need `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+  - No multi-user auth was added.
+  - No Supabase schema, website CRUD, media, import, or public website integration was added.
+  - UI stays under `features/admin-shell`; auth/env helpers stay under `lib/auth` and `lib/env`.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - Temporary local HTTP verification confirmed `/admin` returns `200` and `/api/admin/session` returns `{"authenticated":false}`.
+- Known caveats:
+  - Hidden persistent Next server startup from the Codex PowerShell environment was flaky on Windows. The app builds and serves correctly when the process is kept alive by the shell.
+  - The login rate limiter is in-memory and process-local, which is acceptable for v1 foundation but can be replaced later if stronger distributed lockout is needed.
+- Follow-up items:
+  - Milestone 2 must add Supabase migrations and schema without changing the v1 auth model.
+  - Future admin routes must reuse the admin session check and env validation assumptions.
+- Readiness for next milestone: Ready for Milestone 2, Supabase Schema And Migration Order.
+
+## Milestone 2: Supabase Schema And Migration Order
+
+- Status: Implementation complete locally; external Supabase apply still required
+- Date completed: 2026-07-03
+- Milestone goal: Create the database foundation with website scoping, relationships, constraints, indexes, trash semantics, import job tracking, site settings, and Supabase Storage bucket setup.
+- Docs followed: `MILESTONE_REVIEWS.md`, `DATA_MODEL.md`, `SETUP.md`, `RLS_POLICIES.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added the `supabase/migrations/` folder.
+  - Added the v1 CMS schema migration for all required CMS tables.
+  - Added UUID primary keys using `gen_random_uuid()`.
+  - Added `created_at` and `updated_at` timestamps.
+  - Added a shared `cms_set_updated_at()` trigger function and table triggers.
+  - Added website-scoped tables and indexes.
+  - Added partial unique indexes for non-trashed slugs, paths, and redirects.
+  - Added status checks for template content, posts, and import jobs.
+  - Added redirect type checks for 301 and 302.
+  - Added same-website composite foreign keys for author/avatar, post author, post category, post images, and template OG image references.
+  - Created `cms_import_jobs` for WordPress import tracking.
+  - Added `cms_site_settings.adsense_settings` with inactive AdSense defaults.
+  - Added a separate Supabase Storage bucket migration for public `cms-media`.
+  - Added tests that verify required tables, removed table exclusions, key constraints, and bucket creation SQL.
+- Files/modules changed:
+  - `supabase/migrations/202607030001_cms_schema.sql`
+  - `supabase/migrations/202607030002_cms_media_bucket.sql`
+  - `test/milestone2-schema.test.js`
+- Inputs/outputs added or changed:
+  - Input: empty Supabase database.
+  - Output: v1 CMS schema SQL for `cms_websites`, `cms_website_domains`, `cms_template_content`, `cms_categories`, `cms_media`, `cms_authors`, `cms_posts`, `cms_redirects`, `cms_import_jobs`, and `cms_site_settings`.
+  - Output: public Supabase Storage bucket setup for `cms-media`.
+- Security and architecture checks:
+  - No RLS policies or public RPCs were added; those remain Milestone 3 work.
+  - No admin UI, website CRUD, media upload logic, import logic, or public website integration was added.
+  - Removed v1 tables `cms_pages`, `cms_tags`, `cms_post_tags`, and `cms_audit_events` were not created.
+  - Every normal CMS table includes `website_id`.
+  - Cross-website row references are constrained where direct foreign keys exist.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example`
+  - Static schema tests passed.
+- Known caveats:
+  - The actual Supabase migration apply could not be run in this workspace because `supabase`, `psql`, and `docker` are not installed.
+  - Before Milestone 3 starts, apply the migrations to a Supabase project or a local Supabase instance and confirm they run cleanly.
+  - The storage bucket migration assumes Supabase's `storage.buckets` table exists, which is true in a Supabase project but not in a plain Postgres database.
+- Follow-up items:
+  - Apply migrations against Supabase before building RLS policies and public RPCs.
+  - If Supabase reports a storage bucket column mismatch, adjust only the bucket migration to match the current Supabase Storage schema.
+  - Milestone 3 must enable/verify RLS and create safe public RPCs/views.
+- Readiness for next milestone: Ready to start Milestone 3 only after the migrations are applied successfully to Supabase.
+
+## Milestone 3: RLS And Public RPCs
+
+- Status: Complete
+- Date completed: 2026-07-03
+- Milestone goal: Protect CMS tables with RLS and expose only safe public read RPCs for active websites and public-safe resources.
+- Docs followed: `MILESTONE_REVIEWS.md`, `RLS_POLICIES.md`, `API_CONTRACTS.md`, `DATA_MODEL.md`, `ARCHITECTURE.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added a third Supabase migration for RLS and public RPCs.
+  - Enabled RLS on all CMS tables.
+  - Revoked direct anon/authenticated table privileges from CMS tables.
+  - Added domain normalization and active website resolution helpers.
+  - Added public read RPCs for website lookup, template content, posts, post lists, categories, authors, site settings, and redirects.
+  - Added public image object resolution from `cms_media`.
+  - Added recursive JSON media reference resolution that replaces `mediaId` with resolved image objects in public payloads.
+  - Added public AdSense sanitization that returns inactive behavior when disabled or missing an invalid publisher ID.
+  - Granted `anon` execute access only to the documented public RPCs.
+  - Added static tests for RLS enablement, grants, public visibility rules, image resolution, and AdSense sanitization.
+- Files/modules changed:
+  - `supabase/migrations/202607030003_rls_public_rpcs.sql`
+  - `test/milestone3-rls-public-rpcs.test.js`
+- Inputs/outputs added or changed:
+  - Input: public website domain.
+  - Output: public-safe website context for active websites only.
+  - Output: published template/post content only, scoped to the resolved website.
+  - Output: active authors, categories, redirects, safe settings, and resolved image objects.
+  - Output: safe AdSense settings with `enabled: false` when inactive or invalid.
+- Security and architecture checks:
+  - Public websites still use anon credentials and public RPCs only.
+  - Direct public table access remains closed.
+  - Import jobs, WordPress credentials, revalidation secrets, drafts, inactive websites, and trashed content are not exposed through public RPC contracts.
+  - Redirect hit tracking remains non-public and is not writable by anon clients.
+  - Public image output is derived from same-website media rows only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example`
+  - Supabase SQL Editor apply was completed manually for `202607030003_rls_public_rpcs.sql`.
+- Known caveats:
+  - The automated local tests are static SQL contract tests because this workspace does not have the Supabase CLI, `psql`, or Docker installed.
+  - End-to-end anon RPC checks should be run after seed data exists in later milestones.
+- Follow-up items:
+  - Milestone 4 admin APIs must continue using service-role credentials only after admin session validation.
+  - Milestone 4 website creation must create `cms_websites`, `cms_website_domains`, and default `cms_site_settings` rows.
+  - Later public website integration must consume the RPCs from this milestone rather than admin APIs.
+- Readiness for next milestone: Ready for Milestone 4, Website Management And Selection.
+
+## Milestone 4: Website Management And Selection
+
+- Status: Complete
+- Date completed: 2026-07-03
+- Milestone goal: Let the single admin create, select, edit, activate, and deactivate website records that scope all normal CMS resources.
+- Docs followed: `MILESTONE_REVIEWS.md`, `PROJECT_PLAN.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `SETUP.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added a fourth Supabase migration with transactional admin website functions.
+  - Added helpers for slug generation, domain validation, website creation, website update, and website deactivation.
+  - Added server-only Supabase REST/RPC helper using the service-role key.
+  - Added CMS API routes for listing, creating, reading, updating, and deactivating websites.
+  - Added website payload validators for name, domain, UUID, and active/inactive status.
+  - Added website serializers and repository functions.
+  - Replaced the placeholder admin shell content with a website workspace.
+  - Added admin UI for website list, create, select, edit, activate/inactivate, and deactivate.
+  - Updated docs so activation after setup/import is explicit.
+  - Added tests for validation, migration contract, and service-role repository calls.
+- Files/modules changed:
+  - `supabase/migrations/202607030004_admin_website_management.sql`
+  - `lib/supabase/adminRest.js`
+  - `lib/cms/http/errors.js`
+  - `lib/cms/validators/websites.js`
+  - `lib/cms/serializers/websites.js`
+  - `lib/cms/repositories/websites.js`
+  - `app/api/cms/websites/route.js`
+  - `app/api/cms/websites/[id]/route.js`
+  - `app/api/cms/websites/[id]/deactivate/route.js`
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `test/milestone4-websites.test.js`
+  - `docs/API_CONTRACTS.md`
+  - `docs/USER_FLOWS.md`
+  - `docs/IMPLEMENTATION_MILESTONES.md`
+- Inputs/outputs added or changed:
+  - Input: website name and primary domain.
+  - Output: inactive `cms_websites` row, primary `cms_website_domains` row, and default `cms_site_settings` row.
+  - Input: selected `websiteId` in the admin URL.
+  - Output: website workspace state scoped to the selected website.
+  - Input: website edit payload with name, primary domain, or active status.
+  - Output: updated website row and active/inactive public availability.
+- Security and architecture checks:
+  - Admin website APIs require the existing admin session.
+  - Browser code calls only `/api/cms/...`; it never receives the Supabase service-role key.
+  - Website mutations run through service-role route handlers and transactional database functions.
+  - New websites require no admin CMS `.env` change.
+  - Deactivation keeps associated resources and hides public data through the existing public RPC active-website rule.
+  - Quiz remains outside selected website context.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example`
+  - Supabase SQL Editor apply was completed manually for `202607030004_admin_website_management.sql`.
+- Known caveats:
+  - Automated tests mock service-role REST/RPC calls; real end-to-end website CRUD should be exercised through the admin UI with the Supabase project.
+  - Only one primary domain is managed in v1. Domain aliases remain out of scope.
+  - Permanent website delete remains unavailable in v1 by design.
+- Follow-up items:
+  - Milestone 5 media routes must require a selected `websiteId`.
+  - Media object paths must use `websites/{website_id}/media/...` under the shared `cms-media` bucket.
+  - Later website-scoped resources must reject cross-website references using this selected website context.
+- Readiness for next milestone: Ready for Milestone 5, Media Library And Supabase Storage.
+
+## Milestone 5: Media Library And Supabase Storage
+
+- Status: Complete
+- Date completed: 2026-07-03
+- Milestone goal: Provide website-scoped media upload, optimization, metadata editing, selection, trash/restore, usage lookup, and permanent delete safety before content editors need images.
+- Docs followed: `MILESTONE_REVIEWS.md`, `ARCHITECTURE.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `SETUP.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`, `TESTING.md`.
+- What was implemented:
+  - Added `sharp` as the server-side WebP optimization dependency and documented it.
+  - Added Supabase Storage helpers for public media URL generation, immutable WebP upload, and object delete.
+  - Added image validation and WebP conversion helpers.
+  - Added media validators, serializers, repository functions, and service workflows.
+  - Added media upload, list, metadata update, trash, restore, usage, and permanent delete API routes.
+  - Added a Supabase migration for `cms_admin_media_usage`.
+  - Added media library UI inside the selected website workspace.
+  - Added tests for WebP conversion, immutable storage upload headers, usage migration coverage, and media upload metadata flow.
+- Files/modules changed:
+  - `package.json`
+  - `package-lock.json`
+  - `supabase/migrations/202607030005_admin_media_usage.sql`
+  - `lib/storage/supabaseStorage.js`
+  - `lib/storage/imageOptimizer.js`
+  - `lib/cms/validators/media.js`
+  - `lib/cms/serializers/media.js`
+  - `lib/cms/repositories/media.js`
+  - `lib/cms/services/media.js`
+  - `lib/cms/http/errors.js`
+  - `app/api/cms/media/route.js`
+  - `app/api/cms/media/[id]/route.js`
+  - `app/api/cms/media/[id]/trash/route.js`
+  - `app/api/cms/media/[id]/restore/route.js`
+  - `app/api/cms/media/[id]/usage/route.js`
+  - `features/media/MediaLibrary.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `test/milestone5-media.test.js`
+  - `docs/API_CONTRACTS.md`
+  - `docs/IMPLEMENTATION_CONTEXT.md`
+  - `docs/IMPLEMENTATION_MILESTONES.md`
+  - `docs/SETUP.md`
+- Inputs/outputs added or changed:
+  - Input: selected `websiteId`, multipart image file, optional alt text, and optional caption.
+  - Output: optimized WebP bytes uploaded to Supabase Storage under `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+  - Output: immutable public media URL and `cms_media` metadata row.
+  - Input: media metadata update payload.
+  - Output: updated website-scoped media metadata.
+  - Input: trashed media ID.
+  - Output: usage report or permanent delete result after Supabase Storage object deletion.
+- Security and architecture checks:
+  - Media APIs require the existing admin session and selected `websiteId`.
+  - Browser code calls only CMS API routes; it never writes directly to Supabase Storage.
+  - Supabase Storage mutations use the server-only service-role key.
+  - Public media objects are immutable and uploaded with long cache headers.
+  - Permanent delete requires the media row to be trashed, checks references first, deletes the storage object first, then hard deletes metadata.
+  - Cross-website media listing is scoped by `websiteId`.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example`
+  - Supabase SQL Editor apply was completed manually for `202607030005_admin_media_usage.sql`.
+- Known caveats:
+  - Automated tests mock Supabase Storage and database calls; real upload/delete should be exercised through the admin UI with the Supabase project.
+  - Supabase Storage delete behavior should be verified against the live project before relying on permanent delete in production.
+  - `npm install sharp` reported two moderate audit findings in the dependency tree; `npm audit fix --force` was not run to avoid broad version churn.
+- Follow-up items:
+  - Milestone 6 authors can select same-website media as avatar images.
+  - Milestone 7 and 8 must store image references by `mediaId`.
+  - Later public content milestones must revalidate when public-used media metadata changes.
+- Readiness for next milestone: Ready for Milestone 6, Categories And Authors.
+
+## Milestone 6: Categories And Authors
+
+- Status: Complete
+- Date completed: 2026-07-03
+- Milestone goal: Build website-scoped blog categories and author profiles before posts require them.
+- Docs followed: `MILESTONE_REVIEWS.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `TESTING.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added shared taxonomy validation helpers for slugs, required text, optional text, and optional media IDs.
+  - Added category validators, serializers, repository functions, services, API routes, and admin UI.
+  - Added author validators, serializers, repository functions, services, API routes, and admin UI.
+  - Added same-website avatar media validation for authors.
+  - Added active/inactive author control.
+  - Added trash, restore, and permanent delete flows for categories and authors.
+  - Added permanent delete protection when posts reference a category or author.
+  - Added category and author panels inside the selected website workspace.
+  - Added tests for slug normalization, payload validation, same-website avatar checks, and delete blocking.
+- Files/modules changed:
+  - `lib/cms/validators/taxonomy.js`
+  - `lib/cms/validators/categories.js`
+  - `lib/cms/validators/authors.js`
+  - `lib/cms/serializers/categories.js`
+  - `lib/cms/serializers/authors.js`
+  - `lib/cms/repositories/categories.js`
+  - `lib/cms/repositories/authors.js`
+  - `lib/cms/services/categories.js`
+  - `lib/cms/services/authors.js`
+  - `app/api/cms/categories/route.js`
+  - `app/api/cms/categories/[id]/route.js`
+  - `app/api/cms/categories/[id]/trash/route.js`
+  - `app/api/cms/categories/[id]/restore/route.js`
+  - `app/api/cms/authors/route.js`
+  - `app/api/cms/authors/[id]/route.js`
+  - `app/api/cms/authors/[id]/trash/route.js`
+  - `app/api/cms/authors/[id]/restore/route.js`
+  - `features/categories/CategoriesManager.jsx`
+  - `features/authors/AuthorsManager.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `test/milestone6-categories-authors.test.js`
+- Inputs/outputs added or changed:
+  - Input: selected `websiteId`, category name/slug/description.
+  - Output: website-scoped category rows and admin category responses.
+  - Input: selected `websiteId`, author name/slug/bio/avatar image/active state.
+  - Output: website-scoped author rows and admin author responses.
+  - Input: author avatar media ID.
+  - Output: accepted only when the media belongs to the same website and is not trashed.
+- Security and architecture checks:
+  - Category and author APIs require the existing admin session and selected `websiteId`.
+  - All reads and writes are scoped by `website_id`.
+  - Same slug can exist across websites; duplicate same-website slugs remain blocked by database constraints and service errors.
+  - Author avatar assignment is blocked unless the media belongs to the selected website.
+  - Inactive/trashed author behavior is ready for the post editor to filter in Milestone 8.
+  - No tags, author login accounts, multiple authors, or multiple categories were added.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example`
+- Known caveats:
+  - Automated tests mock Supabase REST calls; real category/author CRUD should be exercised through the admin UI with live Supabase data.
+  - Permanent delete blocking currently checks posts before delete; database foreign keys remain the final protection.
+  - UI is functional and intentionally compact; richer author/category listing controls can be refined later without changing the contracts.
+- Follow-up items:
+  - Milestone 8 post editor must require one active, non-trashed same-website author.
+  - Milestone 8 post editor may select one same-website category.
+  - Author changes that affect public posts must trigger revalidation when post publishing exists.
+- Readiness for next milestone: Ready for Milestone 7, Template Content.

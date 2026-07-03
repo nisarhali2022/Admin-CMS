@@ -43,6 +43,13 @@ Deactivate website:
 3. Public reads return no content for that website.
 4. Associated resources remain stored.
 
+Activate website:
+
+1. Admin selects the website after setup/import is ready.
+2. Admin changes website status to Active.
+3. CMS sets `is_active = true`.
+4. Public reads can resolve that website by its configured domain.
+
 Blocked states:
 
 - duplicate domain
@@ -51,8 +58,8 @@ Blocked states:
 Rules:
 
 - website data is stored in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables
-- media for the website uses the shared R2 bucket under `websites/{website_id}/media/...`
-- permanent website delete in v1
+- media for the website uses the shared Supabase Storage bucket under `websites/{website_id}/media/...`
+- permanent website delete is not available in v1
 
 ## WordPress Import
 
@@ -64,7 +71,7 @@ Rules:
 6. CMS imports known pages into template content.
 7. CMS imports posts into structured body blocks.
 8. CMS imports categories and authors where available.
-9. CMS copies images to R2.
+9. CMS copies images to Supabase Storage.
 10. CMS rewrites inline image URLs.
 11. CMS tracks progress in an import job.
 12. CMS deletes any temporary WordPress credentials after success or failure.
@@ -80,7 +87,7 @@ Blocked states:
 Failure behavior:
 
 - failed reset is allowed only for inactive websites
-- reset clears that website's imported rows and R2 objects
+- reset clears that website's imported rows and Supabase Storage objects
 - website row and domain setup remain
 - WordPress credentials are never shown in reports or errors
 
@@ -159,7 +166,7 @@ Expected behavior:
 3. Admin uploads image.
 4. Server validates file.
 5. Server converts/compresses image to WebP.
-6. Server uploads to R2 under `websites/{website_id}/media/...`.
+6. Server uploads to Supabase Storage under `websites/{website_id}/media/...`.
 7. CMS saves metadata row.
 8. Admin can edit alt text/caption.
 9. Admin can select image from template/post editors.
@@ -167,11 +174,11 @@ Expected behavior:
 Delete behavior:
 
 - trash hides media from public reads
-- trash does not delete R2 object
+- trash does not delete Supabase Storage object
 - permanent delete checks usage first
 - referenced media cannot be permanently deleted
-- unused media deletes R2 object before hard deleting metadata row
-- if R2 deletion fails, media remains trashed and admin sees an error
+- unused media deletes Supabase Storage object before hard deleting metadata row
+- if Supabase Storage deletion fails, media remains trashed and admin sees an error
 
 ## Categories
 
@@ -207,6 +214,10 @@ Admin can edit:
 - robots.txt per website
 - sitemap settings
 - SEO defaults
+- AdSense Active/Inactive status per website
+- AdSense publisher ID
+- AdSense auto-ads preference
+- Optional AdSense `ads.txt` content
 
 System handles:
 
@@ -215,6 +226,18 @@ System handles:
 - Article schema for posts
 - WebPage schema for template content
 - FAQ schema from FAQ blocks
+- public AdSense script rendering only when AdSense is active and configured
+- `/ads.txt` response only when AdSense is active and `ads.txt` content exists
+
+AdSense flow:
+
+1. Admin selects a website.
+2. Admin opens website settings.
+3. Admin sets AdSense to Active or Inactive.
+4. If Active, CMS requires a valid `ca-pub-...` publisher ID.
+5. Admin can optionally edit auto-ads and `ads.txt`.
+6. CMS saves the settings for that website and triggers public revalidation.
+7. Public website reads safe settings and renders AdSense only when active.
 
 ## Trash And Restore
 

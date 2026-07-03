@@ -6,7 +6,7 @@ This file records decisions that should not be re-decided during implementation 
 
 - Build a separate admin CMS deployed on its own Vercel domain.
 - Keep public websites as separate deployed sites with their own UI, layout, frontend theme, and rendering.
-- CMS owns website data only: template content, blog posts, blog authors, categories, media metadata, redirects, SEO fields, robots, sitemap settings, and website settings.
+- CMS owns website data only: template content, blog posts, blog authors, categories, media metadata, redirects, SEO fields, robots, sitemap settings, AdSense settings, and website settings.
 - Use one admin user in v1.
 - Keep the existing `ADMIN_SECRET` login/session model in v1.
 - After login, admin selects the website being managed.
@@ -43,21 +43,22 @@ This file records decisions that should not be re-decided during implementation 
 - Deactivation hides public content but keeps associated resources.
 - Adding a website is managed through admin/database records, not by editing the admin CMS `.env`.
 - Website data is stored in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables.
+- AdSense Active/Inactive state, publisher ID, auto-ads preference, and optional `ads.txt` content are stored per website in site settings, not `.env`.
 
 ## Media Decisions
 
-- Use Cloudflare R2 instead of Supabase Storage.
-- Use one R2 bucket for all CMS media.
+- Use Supabase Storage as the v1 CMS media backend.
+- Use one Supabase Storage bucket for all CMS media.
 - Separate website media by immutable `website_id` prefix.
-- R2 object key pattern is `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+- Supabase Storage path pattern is `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
 - Use original filenames only as metadata.
 - No shared or global media library in v1.
 - Media picker only shows selected website media.
 - Cross-website media selection is blocked.
-- Trashing media does not delete the R2 object.
+- Trashing media does not delete the Supabase Storage object.
 - Permanent media delete checks references before deleting the object.
-- Unused media permanent delete removes the R2 object, then hard deletes the metadata row.
-- If R2 deletion fails, media remains trashed and the admin sees an error.
+- Unused media permanent delete removes the Supabase Storage object, then hard deletes the metadata row.
+- If Supabase Storage deletion fails, media remains trashed and the admin sees an error.
 
 ## Access And Security Decisions
 
@@ -88,9 +89,9 @@ This file records decisions that should not be re-decided during implementation 
 - Import creates or reuses website-scoped authors in `cms_authors`.
 - Use fallback author `Imported Author` when WordPress author data is unavailable.
 - Imported posts must never save without `author_id`.
-- Imported and embedded images are copied to R2.
-- Old WordPress image URLs are rewritten to R2 public URLs.
-- Failed import reset is allowed only for inactive websites and clears only that website's scoped data and R2 objects.
+- Imported and embedded images are copied to Supabase Storage.
+- Old WordPress image URLs are rewritten to Supabase Storage public URLs.
+- Failed import reset is allowed only for inactive websites and clears only that website's scoped data and Supabase Storage objects.
 - Import progress and reports are tracked in `cms_import_jobs`.
 
 ## Public Website Decisions
@@ -98,7 +99,7 @@ This file records decisions that should not be re-decided during implementation 
 - Public websites fetch only public-safe CMS data for their resolved `website_id`.
 - Public reads hide inactive websites, drafts, unpublished content, and trashed content.
 - Public websites can cache CMS reads.
-- Public websites expose a server-only revalidation webhook so public-facing content, SEO, redirect, settings, media, and author changes can refresh cached pages.
+- Public websites expose a server-only revalidation webhook so public-facing content, SEO, redirect, settings, AdSense, media, and author changes can refresh cached pages.
 - Revalidation webhook secrets are per website and admin-only.
 
 ## Quiz Decisions

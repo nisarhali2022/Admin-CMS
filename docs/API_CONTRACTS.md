@@ -11,7 +11,7 @@ All `/api/cms/...` routes must:
 - require `websiteId` for website-scoped resources
 - verify resource ownership before edit/delete
 - return structured errors
-- never expose Supabase service-role key or R2 write credentials
+- never expose Supabase service-role key to browser or public website code
 - trigger public revalidation when public rendering changes
 
 Common error shape:
@@ -23,6 +23,23 @@ Common error shape:
   "details": {}
 }
 ```
+
+## Admin Session API
+
+Routes:
+
+- `GET /api/admin/session`
+- `POST /api/admin/session`
+- `DELETE /api/admin/session`
+
+Behavior:
+
+- `POST` accepts `{ "secret": "..." }` and creates a signed expiry cookie when it matches `ADMIN_SECRET`.
+- `GET` returns whether the current request has a valid admin session.
+- `DELETE` clears the current browser's admin session cookie.
+- Add basic brute-force protection before real deployment, such as short-window rate limiting or temporary lockout.
+- Missing required admin environment variables should fail predictably through server-side environment validation.
+- V1 signed cookie sessions are stateless. Logout clears the current cookie only; server-side revocation is not included unless a session store is added later.
 
 ## Admin Websites
 
@@ -50,6 +67,7 @@ Behavior:
 - create primary domain row
 - create default `cms_site_settings` row
 - reject duplicate domain
+- allow `PATCH` to update name, primary domain, and active/inactive status
 - deactivate instead of deleting websites in v1
 - do not require admin CMS `.env` changes when adding a website
 
@@ -195,17 +213,17 @@ Upload payload:
 Behavior:
 
 - validate file type and size
-- convert/compress to WebP
+- convert/compress to WebP with server-side `sharp`
 - upload to `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`
-- set `Cache-Control: public, max-age=31536000, immutable` on public WebP uploads
-- treat uploaded image objects as immutable; replacing image content creates a new UUID object key and updates CMS references
+- upload with Supabase Storage `cacheControl: '31536000'`
+- treat uploaded image objects as immutable; replacing image content creates a new UUID storage path and updates CMS references
 - save metadata row
 - media picker returns only selected website media
-- trash does not delete R2 object
+- trash does not delete Supabase Storage object
 - permanent delete checks usage
 - referenced media cannot be permanently deleted
-- unused media deletes R2 object first, then hard deletes the metadata row
-- if R2 delete fails, keep the trashed media row and return an error
+- unused media deletes Supabase Storage object first, then hard deletes the metadata row
+- if Supabase Storage deletion fails, keep the trashed media row and return an error
 
 ## Admin Categories
 
@@ -256,8 +274,29 @@ Settings include:
 - sitemap settings
 - SEO defaults
 - site config values
+- AdSense settings
 - revalidation webhook URL
 - encrypted revalidation webhook secret
+
+AdSense settings shape:
+
+```json
+{
+  "enabled": false,
+  "publisherId": null,
+  "autoAdsEnabled": true,
+  "adsTxt": null
+}
+```
+
+Rules:
+
+- AdSense is scoped to the selected `websiteId`.
+- New websites default to inactive AdSense settings.
+- Enabling AdSense requires a valid `ca-pub-...` publisher ID.
+- Disabling AdSense preserves saved values but public settings must return inactive behavior.
+- No AdSense value belongs in `.env`; it is website-level database configuration.
+- Changing AdSense settings triggers public website revalidation.
 
 ## WordPress Import
 
@@ -292,11 +331,11 @@ Behavior:
 - create/select website-scoped authors for posts
 - use fallback author `Imported Author` when WordPress author data is unavailable
 - never import a post without `author_id`
-- copy images to R2
+- copy images to Supabase Storage
 - rewrite old image URLs
 - convert post content to supported body blocks where possible
 - record unmatched pages and skipped items in report
-- failed reset clears only the inactive website's scoped rows and R2 objects
+- failed reset clears only the inactive website's scoped rows and Supabase Storage objects
 
 ## Public RPC/View Contracts
 
@@ -320,6 +359,21 @@ Resolved public image object:
 - `caption`
 - `width`
 - `height`
+
+Public site settings result should include safe AdSense fields:
+
+```json
+{
+  "adsense": {
+    "enabled": false,
+    "publisherId": null,
+    "autoAdsEnabled": true,
+    "adsTxt": null
+  }
+}
+```
+
+Public RPCs must return `enabled: false` if AdSense is inactive or if the saved publisher ID is missing/invalid. Public websites render the AdSense script only when `enabled` is true and `publisherId` is present. Public websites expose `/ads.txt` only when AdSense is enabled and `adsTxt` is configured; otherwise `/ads.txt` should return `404`.
 
 Public RPCs must resolve template/post JSON `mediaId` references to image objects for the resolved website. Public post/template responses should return resolved image objects, not raw media IDs. Raw media IDs can be omitted unless a public website explicitly needs them for non-sensitive internal rendering.
 

@@ -5,11 +5,11 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 ## Build Order
 
 1. Review `PROJECT_PLAN.md`, `DECISIONS.md`, and `ARCHITECTURE.md`.
-2. Review `IMPLEMENTATION_MILESTONES.md`.
+2. Review `IMPLEMENTATION_CONTEXT.md` and `IMPLEMENTATION_MILESTONES.md`.
 3. Create Supabase migrations from `DATA_MODEL.md`.
 4. Implement RLS, public RPCs/views, and grants from `RLS_POLICIES.md`.
 5. Add Supabase server/client helpers.
-6. Add R2 helpers.
+6. Add Supabase Storage helpers.
 7. Add CMS schemas and validators.
 8. Add repositories.
 9. Add admin route handlers.
@@ -21,7 +21,7 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 15. Build template content management.
 16. Build posts and block editor.
 17. Build redirects.
-18. Build settings, SEO, robots, and sitemap controls.
+18. Build settings, SEO, robots, sitemap, and AdSense controls.
 19. Build WordPress import.
 20. Add public revalidation calls.
 21. Keep global quiz isolated.
@@ -30,13 +30,14 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 ## Engineering Rules
 
 - UI components do not call Supabase directly.
-- UI components do not call R2 directly.
+- UI components do not call Supabase Storage directly.
 - Route handlers validate admin session.
 - Route handlers call services/repositories.
 - Repositories own database access.
 - Validators own payload, slug, ownership, content schema, and body block validation.
-- R2 helpers live under `lib/r2/`.
+- Supabase Storage helpers live under `lib/storage/`.
 - CMS schemas live under `lib/cms/schemas/`.
+- Multi-step workflows live in `lib/cms/services/`.
 - Public read logic is separate from admin write logic.
 - Import logic is separate from normal CRUD logic.
 - Quiz logic is separate from website-scoped CMS logic.
@@ -84,9 +85,10 @@ features/
 lib/
   auth/
   supabase/
-  r2/
+  storage/
   cms/
     repositories/
+    services/
     validators/
     serializers/
     schemas/
@@ -101,10 +103,17 @@ supabase/
 
 Supabase:
 
+- Add server-side environment validation before CMS features call Supabase.
 - Use service role only in server route handlers.
 - Keep anon/public client only for public websites and safe public reads.
 - Never expose service role in browser code.
 - Public websites should call RPCs/views, not raw admin APIs.
+
+Admin session:
+
+- Keep the existing signed `ADMIN_SECRET` cookie model for v1.
+- Add basic brute-force protection to `/api/admin/session` before real deployment.
+- Treat logout as current-browser cookie clearing only; server-side session revocation is not included unless a session store is added later.
 
 Website scoping:
 
@@ -126,13 +135,16 @@ Authors:
 Media:
 
 - Convert uploads to WebP before saving.
-- Generate R2 object keys with website ID prefix.
-- Save R2 metadata in `cms_media`.
+- Generate Supabase Storage paths with website ID prefix.
+- Save Supabase Storage metadata in `cms_media`.
 - Keep original filename as metadata only.
 - Store image references in template/post JSON by `mediaId`.
-- Trash does not delete R2 objects.
-- Permanent delete checks usage before deleting the R2 object.
-- If R2 deletion fails during permanent delete, keep the row trashed and show an error.
+- Use `cms-media` as the single public Supabase Storage bucket.
+- Upload through server-only helpers with `cacheControl: '31536000'`.
+- Public websites never upload, delete, or list Supabase Storage objects.
+- Trash does not delete Supabase Storage objects.
+- Permanent delete checks usage before deleting the Supabase Storage object.
+- If Supabase Storage deletion fails during permanent delete, keep the row trashed and show an error.
 
 Scheduling:
 
@@ -142,8 +154,19 @@ Scheduling:
 
 Revalidation:
 
-- Trigger after publish, unpublish, trash, permanent delete, redirect changes, SEO changes, settings changes, author changes that affect public posts, and media changes used by public content.
+- Trigger after publish, unpublish, trash, permanent delete, redirect changes, SEO changes, settings changes, AdSense changes, author changes that affect public posts, and media changes used by public content.
 - Webhook failure should be visible to admin but should not roll back the saved content.
+
+AdSense:
+
+- Store AdSense settings per website in `cms_site_settings`.
+- Default new websites to inactive AdSense.
+- Admin UI exposes Active/Inactive, publisher ID, auto-ads, and optional `ads.txt`.
+- Enabling AdSense requires a valid `ca-pub-...` publisher ID.
+- Public settings return only safe AdSense fields.
+- Public websites render the AdSense script only when AdSense is active and configured.
+- Public websites serve `/ads.txt` only when AdSense is active and `ads.txt` content exists.
+- Do not add AdSense values to `.env`; they are website-level database settings.
 
 Import:
 

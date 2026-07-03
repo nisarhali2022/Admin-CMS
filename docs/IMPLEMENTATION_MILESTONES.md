@@ -1,116 +1,234 @@
 # CMS Implementation Milestones
 
-Use this file as the execution tracker for implementation. Each milestone must be completed and tested before moving to the next one.
+Use this file as the execution tracker. Complete and test each milestone before moving to the next one. For implementation patterns, read `IMPLEMENTATION_CONTEXT.md` first.
+
+Before starting any milestone after Milestone 1, read `MILESTONE_REVIEWS.md` and especially the latest completed milestone review entry.
+
+Every milestone includes:
+
+- Purpose: why the milestone exists.
+- Dependencies: docs and previous work required first.
+- Build: what needs to be implemented.
+- Files/modules: expected project areas to create or edit.
+- Inputs/outputs: important payloads, rows, URLs, objects, or UI state.
+- Interactions: how this milestone connects to other modules.
+- Constraints: what to avoid.
+- Exit tests: proof that the milestone is complete.
+
+Completion gate for every milestone:
+
+- Run the milestone's exit tests and required project checks.
+- Update `MILESTONE_REVIEWS.md` with what changed, validation results, caveats, follow-ups, and next-milestone readiness.
+- Do not report the milestone as complete until the review entry is added.
 
 ## Milestone 1: Foundation And Admin Session
 
-Read first:
+Purpose:
 
-- `PROJECT_PLAN.md`
-- `DECISIONS.md`
-- `ARCHITECTURE.md`
-- `SETUP.md`
+- Establish a safe admin-only foundation and project structure before adding CMS data.
 
-Implement:
+Dependencies:
 
-- Verify the existing `ADMIN_SECRET` login/session pattern.
-- Add shared environment validation for required admin CMS variables.
-- Establish the feature-separated folder structure from `IMPLEMENTATION_GUIDE.md`.
-- Add basic admin shell routing without building CMS resources yet.
+- Read `PROJECT_PLAN.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `SETUP.md`, and `IMPLEMENTATION_CONTEXT.md`.
+- Start from the existing `ADMIN_SECRET` helper and `/api/admin/session` route.
 
-Do not include:
+Build:
 
-- Supabase schema work.
-- Website CRUD.
-- Media, import, or public website integration.
+- Verify the existing admin login/session flow.
+- Add server-side environment validation for required admin CMS variables.
+- Add basic brute-force protection for `/api/admin/session`, such as short-window rate limiting or temporary lockout.
+- Establish the feature-separated folder structure from `IMPLEMENTATION_CONTEXT.md`.
+- Replace the temporary landing page with a basic admin shell route, without building resource screens yet.
+
+Files/modules:
+
+- `lib/adminAuth.js`
+- `app/api/admin/session/route.js`
+- `lib/env/` or equivalent environment validation helper
+- `app/(admin)/admin/`
+- `features/admin-shell/`
+- `lib/auth/`
+
+Inputs/outputs:
+
+- Input: admin secret submitted to `/api/admin/session`.
+- Output: signed admin session cookie and authenticated session status.
+- Output: clear startup/runtime error when required admin env vars are missing.
+
+Interactions:
+
+- All future admin route handlers depend on this session check.
+- Website selection and CMS resource routes must build on this admin shell.
+
+Constraints:
+
+- Do not add Supabase schema, website CRUD, media, import, or public website integration.
+- Do not introduce multi-user auth in v1.
+- Logout clears the current browser cookie only; server-side session revocation is deferred unless a session store is added later.
 
 Exit tests:
 
 - Admin login succeeds with valid `ADMIN_SECRET`.
 - Invalid admin secret is rejected.
+- Missing required env vars fail predictably.
+- Basic brute-force protection is covered by unit or route tests.
 - App boots locally.
-- `npm run lint` and `npm run build` pass if available.
+- `npm.cmd test`, `npm.cmd run lint`, and `npm.cmd run build` pass.
 
 ## Milestone 2: Supabase Schema And Migration Order
 
-Read first:
+Purpose:
 
-- `DATA_MODEL.md`
-- `SETUP.md`
-- `RLS_POLICIES.md`
+- Create the database foundation with correct website scoping, relationships, constraints, and delete semantics.
 
-Implement:
+Dependencies:
+
+- Complete Milestone 1.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `DATA_MODEL.md`, `SETUP.md`, `RLS_POLICIES.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Create migrations for all v1 CMS tables.
 - Add indexes, unique constraints, status rules, trash fields, and timestamps.
-- Ensure all normal CMS tables are scoped by `website_id`.
+- Ensure every normal CMS resource has `website_id`.
 - Handle `cms_authors.avatar_image_id` safely by creating `cms_media` before adding the FK, or adding the FK after both tables exist.
+- Create the public Supabase Storage bucket `cms-media` in the Supabase project setup, not as a per-website bucket.
 
-Do not include:
+Files/modules:
 
-- Admin UI.
-- Public RPC response shaping.
-- WordPress import logic.
+- `supabase/migrations/`
+- optional `supabase/seed.sql`
+- `docs/DATA_MODEL.md` if implementation discovers a contract mismatch
+
+Inputs/outputs:
+
+- Input: empty Supabase database.
+- Output: v1 CMS tables, constraints, indexes, and bucket setup.
+- Output: `cms_import_jobs` exists for WordPress import tracking.
+
+Interactions:
+
+- RLS policies and public RPCs in Milestone 3 depend on this schema.
+- Admin CRUD milestones depend on database constraints matching app validators.
+
+Constraints:
+
+- Do not build admin UI.
+- Do not shape public RPC responses yet.
+- Do not implement WordPress import logic yet.
+- Do not add removed v1 tables: `cms_pages`, `cms_tags`, `cms_post_tags`, or `cms_audit_events`.
 
 Exit tests:
 
 - Migrations apply cleanly to an empty database.
 - Duplicate website domains are rejected.
-- Per-website slugs can repeat across different websites but not within one website.
+- Per-website slugs can repeat across websites but not within one website.
 - `cms_posts.author_id` is required.
 - `cms_import_jobs` exists and is website-scoped.
+- `cms_media.storage_path` is unique.
 
 ## Milestone 3: RLS And Public RPCs
 
-Read first:
+Purpose:
 
-- `RLS_POLICIES.md`
-- `API_CONTRACTS.md`
-- `DATA_MODEL.md`
+- Make public reads safe before admin CRUD starts creating real website content.
 
-Implement:
+Dependencies:
+
+- Complete Milestone 2.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `RLS_POLICIES.md`, `API_CONTRACTS.md`, `DATA_MODEL.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Enable RLS on all CMS tables.
-- Grant public access only through safe RPCs/views.
+- Add grants so anon can execute only safe public RPCs/views.
+- Implement website domain resolution.
 - Implement public-safe read rules per resource type.
-- Return resolved image objects for public template/post responses.
-- Keep import jobs, secrets, drafts, inactive website data, and service-only fields private.
+- Implement public template/post/category/author/settings/redirect read functions or views.
+- Resolve `mediaId` references to public image objects for public template/post responses.
 
-Do not include:
+Files/modules:
 
-- Admin CRUD screens.
-- Public website frontend changes.
-- Redirect hit tracking writes from anon clients.
+- `supabase/migrations/`
+- `lib/cms/public-read-model.js`
+- `lib/cms/serializers/`
+- optional SQL test fixtures
+
+Inputs/outputs:
+
+- Input: public website domain.
+- Output: active website context or no content.
+- Output: public-safe rows for published content only.
+- Output: resolved image objects with `url`, `alt`, `caption`, `width`, and `height`.
+
+Interactions:
+
+- Public websites use these RPCs/views instead of admin APIs.
+- Media, authors, categories, redirects, and settings must remain filtered by resolved `website_id`.
+
+Constraints:
+
+- Do not build admin CRUD screens.
+- Do not change public website frontend code yet.
+- Do not allow redirect hit tracking writes from anon clients.
+- Do not expose import jobs, secrets, drafts, inactive website data, or service-only fields.
 
 Exit tests:
 
-- Anon can read published template/post content for the resolved website only.
-- Anon can read active authors, active redirects, safe settings, and referenced media only.
+- Anon can read published template/post content for the resolved active website only.
+- Anon can read active authors, categories, active redirects, safe settings, and referenced media only.
 - Anon cannot read drafts, unpublished content, trashed rows, import jobs, or revalidation secrets.
 - Public image objects include `url`, `alt`, `caption`, `width`, and `height` when available.
 
 ## Milestone 4: Website Management And Selection
 
-Read first:
+Purpose:
 
-- `PROJECT_PLAN.md`
-- `API_CONTRACTS.md`
-- `USER_FLOWS.md`
-- `SETUP.md`
+- Let the single admin create/select the website context that scopes all normal CMS resources.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-3.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `PROJECT_PLAN.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `SETUP.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Build website list, create, edit, deactivate, and select flows.
-- Store website data in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped rows.
-- Keep website creation database-driven; do not require admin CMS `.env` changes for each new website.
-- Make selected website explicit through `websiteId` in the URL.
+- Store website data in `cms_websites`, `cms_website_domains`, and `cms_site_settings`.
 - Create default settings rows for new websites.
+- Allow website active/inactive status to be changed after setup/import is ready.
+- Keep selected website explicit through `websiteId` in admin URLs.
+- Ensure adding websites requires database/admin records only, not admin CMS `.env` changes.
 
-Do not include:
+Files/modules:
 
-- Permanent website delete.
-- Domain alias UI beyond the primary domain field.
-- Website-specific R2 buckets.
+- `app/(admin)/admin/select-website/`
+- `app/(admin)/admin/websites/`
+- `app/api/cms/websites/`
+- `features/websites/`
+- `lib/cms/repositories/websites*`
+- `lib/cms/validators/websites*`
+
+Inputs/outputs:
+
+- Input: website name and primary domain.
+- Output: inactive website row, primary domain row, default settings row.
+- Output: selected `websiteId` in admin route state/URL.
+
+Interactions:
+
+- Later admin screens must require selected `websiteId`.
+- Public RPC domain resolution depends on website/domain rows.
+
+Constraints:
+
+- Do not implement permanent website delete.
+- Do not implement domain alias UI beyond one primary domain field.
+- Do not create website-specific Supabase Storage buckets.
+- Do not let global quiz depend on selected website context.
 
 Exit tests:
 
@@ -119,55 +237,87 @@ Exit tests:
 - New websites start inactive.
 - Website selection reloads website-scoped screens by `websiteId`.
 - Deactivation hides public data but keeps associated resources.
+- Activation makes the website resolvable by public RPCs once its domain is configured.
 - Adding a website requires no admin CMS `.env` change.
 
-## Milestone 5: Media Library And R2
+## Milestone 5: Media Library And Supabase Storage
 
-Read first:
+Purpose:
 
-- `ARCHITECTURE.md`
-- `DATA_MODEL.md`
-- `API_CONTRACTS.md`
-- `SETUP.md`
+- Provide safe website-scoped media upload, metadata, selection, and deletion before content editors need images.
 
-Implement:
+Dependencies:
 
-- Build upload through server route handlers.
-- Convert/compress uploads to WebP.
-- Store R2 objects under `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
-- Upload public WebP images with `Cache-Control: public, max-age=31536000, immutable`.
-- Treat R2 images as immutable; replacing image content creates a new UUID object key and updates CMS references.
-- Save metadata, public URL, alt text, caption, dimensions, and R2 object key in `cms_media`.
+- Complete Milestones 1-4.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `ARCHITECTURE.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `SETUP.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
+
+- Build media upload through server route handlers.
+- Add Supabase Storage helpers under `lib/storage/`.
+- Convert/compress uploads to WebP with the server-side `sharp` dependency.
+- Store objects under `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+- Upload public WebP images with Supabase Storage `cacheControl: '31536000'`.
+- Save metadata, public URL, alt text, caption, dimensions, MIME type, file size, source, and storage path in `cms_media`.
 - Build media picker filtered by selected website.
-- Implement trash, restore, and permanent delete checks.
+- Implement trash, restore, usage lookup, and permanent delete checks.
 
-Do not include:
+Files/modules:
 
-- Shared media library.
-- Direct browser writes to R2.
-- Public websites listing R2.
+- `app/api/cms/media/`
+- `features/media/`
+- `lib/storage/`
+- `lib/cms/repositories/media*`
+- `lib/cms/services/media*`
+- `lib/cms/validators/media*`
+- `lib/cms/serializers/media*`
+
+Inputs/outputs:
+
+- Input: multipart image upload, `websiteId`, alt text, caption.
+- Output: Supabase Storage object path.
+- Output: `cms_media` row and admin media response.
+- Output: public image object through public RPC serializers.
+
+Interactions:
+
+- Template content, posts, authors, and SEO OG image fields reference media rows by `mediaId`.
+- Permanent delete must query all media usage locations before deleting storage objects.
+- Revalidation is required when public-used media metadata or references change.
+
+Constraints:
+
+- No shared/global media library.
+- No direct browser writes to Supabase Storage.
+- Public websites must not upload, delete, or list Supabase Storage objects.
+- Do not overwrite existing public image URLs; image replacement creates a new UUID storage path.
 
 Exit tests:
 
 - Uploaded files become WebP.
-- R2 object keys include the correct `website_id`.
-- Public WebP uploads include `Cache-Control: public, max-age=31536000, immutable`.
-- Replacing an image creates a new object key instead of overwriting the old public URL.
+- Supabase Storage paths include the correct `website_id`.
+- Public WebP uploads include Supabase Storage `cacheControl: '31536000'`.
+- Replacing an image creates a new storage path instead of overwriting the old public URL.
 - Media picker shows only selected website media.
 - Cross-website media assignment is rejected.
 - Referenced media cannot be permanently deleted.
-- Unused permanent delete removes the R2 object first and then hard deletes metadata.
+- Unused permanent delete removes the Supabase Storage object first and then hard deletes metadata.
+- Storage delete failure keeps the media row trashed and surfaces an error.
 
 ## Milestone 6: Categories And Authors
 
-Read first:
+Purpose:
 
-- `DATA_MODEL.md`
-- `API_CONTRACTS.md`
-- `USER_FLOWS.md`
-- `TESTING.md`
+- Build blog taxonomy and author profiles before posts require them.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-5.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `TESTING.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Build category CRUD for selected website.
 - Build author CRUD for selected website.
@@ -175,11 +325,35 @@ Implement:
 - Block inactive or trashed authors from new post selection.
 - Block permanent author delete while posts reference the author unless reassignment is implemented.
 
-Do not include:
+Files/modules:
 
-- Tags.
-- Author login accounts.
-- Multiple authors per post.
+- `app/api/cms/categories/`
+- `app/api/cms/authors/`
+- `features/categories/`
+- `features/authors/`
+- `lib/cms/repositories/categories*`
+- `lib/cms/repositories/authors*`
+- `lib/cms/validators/categories*`
+- `lib/cms/validators/authors*`
+
+Inputs/outputs:
+
+- Input: category name/slug/description.
+- Input: author name/slug/bio/avatar image/active state.
+- Output: website-scoped category and author rows.
+- Output: author picker options for post editor.
+
+Interactions:
+
+- Posts require one same-website author and may use one same-website category.
+- Public post responses include author and category display data.
+- Author changes affecting public posts trigger revalidation.
+
+Constraints:
+
+- Do not add tags.
+- Do not add author login accounts.
+- Do not support multiple authors per post in v1.
 
 Exit tests:
 
@@ -188,17 +362,21 @@ Exit tests:
 - Same slugs can exist across different websites.
 - Cross-website author avatar assignment is rejected.
 - Trashed or inactive authors do not appear in the post author picker.
+- Referenced author permanent delete is blocked unless reassignment is implemented.
 
 ## Milestone 7: Template Content
 
-Read first:
+Purpose:
 
-- `DATA_MODEL.md`
-- `API_CONTRACTS.md`
-- `USER_FLOWS.md`
-- `ARCHITECTURE.md`
+- Let admin edit fixed page-template fields without creating a generic page builder.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-6.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `ARCHITECTURE.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Build fixed template content editing for supported template keys.
 - Validate `content_data` against code-defined template schemas.
@@ -206,12 +384,34 @@ Implement:
 - Store image references by `mediaId`.
 - Trigger revalidation after public-facing changes.
 
-Do not include:
+Files/modules:
 
-- Generic arbitrary pages.
-- Page builder or layout builder.
-- Public draft preview tokens.
-- Future scheduling.
+- `app/api/cms/template-content/`
+- `features/template-content/`
+- `lib/cms/schemas/template-content*`
+- `lib/cms/repositories/template-content*`
+- `lib/cms/services/template-content*`
+- `lib/cms/validators/template-content*`
+- `lib/cms/serializers/template-content*`
+
+Inputs/outputs:
+
+- Input: template key, path, title, content data, SEO fields, OG image, status.
+- Output: website-scoped template content row.
+- Output: public template response with resolved image objects.
+
+Interactions:
+
+- Media picker supplies same-website images.
+- Public websites render fixed layouts using returned template content.
+- Sitemap and SEO use template status and sitemap include flag.
+
+Constraints:
+
+- Do not build generic arbitrary pages.
+- Do not build page builder or layout builder.
+- Do not build public draft preview tokens.
+- Do not support future scheduling.
 
 Exit tests:
 
@@ -219,33 +419,58 @@ Exit tests:
 - Public reads return only published, non-trashed template content.
 - Public template responses return resolved image objects.
 - Draft/unpublished template content stays private.
-- Revalidation runs after publish, unpublish, trash, permanent delete, SEO, and media changes used by public content.
+- Revalidation runs after publish, unpublish, trash, permanent delete, SEO changes, and media changes used by public content.
 
 ## Milestone 8: Blog Posts
 
-Read first:
+Purpose:
 
-- `DATA_MODEL.md`
-- `API_CONTRACTS.md`
-- `USER_FLOWS.md`
-- `TESTING.md`
+- Build structured blog publishing with fixed layout, website-scoped authors/categories, media, and SEO.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-7.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `TESTING.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Build post CRUD for selected website.
-- Require one same-website author and one same-website category.
+- Require one same-website author and allow at most one same-website category.
 - Support featured image, SEO fields, OG image, sitemap include flag, status, trash, restore, and permanent delete.
 - Build structured body blocks: paragraph, heading, image, list, quote, link/button, TOC placeholder, FAQ, table, and callout.
 - Store body image references by `mediaId`.
 - Trigger revalidation after public-facing post, author, SEO, and media changes.
 
-Do not include:
+Files/modules:
 
-- Tags.
-- Multiple categories per post.
-- Multiple authors per post.
-- Freeform HTML as the required storage model.
-- Future scheduling.
+- `app/api/cms/posts/`
+- `features/posts/`
+- `lib/cms/schemas/post-blocks*`
+- `lib/cms/repositories/posts*`
+- `lib/cms/services/posts*`
+- `lib/cms/validators/posts*`
+- `lib/cms/serializers/posts*`
+
+Inputs/outputs:
+
+- Input: title, slug, excerpt, author, category, featured image, body blocks, SEO fields, status.
+- Output: website-scoped post row.
+- Output: public post/list response with author data and resolved image objects.
+- Output: FAQ data suitable for FAQ schema.
+
+Interactions:
+
+- Authors, categories, media, redirects, sitemap, SEO, and revalidation all connect to posts.
+- Public websites render the fixed blog shell and body blocks.
+
+Constraints:
+
+- Do not add tags.
+- Do not support multiple categories per post.
+- Do not support multiple authors per post.
+- Do not make freeform HTML the required storage model.
+- Do not support future scheduling.
 
 Exit tests:
 
@@ -255,27 +480,58 @@ Exit tests:
 - FAQ blocks produce data suitable for FAQ schema.
 - Author changes affecting public posts trigger revalidation.
 
-## Milestone 9: Redirects, Settings, Robots, And Sitemap
+## Milestone 9: Redirects, Settings, Robots, Sitemap, And AdSense
 
-Read first:
+Purpose:
 
-- `DATA_MODEL.md`
-- `API_CONTRACTS.md`
-- `RLS_POLICIES.md`
-- `USER_FLOWS.md`
+- Add site-level controls that affect routing, SEO, public metadata, and cache refresh behavior.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-8.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `DATA_MODEL.md`, `API_CONTRACTS.md`, `RLS_POLICIES.md`, `USER_FLOWS.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Build redirect manager with 301/302 support.
-- Build site settings, robots.txt, sitemap settings, SEO defaults, and revalidation webhook settings.
+- Build site settings, robots.txt, sitemap settings, SEO defaults, AdSense settings, and revalidation webhook settings.
 - Encrypt revalidation secrets with `CMS_ENCRYPTION_KEY`.
 - Expose only safe settings through public RPCs/views.
+- Trigger revalidation after public-facing settings, redirect, robots, sitemap, AdSense, or SEO changes.
 
-Do not include:
+Files/modules:
 
-- Public writes.
-- Anon redirect hit tracking updates.
-- Manual schema builder.
+- `app/api/cms/redirects/`
+- `app/api/cms/settings/`
+- `features/redirects/`
+- `features/settings/`
+- `lib/cms/repositories/redirects*`
+- `lib/cms/repositories/settings*`
+- `lib/cms/services/revalidation*`
+- `lib/cms/validators/redirects*`
+- `lib/cms/validators/settings*`
+
+Inputs/outputs:
+
+- Input: redirect source path, destination, and type.
+- Input: robots.txt, sitemap settings, SEO defaults, AdSense settings, revalidation URL/secret.
+- Output: active redirect rows and safe public settings.
+- Output: encrypted revalidation secret stored admin-only.
+
+Interactions:
+
+- Public websites consume active redirects and safe settings.
+- Public websites consume safe AdSense settings to decide whether to render the AdSense script and `/ads.txt`.
+- Revalidation webhooks refresh public caches after affected changes.
+- Sitemap depends on published templates/posts and include flags.
+
+Constraints:
+
+- Do not allow public writes.
+- Do not allow anon redirect hit tracking updates.
+- Do not build manual schema builder.
+- Do not expose revalidation secrets publicly.
 
 Exit tests:
 
@@ -284,17 +540,24 @@ Exit tests:
 - Public reads return only active, non-trashed redirects.
 - Revalidation secrets never return to public clients.
 - Sitemap excludes drafts, unpublished content, trashed content, and disabled rows.
+- New websites default to inactive AdSense settings.
+- Enabling AdSense without a valid `ca-pub-...` publisher ID is rejected.
+- Disabling AdSense preserves saved values but public settings return inactive behavior.
+- AdSense changes trigger revalidation.
 
 ## Milestone 10: WordPress Import
 
-Read first:
+Purpose:
 
-- `ARCHITECTURE.md`
-- `DATA_MODEL.md`
-- `API_CONTRACTS.md`
-- `USER_FLOWS.md`
+- Provide one-time inactive-site migration from WordPress into the new website-scoped CMS model.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-9.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `ARCHITECTURE.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Build inactive-website-only import.
 - Track progress and reports in `cms_import_jobs`.
@@ -306,80 +569,154 @@ Implement:
 - Import posts, categories, authors, featured images, inline images, and SEO metadata where available.
 - Create or reuse website-scoped authors in `cms_authors`.
 - Use fallback author `Imported Author` when WordPress author data is unavailable.
-- Rewrite old WordPress image URLs to R2 public URLs.
+- Rewrite old WordPress image URLs to Supabase Storage public URLs.
 - Implement import reset for inactive websites only.
 
-Do not include:
+Files/modules:
 
-- Active website import.
-- Import into another website's resources.
-- Generic page creation for unmatched pages.
+- `app/api/cms/import/`
+- `features/import/`
+- `lib/cms/services/import*`
+- `lib/cms/services/wordpress*`
+- `lib/cms/repositories/import-jobs*`
+- `lib/storage/`
+- `lib/cms/serializers/import*`
+
+Inputs/outputs:
+
+- Input: WordPress base URL, optional username, optional application password, inactive website confirmation.
+- Output: import job row and progress report.
+- Output: template content, posts, categories, authors, media rows, and copied storage objects.
+- Output: rewritten image URLs and failed-media report.
+
+Interactions:
+
+- Uses media, authors, categories, template content, posts, settings, and storage helpers.
+- Reuses validation and ownership rules from normal CRUD modules.
+- Reset must only affect selected inactive website data.
+
+Constraints:
+
+- Do not allow active website import.
+- Do not import into another website's resources.
+- Do not create generic pages for unmatched pages.
+- Do not store WordPress credentials in `.env`, reports, public responses, or logs.
 
 Exit tests:
 
 - Active website import is blocked.
 - Public WordPress REST import works without credentials when source data is available.
 - Optional WordPress application-password import works for protected REST data.
-- WordPress credentials are never stored in `.env`, reports, public responses, or logs.
 - Temporary encrypted WordPress credentials are cleared after import success, failure, or reset.
 - Import job records progress, counts, skipped items, unmatched pages, failed media, and errors.
 - Imported posts never save without `author_id`.
 - Fallback author is created or reused when needed.
-- Imported images are copied to R2 under the selected website prefix.
-- Reset clears only the inactive selected website's scoped rows and imported R2 objects.
+- Imported images are copied to Supabase Storage under the selected website prefix.
+- Reset clears only the inactive selected website's scoped rows and imported Supabase Storage objects.
 
 ## Milestone 11: Public Website Integration
 
-Read first:
+Purpose:
 
-- `ARCHITECTURE.md`
-- `RLS_POLICIES.md`
-- `API_CONTRACTS.md`
-- `SETUP.md`
+- Connect separately deployed public websites to safe CMS reads, image URLs, redirects, settings, and revalidation.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-10.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `ARCHITECTURE.md`, `RLS_POLICIES.md`, `API_CONTRACTS.md`, `SETUP.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Public websites resolve their `website_id` by domain through public RPCs/views.
 - Public websites fetch public-safe CMS data only.
 - Public websites render returned image URLs and author data without service-role credentials.
+- Public websites render the AdSense script only when safe settings say AdSense is active and configured.
+- Public websites expose `/ads.txt` only when AdSense is active and `adsTxt` content exists.
 - Public websites expose server-only revalidation endpoints.
 - Public websites cache reads where appropriate and refresh after revalidation.
 
-Do not include:
+Files/modules:
 
-- Public website access to admin APIs.
-- Public website access to R2 write credentials.
-- Public website direct listing of R2.
+- public website data-fetching modules
+- public website revalidation route
+- CMS revalidation service
+- public RPC/view SQL from Supabase migrations
+
+Inputs/outputs:
+
+- Input: public request domain and page/post slug or template key.
+- Output: public-safe CMS content and resolved image objects.
+- Output: safe AdSense state used for script rendering and `/ads.txt`.
+- Input: admin CMS revalidation webhook request.
+- Output: refreshed public paths or surfaced webhook error.
+
+Interactions:
+
+- Public websites consume RPCs/views from Milestone 3.
+- Public websites render content created in Milestones 4-10.
+- Admin CMS revalidation calls public website endpoints after public-facing changes.
+
+Constraints:
+
+- Do not give public websites service-role key.
+- Do not let public websites access admin APIs.
+- Do not let public websites upload, delete, or list Supabase Storage objects.
 
 Exit tests:
 
 - Public website renders template content and posts for its own domain only.
-- Browser downloads images from the custom R2 media domain.
+- Browser downloads images from Supabase Storage public URLs/CDN.
+- Public website does not render AdSense when inactive.
+- Public website renders AdSense script when active and configured.
+- Public website returns `/ads.txt` only when active and configured.
 - Public website has anon key only, not service-role key.
 - Revalidation webhook requires the configured secret.
 - Webhook failure is visible to admin but does not roll back saved content.
 
 ## Milestone 12: Quiz Isolation
 
-Read first:
+Purpose:
 
-- `PROJECT_PLAN.md`
-- `DECISIONS.md`
-- `USER_FLOWS.md`
-- Separate live quiz copy as reference if needed.
+- Rebuild or port global quiz behavior without contaminating website-scoped CMS architecture.
 
-Implement:
+Dependencies:
+
+- Complete relevant foundation work from Milestone 1.
+- Read `MILESTONE_REVIEWS.md`, especially the latest completed milestone review entry.
+- Read `PROJECT_PLAN.md`, `DECISIONS.md`, `USER_FLOWS.md`, and `IMPLEMENTATION_CONTEXT.md`.
+- Use the separate live quiz copy as reference if needed.
+
+Build:
 
 - Port or rebuild the global quiz behavior without making it website-scoped.
 - Keep quiz outside selected website context.
 - Apply quiz-specific Karachi date rollover rules.
 - Keep quiz storage and logic separate from website-scoped CMS modules.
 
-Do not include:
+Files/modules:
 
-- Website-scoped quiz behavior.
-- Generic CMS scheduling for template content or posts.
-- Moving quiz to Supabase unless scope changes later.
+- `app/(admin)/admin/quiz/`
+- `features/quiz/`
+- quiz-specific helper modules only
+
+Inputs/outputs:
+
+- Input: global quiz update payload.
+- Output: one global quiz update applied for all public websites.
+- Output: visible date and SEO/meta/schema date following quiz-specific rules.
+
+Interactions:
+
+- Quiz can live in the admin shell but must not require `websiteId`.
+- Website selection must not filter quiz behavior.
+- Future Supabase quiz storage must still remain global.
+
+Constraints:
+
+- Do not add website-scoped quiz behavior.
+- Do not implement generic CMS scheduling for template content or posts.
+- Do not move quiz to Supabase unless scope changes later.
 
 Exit tests:
 
@@ -391,31 +728,50 @@ Exit tests:
 
 ## Milestone 13: Final Hardening
 
-Read first:
+Purpose:
 
-- `TESTING.md`
-- `RLS_POLICIES.md`
-- `SETUP.md`
-- `INDEX.md`
+- Verify the complete system, security boundaries, documentation accuracy, and implementation readiness before v1 release.
 
-Implement:
+Dependencies:
+
+- Complete Milestones 1-12.
+- Read `MILESTONE_REVIEWS.md`, especially all unresolved caveats and follow-up items.
+- Read `TESTING.md`, `RLS_POLICIES.md`, `SETUP.md`, `INDEX.md`, and `IMPLEMENTATION_CONTEXT.md`.
+
+Build:
 
 - Run full automated checks.
 - Run manual admin and public website regression flows.
-- Verify security boundaries for Supabase, R2, revalidation, and website scoping.
+- Verify security boundaries for Supabase service-role access, Supabase Storage mutations, revalidation, and website scoping.
 - Update docs if implementation changes any contract.
+- Remove temporary scaffold code only after real admin shell/pages replace it.
 
-Do not include:
+Files/modules:
 
-- New product scope.
-- Deferred v1 exclusions.
-- Untracked decisions.
+- all app, feature, lib, Supabase, and docs files
+- test suite and manual test notes
+
+Inputs/outputs:
+
+- Input: complete v1 implementation.
+- Output: passing automated checks and manual regression checklist.
+- Output: docs matching implementation contracts.
+
+Interactions:
+
+- Confirms all milestones work together: admin auth, website scoping, media, import, public reads, revalidation, and quiz isolation.
+
+Constraints:
+
+- Do not add new product scope.
+- Do not implement deferred v1 exclusions.
+- Do not leave implementation changes undocumented.
 
 Exit tests:
 
-- `npm test` passes if available.
-- `npm run lint` passes if available.
-- `npm run build` passes.
+- `npm.cmd test` passes.
+- `npm.cmd run lint` passes.
+- `npm.cmd run build` passes.
 - Public anon checks pass for all public RPCs/views.
 - Cross-website content, author, media, redirect, and settings access is blocked.
 - WordPress import, media, revalidation, public rendering, and quiz regression flows pass.

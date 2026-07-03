@@ -1,6 +1,6 @@
 # CMS Setup
 
-This document covers setup requirements for Supabase, Cloudflare R2, Vercel, and local development.
+This document covers setup requirements for Supabase, Supabase Storage, Vercel, and local development.
 
 ## Supabase Setup
 
@@ -28,8 +28,10 @@ Important:
 Admin CMS:
 
 ```text
+ADMIN_SECRET=
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+CMS_ENCRYPTION_KEY=
 ```
 
 Public websites:
@@ -42,14 +44,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 Notes:
 
 - Public websites should not have the service-role key.
+- Admin CMS does not need `NEXT_PUBLIC_SUPABASE_ANON_KEY` unless a future admin-browser Supabase client is deliberately added for safe read-only behavior.
 - Admin browser code should not use service role.
 - If an admin-side browser Supabase client is ever needed, use anon key only for safe operations; keep writes through route handlers.
 - Admin CMS `.env` stores shared system configuration and secrets only.
 - Adding a website must not require editing the admin CMS `.env`.
+- Milestone 1 must add server-side environment validation for required admin CMS variables.
 
-## Cloudflare R2 Setup
+## Supabase Storage Setup
 
-Use one R2 bucket for CMS media.
+Use one Supabase Storage bucket for CMS media.
 
 Recommended bucket name:
 
@@ -57,37 +61,30 @@ Recommended bucket name:
 cms-media
 ```
 
-R2 object key format:
+Storage path format:
 
 ```text
 websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}-thumb.webp
 ```
 
-Production URLs:
+Bucket configuration:
 
-- Use a custom media domain, such as `media.example.com` or `cdn.example.com`.
-- Do not use `r2.dev` URLs in production.
-
-Admin CMS R2 environment variables:
-
-```text
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=cms-media
-R2_PUBLIC_BASE_URL=https://media.example.com
-```
+- Create a public file bucket named `cms-media`.
+- Install/use the server-side `sharp` dependency for WebP conversion in the admin upload pipeline.
+- V1 stores one optimized public WebP object per media record; do not create thumbnail/object variants unless the data model is extended to track them.
+- Use Supabase Storage generated public URLs in v1.
+- Do not use signed URLs for public website images in v1.
+- Do not add separate Supabase Storage environment variables in v1; use the existing Supabase URL and service-role key on the admin server.
 
 Rules:
 
-- R2 write credentials are server-only.
+- Supabase service-role key is server-only.
+- Admin route handlers upload/delete media with trusted server-side Supabase helpers.
 - Public websites consume URLs returned by CMS data.
-- Public websites do not list R2.
-- Upload public WebP images with `Cache-Control: public, max-age=31536000, immutable`.
-- Treat R2 image objects as immutable public assets.
-- If image content changes, upload a new UUID object key and update CMS references instead of overwriting an existing public URL.
-- Keep the custom media domain public/cacheable and do not add bot, IP verification, or challenge rules to it.
+- Public websites do not upload, delete, or list Supabase Storage objects.
+- Upload public WebP images with Supabase Storage `cacheControl: '31536000'`.
+- Treat Supabase Storage image objects as immutable public assets.
+- If image content changes, upload a new UUID storage path and update CMS references instead of overwriting an existing public URL.
 
 ## Vercel Setup
 
@@ -96,7 +93,7 @@ Admin CMS:
 - Deploy as its own Vercel project/domain.
 - Configure `ADMIN_SECRET`.
 - Configure Supabase service-role environment variables.
-- Configure R2 write environment variables.
+- Create the `cms-media` Supabase Storage bucket before testing media uploads.
 
 Public websites:
 
@@ -111,11 +108,6 @@ Admin CMS environment variables:
 ADMIN_SECRET=
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=
-R2_PUBLIC_BASE_URL=
 CMS_ENCRYPTION_KEY=
 ```
 
@@ -135,16 +127,18 @@ Website-specific data belongs in:
 
 - `cms_websites` for name, slug, active state, and timestamps.
 - `cms_website_domains` for primary domain and future aliases.
-- `cms_site_settings` for SEO defaults, robots.txt, sitemap settings, and encrypted revalidation settings.
+- `cms_site_settings` for SEO defaults, robots.txt, sitemap settings, AdSense settings, and encrypted revalidation settings.
 - Other website-scoped tables for template content, posts, authors, categories, media, redirects, and import jobs.
 
-Media for every website uses the same R2 bucket and is separated by object key prefix:
+Media for every website uses the same Supabase Storage bucket and is separated by storage path prefix:
 
 ```text
 websites/{website_id}/media/...
 ```
 
-The admin CMS `.env` keeps shared system values such as Supabase keys, R2 credentials, `ADMIN_SECRET`, `CMS_ENCRYPTION_KEY`, and the shared media domain. Public websites may still need their own deployment environment variables once, but adding a new website to the CMS should not require changing the admin CMS deployment environment.
+The admin CMS `.env` keeps shared system values such as Supabase keys, `ADMIN_SECRET`, and `CMS_ENCRYPTION_KEY`. Public websites may still need their own deployment environment variables once, but adding a new website to the CMS should not require changing the admin CMS deployment environment.
+
+AdSense is also website-level database configuration. Do not add AdSense publisher IDs or Active/Inactive state to `.env`; store them in `cms_site_settings.adsense_settings` so admins can change them without redeploying code.
 
 ## WordPress Import Credentials
 
@@ -203,7 +197,7 @@ Local `.env` should include only development keys. Do not commit secrets.
 2. Create migrations from `DATA_MODEL.md`.
 3. Enable/verify RLS and grants from `RLS_POLICIES.md`.
 4. Create public RPCs/views.
-5. Create R2 bucket and custom media domain.
+5. Create the public Supabase Storage bucket `cms-media`.
 6. Configure admin CMS environment variables.
 7. Configure public website environment variables.
 8. Add public revalidation endpoints.
@@ -214,7 +208,6 @@ Local `.env` should include only development keys. Do not commit secrets.
 
 - No service-role key in public websites.
 - No service-role key in browser bundles.
-- No R2 write credentials in browser bundles.
 - Automatic table exposure disabled.
 - RLS enabled on all CMS tables.
 - Public RPCs/views tested with anon role.

@@ -234,15 +234,15 @@ Behavior:
 
 ### `cms_media`
 
-Stores media metadata. File bytes live in Cloudflare R2.
+Stores media metadata. File bytes live in Supabase Storage.
 
 | Column | Type | Required | Notes |
 |---|---|---:|---|
 | `id` | uuid | yes | primary key |
 | `website_id` | uuid | yes | references `cms_websites(id)` |
 | `original_filename` | text | yes | metadata only |
-| `r2_object_key` | text | yes | unique object key |
-| `public_url` | text | yes | custom media domain URL |
+| `storage_path` | text | yes | unique Supabase Storage path |
+| `public_url` | text | yes | Supabase Storage public URL |
 | `alt_text` | text | no | image alt text |
 | `caption` | text | no | optional caption |
 | `width` | integer | no | image width |
@@ -254,16 +254,15 @@ Stores media metadata. File bytes live in Cloudflare R2.
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
-R2 key format:
+Supabase Storage path format:
 
 ```text
 websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}-thumb.webp
 ```
 
 Constraints and indexes:
 
-- unique `r2_object_key`
+- unique `storage_path`
 - index `(website_id, deleted_at)`
 - index `(website_id, source)`
 
@@ -271,14 +270,15 @@ Behavior:
 
 - Media picker filters by selected `website_id`.
 - No shared/global media library.
-- Public WebP uploads use `Cache-Control: public, max-age=31536000, immutable`.
-- Media objects are immutable public assets; image replacement creates a new UUID object key and updates CMS references.
+- Public WebP uploads use Supabase Storage `cacheControl: '31536000'`.
+- V1 stores one optimized public WebP object per media row; thumbnail/object variants are deferred unless matching metadata fields are added later.
+- Media objects are immutable public assets; image replacement creates a new UUID storage path and updates CMS references.
 - Do not overwrite an existing public image URL.
-- Trash keeps R2 object.
+- Trash keeps Supabase Storage object.
 - Permanent delete checks references first.
 - If references exist, permanent delete is blocked.
-- If unused, delete the R2 object first, then hard delete the `cms_media` row.
-- If R2 deletion fails, keep the row trashed and return an error.
+- If unused, delete the Supabase Storage object first, then hard delete the `cms_media` row.
+- If Supabase Storage deletion fails, keep the row trashed and return an error.
 
 ### `cms_redirects`
 
@@ -362,6 +362,7 @@ Stores per-website settings.
 | `sitemap_settings` | jsonb | yes | sitemap defaults/options |
 | `seo_defaults` | jsonb | yes | fallback SEO values |
 | `site_config` | jsonb | yes | content/config values |
+| `adsense_settings` | jsonb | yes | website-level AdSense control; default inactive |
 | `revalidation_url` | text | no | public site webhook URL |
 | `revalidation_secret_encrypted` | text | no | encrypted secret for public site webhook |
 | `created_at` | timestamptz | yes | default now |
@@ -373,9 +374,15 @@ Constraints and indexes:
 
 Behavior:
 
+- New websites default to inactive AdSense settings:
+  `{"enabled": false, "publisherId": null, "autoAdsEnabled": true, "adsTxt": null}`.
+- Enabling AdSense requires a valid `ca-pub-...` publisher ID.
+- Disabling AdSense keeps the saved publisher ID, auto-ads preference, and `ads.txt` text, but public output must behave as inactive.
 - Public reads expose only safe settings.
+- Safe public AdSense fields are `enabled`, `publisherId`, `autoAdsEnabled`, and `adsTxt`.
 - Revalidation secrets stay admin-only.
 - Encrypt revalidation secrets with server-only `CMS_ENCRYPTION_KEY`.
+- AdSense setting changes affect public rendering and must trigger revalidation.
 
 ## Removed From V1
 

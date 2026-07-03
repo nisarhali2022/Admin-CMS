@@ -100,25 +100,25 @@ Test:
 - referenced author permanent delete is blocked unless posts are reassigned first
 - authors are not login users
 
-## Media And R2
+## Media And Supabase Storage
 
 Test:
 
 - image upload validates type and size
 - upload converts/compresses to WebP
-- R2 object key uses `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`
-- public WebP uploads include `Cache-Control: public, max-age=31536000, immutable`
-- image replacement creates a new UUID object key instead of overwriting an existing public URL
-- custom media domain stays public/cacheable without bot, IP verification, or challenge rules
-- media metadata row stores website ID, object key, public URL, alt text, dimensions, MIME type, file size, and source
+- Supabase Storage path uses `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`
+- public WebP uploads include Supabase Storage `cacheControl: '31536000'`
+- image replacement creates a new UUID storage path instead of overwriting an existing public URL
+- Supabase Storage public URLs stay cacheable for immutable public assets
+- media metadata row stores website ID, storage path, public URL, alt text, dimensions, MIME type, file size, and source
 - media picker only shows selected website media
 - cross-website media assignment is rejected
-- trashing media does not delete R2 object
+- trashing media does not delete Supabase Storage object
 - permanent media delete checks usage
 - referenced media cannot be permanently deleted
-- unused media permanent delete removes R2 object
-- R2 delete failure keeps media row trashed and returns an error
-- public websites receive media URLs from Supabase data and never list R2
+- unused media permanent delete removes Supabase Storage object
+- Supabase Storage deletion failure keeps media row trashed and returns an error
+- public websites receive media URLs from Supabase data and never upload, delete, or list Supabase Storage objects
 - public template/post reads return resolved image objects, not unresolved `mediaId` values
 - public image objects include URL, alt text, caption, width, and height when available
 
@@ -156,6 +156,20 @@ Test:
 - sitemap excludes drafts, trashed content, and disabled include flag rows
 - robots.txt is loaded per website
 
+## AdSense Settings
+
+Test:
+
+- new website creates inactive AdSense settings by default
+- admin can save AdSense publisher ID, auto-ads preference, and optional `ads.txt`
+- admin cannot enable AdSense without a valid `ca-pub-...` publisher ID
+- disabling AdSense preserves saved values
+- public settings return inactive AdSense behavior when disabled
+- public website does not render AdSense script when inactive
+- public website renders AdSense script when active and configured
+- `/ads.txt` returns configured text only when AdSense is active and configured
+- AdSense setting changes trigger revalidation
+
 ## Public Reads And RLS
 
 Test with anon credentials:
@@ -168,6 +182,7 @@ Test with anon credentials:
 - public categories filter by website
 - public authors filter by website
 - public settings expose only safe fields
+- public settings expose only safe AdSense fields
 - drafts are hidden
 - unpublished content is hidden
 - trashed content is hidden
@@ -197,14 +212,14 @@ Test:
 - missing WordPress author data uses fallback author `Imported Author`
 - imported posts are rejected or skipped if no `author_id` can be assigned
 - import job rows are admin-only and not exposed to public reads
-- featured images copy to R2
-- inline images copy to R2
-- old inline image URLs rewrite to R2 URLs
+- featured images copy to Supabase Storage
+- inline images copy to Supabase Storage
+- old inline image URLs rewrite to Supabase Storage public URLs
 - Yoast/RankMath SEO imports when available
 - fallback SEO uses WordPress title/excerpt/featured image
 - import report includes imported, skipped, unmatched, failed media, and errors
 - failed import reset clears only inactive website scoped rows
-- failed import reset deletes only that inactive website's R2 objects
+- failed import reset deletes only that inactive website's Supabase Storage objects
 
 ## Revalidation
 
@@ -215,6 +230,7 @@ Test:
 - trash/permanent delete triggers revalidation
 - redirect changes trigger revalidation
 - SEO/settings changes trigger revalidation
+- AdSense changes trigger revalidation
 - media changes affecting public rendering trigger revalidation
 - author changes affecting public posts trigger revalidation
 - webhook secret is required
@@ -243,7 +259,7 @@ Before considering v1 ready:
 - publish posts and templates
 - verify public reads show only public-safe CMS data
 - upload media to both websites
-- verify R2 keys use different website ID prefixes
+- verify Supabase Storage paths use different website ID prefixes
 - attempt cross-website media assignment and confirm rejection
 - attempt cross-website author assignment and confirm rejection
 - deactivate one website and confirm public reads hide it

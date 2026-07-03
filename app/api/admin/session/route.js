@@ -6,35 +6,92 @@ import {
   hasAdminSession,
   isValidAdminSecret,
 } from '@/lib/adminAuth'
+import {
+  clearAdminLoginFailures,
+  getAdminLoginLimitStatus,
+  recordFailedAdminLogin,
+} from '@/lib/auth/adminLoginRateLimit'
+import { validateAdminEnv } from '@/lib/env/adminEnv'
+
+function jsonNoStore(body, init) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      'Cache-Control': 'no-store',
+    },
+  })
+}
+
+function getClientIdentifier(request) {
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) return forwardedFor.split(',')[0].trim()
+
+  return request.headers.get('x-real-ip') || 'local-admin'
+}
+
+function envErrorResponse() {
+  return jsonNoStore(
+    { message: 'Admin CMS environment is not configured.' },
+    { status: 500 }
+  )
+}
 
 export async function GET() {
-  return NextResponse.json(
-    { authenticated: await hasAdminSession() },
-    { headers: { 'Cache-Control': 'no-store' } }
-  )
+  try {
+    validateAdminEnv()
+    return jsonNoStore({ authenticated: await hasAdminSession() })
+  } catch {
+    return envErrorResponse()
+  }
 }
 
 export async function POST(request) {
   try {
+    validateAdminEnv()
+  } catch {
+    return envErrorResponse()
+  }
+
+  const identifier = getClientIdentifier(request)
+  const limitStatus = getAdminLoginLimitStatus(identifier)
+
+  if (!limitStatus.allowed) {
+    return jsonNoStore(
+      {
+        message: 'Too many failed attempts. Try again later.',
+        retryAfterSeconds: limitStatus.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(limitStatus.retryAfterSeconds),
+        },
+      }
+    )
+  }
+
+  try {
     const { secret } = await request.json()
 
     if (!isValidAdminSecret(secret)) {
-      return NextResponse.json(
+      recordFailedAdminLogin(identifier)
+      return jsonNoStore(
         { message: 'Invalid admin secret.' },
         { status: 401 }
       )
     }
 
-    const response = NextResponse.json({ authenticated: true })
+    clearAdminLoginFailures(identifier)
+    const response = jsonNoStore({ authenticated: true })
     response.cookies.set(
       ADMIN_SESSION_COOKIE,
       createAdminSessionToken(),
       getAdminSessionCookieOptions()
     )
-    response.headers.set('Cache-Control', 'no-store')
     return response
   } catch {
-    return NextResponse.json(
+    return jsonNoStore(
       { message: 'Unable to authenticate.' },
       { status: 400 }
     )
@@ -42,11 +99,16 @@ export async function POST(request) {
 }
 
 export async function DELETE() {
-  const response = NextResponse.json({ authenticated: false })
+  try {
+    validateAdminEnv()
+  } catch {
+    return envErrorResponse()
+  }
+
+  const response = jsonNoStore({ authenticated: false })
   response.cookies.set(ADMIN_SESSION_COOKIE, '', {
     ...getAdminSessionCookieOptions(),
     maxAge: 0,
   })
-  response.headers.set('Cache-Control', 'no-store')
   return response
 }
