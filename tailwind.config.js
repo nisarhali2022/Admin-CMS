@@ -2,6 +2,7 @@
 module.exports = {
   content: [
     './app/**/*.{js,jsx}',
+    './features/**/*.{js,jsx}',
     './lib/**/*.{js,jsx}',
   ],
   theme: {
