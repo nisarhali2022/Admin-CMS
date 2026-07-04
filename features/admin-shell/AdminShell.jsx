@@ -1,18 +1,44 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import AdminLoginForm from './AdminLoginForm'
 import WebsitesWorkspace from '@/features/websites/WebsitesWorkspace'
 
-export default function AdminShell({ authenticated }) {
+const navItems = [
+  { href: '/admin', label: 'Websites', scoped: true },
+  { href: '/admin/media', label: 'Media', scoped: true },
+  { href: '/admin/content', label: 'Pages', scoped: true },
+  { href: '/admin/posts', label: 'Posts', scoped: true },
+  { href: '/admin/categories', label: 'Categories', scoped: true },
+  { href: '/admin/authors', label: 'Authors', scoped: true },
+  { href: '/admin/redirects', label: 'Redirects', scoped: true },
+  { href: '/admin/settings', label: 'Settings', scoped: true },
+  { href: '/admin/import', label: 'Import', scoped: true },
+  { href: '/admin/quiz', label: 'Quiz', scoped: false },
+]
+
+export default function AdminShell({ authenticated, children }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const websiteId = searchParams.get('websiteId')
   const [loggingOut, setLoggingOut] = useState(false)
 
   async function handleLogout() {
     setLoggingOut(true)
     await fetch('/api/admin/session', { method: 'DELETE' })
     router.refresh()
+  }
+
+  function getNavHref(item) {
+    if (!item.scoped || !websiteId) return item.href
+    return `${item.href}?websiteId=${websiteId}`
+  }
+
+  function isActive(item) {
+    return pathname === item.href
   }
 
   return (
@@ -41,19 +67,25 @@ export default function AdminShell({ authenticated }) {
       <main className="mx-auto grid max-w-[96rem] gap-6 px-6 py-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
         <aside className="rounded-lg border border-slate-200 bg-white p-4">
           <nav aria-label="Admin sections" className="space-y-1 text-sm">
-            <div className="rounded-md bg-slate-950 px-3 py-2 font-semibold text-white">
-              Websites
-            </div>
-            <div className="px-3 py-2 text-slate-500">Quiz</div>
-            <div className="px-3 py-2 text-slate-500">Media</div>
-            <div className="px-3 py-2 text-slate-500">Content</div>
-            <div className="px-3 py-2 text-slate-500">Settings</div>
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={getNavHref(item)}
+                className={`block rounded-md px-3 py-2 font-semibold transition ${
+                  isActive(item)
+                    ? 'bg-slate-950 text-white'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
         </aside>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6">
           {authenticated ? (
-            <WebsitesWorkspace />
+            children || <WebsitesWorkspace />
           ) : (
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">

@@ -714,3 +714,112 @@ Use this structure for every completed milestone:
   - Confirm public RPCs against real published content and imported content.
   - Milestone 13 should keep separate admin pages/sections and public-site helper docs aligned.
 - Readiness for next milestone: Ready for Milestone 12, Quiz Isolation.
+
+## Milestone 12: Quiz Isolation
+
+- Status: Complete
+- Date completed: 2026-07-04
+- Milestone goal: Keep quiz management global and separate from website-scoped CMS resources so quiz updates continue to work without requiring a selected website.
+- Docs followed: `MILESTONE_REVIEWS.md`, `PROJECT_PLAN.md`, `ARCHITECTURE.md`, `USER_FLOWS.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added a separate global quiz route at `/admin/quiz`.
+  - Added a global quiz admin API at `/api/quiz`.
+  - Added isolated quiz helpers under `lib/quiz`.
+  - Added a quiz manager UI that edits global quiz title, slug, description, and published status.
+  - Added Karachi date handling where visible quiz output follows the current Karachi date and SEO/schema output uses a six-hour offset.
+  - Updated the admin shell so website CMS work remains on `/admin` while quiz work is available from `/admin/quiz`.
+  - Added tests proving quiz date behavior, singleton/global scope, and slug validation without website input.
+- Files/modules changed:
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/quiz/QuizManager.jsx`
+  - `app/(admin)/admin/quiz/page.jsx`
+  - `app/api/quiz/route.js`
+  - `lib/quiz/dates.js`
+  - `lib/quiz/state.js`
+  - `lib/quiz/validators.js`
+  - `test/milestone12-quiz-isolation.test.js`
+- Inputs/outputs added or changed:
+  - Input: admin session plus quiz title, slug, description, and published status.
+  - Output: global quiz payload with visible title/date, SEO title/date, schema date, `global: true`, and `websiteScoped: false`.
+  - Output: no `websiteId` is required or returned for quiz updates.
+- Security and architecture checks:
+  - Quiz API requires the existing admin session.
+  - Quiz implementation does not use website-scoped CMS tables or selected website state.
+  - Quiz data is not exposed through website-scoped public CMS APIs in this milestone.
+  - Quiz remains separate from Supabase website resources until a future global quiz persistence decision is made.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+- Known caveats:
+  - Current quiz storage is an in-memory v1 scaffold, so data persists only for the running server process. This matches the current rebuild/testing stage but should be replaced with global persistent storage before production use if quiz editing must survive restarts.
+  - Public website quiz rendering remains outside this admin CMS milestone.
+  - The admin navigation active state is still simple and will be refined in final hardening.
+- Follow-up items:
+  - Milestone 13 should decide whether to persist quiz data in a global Supabase table or keep using the existing separate quiz project/instance.
+  - If quiz becomes Supabase-backed later, it must remain global and must not add `website_id`.
+  - Final hardening should polish `/admin/quiz` navigation and layout together with the rest of the admin pages.
+- Readiness for next milestone: Ready for Milestone 13, Final Hardening.
+
+## Milestone 13: Final Hardening
+
+- Status: Complete
+- Date completed: 2026-07-04
+- Milestone goal: Remove the temporary all-in-one admin workspace, verify the full implementation, and record remaining production caveats before v1 release work.
+- Docs followed: `MILESTONE_REVIEWS.md`, `IMPLEMENTATION_MILESTONES.md`, `IMPLEMENTATION_CONTEXT.md`, `TESTING.md`, `RLS_POLICIES.md`, `SETUP.md`, `INDEX.md`.
+- What was implemented:
+  - Replaced the long combined website workspace with a reusable website-scoped section shell.
+  - Kept `/admin` focused on website creation, selection, editing, activation, and deactivation.
+  - Added separate admin pages for media, template content, posts, categories, authors, redirects, settings, WordPress import, and quiz.
+  - Added client workspace wrappers for each website-scoped resource so each page loads only the relevant manager.
+  - Updated admin navigation to link directly to each section and preserve the selected `websiteId` for website-scoped pages.
+  - Kept `/admin/quiz` global and outside selected-website scoping.
+  - Added final hardening tests that assert separate admin pages exist and the website workspace no longer mounts every resource manager.
+- Files/modules changed:
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/websites/WebsiteSectionShell.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `features/media/MediaWorkspace.jsx`
+  - `features/template-content/TemplateContentWorkspace.jsx`
+  - `features/posts/PostsWorkspace.jsx`
+  - `features/categories/CategoriesWorkspace.jsx`
+  - `features/authors/AuthorsWorkspace.jsx`
+  - `features/redirects/RedirectsWorkspace.jsx`
+  - `features/settings/SettingsWorkspace.jsx`
+  - `features/import/ImportWorkspace.jsx`
+  - `app/(admin)/admin/media/page.jsx`
+  - `app/(admin)/admin/content/page.jsx`
+  - `app/(admin)/admin/posts/page.jsx`
+  - `app/(admin)/admin/categories/page.jsx`
+  - `app/(admin)/admin/authors/page.jsx`
+  - `app/(admin)/admin/redirects/page.jsx`
+  - `app/(admin)/admin/settings/page.jsx`
+  - `app/(admin)/admin/import/page.jsx`
+  - `test/milestone13-final-hardening.test.js`
+- Inputs/outputs added or changed:
+  - Input: selected `websiteId` query param is preserved when navigating between website-scoped admin sections.
+  - Output: each admin section has a dedicated route and loads only its own workspace manager.
+  - Output: quiz navigation does not preserve or require `websiteId`.
+- Security and architecture checks:
+  - Admin section splitting did not change API route security; existing admin session checks remain in route handlers.
+  - Website-scoped managers still pass `websiteId` to admin APIs.
+  - Quiz remains outside website-scoped resource flow.
+  - Public helper code still uses anon RPCs and does not use service-role credentials.
+  - Supabase Storage mutations remain server-side only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- docs app lib features test supabase package.json package-lock.json .env.example tailwind.config.js`
+  - Stale term scan for old R2/Cloudflare wording and unresolved docs markers.
+- Known caveats:
+  - Public website repo integration is still deferred by user decision; helper code and docs are ready, but visitor-facing routes need to be wired in the public website app.
+  - Quiz persistence is still an in-memory rebuild scaffold. Before production use, either keep using the separate existing quiz instance or add a global persistent quiz store without `website_id`.
+  - WordPress import remains synchronous and limited to the first 100 records per resource.
+  - Manual browser regression should be run against the user's local Supabase data before production deployment, especially media upload, import reset, AdSense settings, and publish/unpublish flows.
+- Follow-up items:
+  - Wire the first public website repo to `lib/public-cms` patterns when ready.
+  - Decide production quiz persistence strategy before relying on `/admin/quiz` for live content.
+  - Consider pagination/background jobs for large WordPress imports.
+  - Perform final manual QA with real Supabase data and public website deployment before release.
+- Readiness for next milestone: Implementation milestones are complete; ready for manual QA, public website integration, and production hardening decisions.

@@ -15,9 +15,10 @@ Read the docs in this order:
 9. `IMPLEMENTATION_CONTEXT.md`
 10. `IMPLEMENTATION_MILESTONES.md`
 11. `MILESTONE_REVIEWS.md`
-12. `public-site-integration/README.md`
-13. `SETUP.md`
-14. `TESTING.md`
+12. `IMPLEMENTATION_DETAILS.md`
+13. `public-site-integration/README.md`
+14. `SETUP.md`
+15. `TESTING.md`
 
 ## Document Ownership
 
@@ -42,6 +43,8 @@ Read the docs in this order:
 `IMPLEMENTATION_MILESTONES.md` owns the milestone-by-milestone execution plan, including docs to read, implementation scope, out-of-scope warnings, and exit tests.
 
 `MILESTONE_REVIEWS.md` owns completed milestone reviews, implementation history, caveats, follow-up items, and next-milestone handoff notes.
+
+`IMPLEMENTATION_DETAILS.md` owns the current implemented file/module map, runtime flow, admin routes, storage behavior, caveats, and manual QA handoff after Milestones 1-13.
 
 `public-site-integration/README.md` owns the helper contracts and wiring notes for later public website repository integration.
 
