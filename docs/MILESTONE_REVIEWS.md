@@ -663,3 +663,54 @@ Use this structure for every completed milestone:
   - Consider paginated/background import before importing very large production WordPress sites.
   - Final admin UI refinement should move import into its own page or navigable section.
 - Readiness for next milestone: Ready for Milestone 11, Public Website Integration.
+
+## Milestone 11: Public Website Integration Helpers
+
+- Status: Complete as helper/docs integration; public website repo wiring deferred
+- Date completed: 2026-07-04
+- Milestone goal: Prepare the public website integration path without editing a separate public website repository yet.
+- Docs followed: `MILESTONE_REVIEWS.md`, `ARCHITECTURE.md`, `RLS_POLICIES.md`, `API_CONTRACTS.md`, `SETUP.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added a public CMS helper layer that calls documented Supabase public RPCs through `fetch`.
+  - Added helpers for safe AdSense script decisions and `/ads.txt` content.
+  - Added helpers for public revalidation secret verification and payload normalization.
+  - Added a sitemap URL helper for template/post URL generation.
+  - Added public-site integration documentation with public env vars, data client usage, image flow, AdSense flow, `/ads.txt`, revalidation endpoint example, redirects, and remaining public website wiring.
+  - Updated the docs chain and milestone plan to support helper/docs-only completion when the public website repo is unavailable.
+  - Added tests proving anon RPC usage, AdSense gates, revalidation secret checks, and sitemap URL behavior.
+- Files/modules changed:
+  - `lib/public-cms/client.js`
+  - `lib/public-cms/adsense.js`
+  - `lib/public-cms/revalidation.js`
+  - `lib/public-cms/sitemap.js`
+  - `lib/public-cms/index.js`
+  - `docs/public-site-integration/README.md`
+  - `docs/INDEX.md`
+  - `docs/IMPLEMENTATION_MILESTONES.md`
+  - `test/milestone11-public-integration.test.js`
+- Inputs/outputs added or changed:
+  - Input: public website domain and Supabase anon configuration.
+  - Output: public-safe RPC responses from `get_public_site_by_domain`, template/post/category/author/settings/redirect RPCs.
+  - Input: safe AdSense settings.
+  - Output: script URL decision and `/ads.txt` content decision.
+  - Input: revalidation webhook request and expected secret.
+  - Output: verified revalidation payload for public website cache refresh.
+- Security and architecture checks:
+  - Public helper requires anon key, not service-role key.
+  - Public helper calls only documented `rpc/...` endpoints.
+  - Public helper does not call admin CMS APIs.
+  - Public helper does not upload, delete, or list Supabase Storage objects.
+  - Revalidation secret verification uses timing-safe comparison.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+- Known caveats:
+  - The real visitor-facing website repo has not been integrated yet by user decision.
+  - `/ads.txt`, `/robots.txt`, `/sitemap.xml`, public page routes, redirect middleware, and public revalidation route still need to be wired in the public website app.
+  - Public end-to-end rendering should be verified once the first public website repo is available.
+- Follow-up items:
+  - When the public website repo is available, wire `lib/public-cms` patterns into the public app routes/pages.
+  - Confirm public RPCs against real published content and imported content.
+  - Milestone 13 should keep separate admin pages/sections and public-site helper docs aligned.
+- Readiness for next milestone: Ready for Milestone 12, Quiz Isolation.

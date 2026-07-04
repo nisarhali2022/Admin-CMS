@@ -642,6 +642,7 @@ Files/modules:
 - public website revalidation route
 - CMS revalidation service
 - public RPC/view SQL from Supabase migrations
+- if no public website repo is available yet, add reusable integration helpers and documentation in the admin CMS repo, then wire them into the public website later
 
 Inputs/outputs:
 
@@ -673,6 +674,7 @@ Exit tests:
 - Public website has anon key only, not service-role key.
 - Revalidation webhook requires the configured secret.
 - Webhook failure is visible to admin but does not roll back saved content.
+- If implementation is helper/docs-only because the public website repo is unavailable, tests verify helper behavior and docs state the remaining public-site wiring.
 
 ## Milestone 12: Quiz Isolation
 

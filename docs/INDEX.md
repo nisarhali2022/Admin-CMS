@@ -15,8 +15,9 @@ Read the docs in this order:
 9. `IMPLEMENTATION_CONTEXT.md`
 10. `IMPLEMENTATION_MILESTONES.md`
 11. `MILESTONE_REVIEWS.md`
-12. `SETUP.md`
-13. `TESTING.md`
+12. `public-site-integration/README.md`
+13. `SETUP.md`
+14. `TESTING.md`
 
 ## Document Ownership
 
@@ -41,6 +42,8 @@ Read the docs in this order:
 `IMPLEMENTATION_MILESTONES.md` owns the milestone-by-milestone execution plan, including docs to read, implementation scope, out-of-scope warnings, and exit tests.
 
 `MILESTONE_REVIEWS.md` owns completed milestone reviews, implementation history, caveats, follow-up items, and next-milestone handoff notes.
+
+`public-site-integration/README.md` owns the helper contracts and wiring notes for later public website repository integration.
 
 `SETUP.md` owns required project setup for Supabase, Supabase Storage, Vercel, environment variables, and local development.
 
