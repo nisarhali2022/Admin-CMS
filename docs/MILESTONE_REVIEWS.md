@@ -370,3 +370,84 @@ Use this structure for every completed milestone:
   - Milestone 8 post editor may select one same-website category.
   - Author changes that affect public posts must trigger revalidation when post publishing exists.
 - Readiness for next milestone: Ready for Milestone 7, Template Content.
+
+## Post-Milestone 6 Fix: Admin UI Styling And Service-Role Grants
+
+- Status: Complete locally; Supabase migration apply required
+- Date completed: 2026-07-04
+- Milestone goal: Fix issues found during manual admin UI testing before continuing to Milestone 7.
+- What was implemented:
+  - Added `features/**/*.{js,jsx}` to Tailwind content scanning so admin UI classes are generated.
+  - Added a service-role grants migration so trusted admin route handlers can access CMS tables through Supabase REST while anon remains locked down.
+  - Updated `RLS_POLICIES.md` to document direct CMS table grants for `service_role`.
+  - Added a regression test for service-role CMS table grants.
+- Files/modules changed:
+  - `tailwind.config.js`
+  - `supabase/migrations/202607040006_admin_service_role_grants.sql`
+  - `test/admin-service-role-grants.test.js`
+  - `docs/RLS_POLICIES.md`
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example tailwind.config.js`
+- Known caveats:
+  - Run `202607040006_admin_service_role_grants.sql` in Supabase before retesting admin CRUD APIs.
+  - Restart the Next dev server after the Tailwind config change so the UI CSS is regenerated.
+- Readiness for next milestone: Ready for Milestone 7 after the grant migration is applied and the admin UI is retested.
+
+## Milestone 7: Template Content
+
+- Status: Complete
+- Date completed: 2026-07-04
+- Milestone goal: Let admin edit fixed page-template content without adding a generic page builder.
+- Docs followed: `MILESTONE_REVIEWS.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `ARCHITECTURE.md`, `TESTING.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added code-defined template schemas for `home`, `about`, `contact`, `privacy`, `terms`, and `packages`.
+  - Added template content validators for supported template keys, paths, content JSON schema, SEO fields, status, robots meta, sitemap flag, scheduling rejection, OG image, and nested `mediaId` references.
+  - Added template content serializers, repository functions, services, and API routes.
+  - Added create, list, read, update, publish, unpublish, trash, restore, and permanent delete flows.
+  - Added same-website media-reference validation for `contentData` and OG images.
+  - Added a no-op revalidation service hook so public-facing changes use a consistent path until real webhook settings are implemented later.
+  - Added template content UI with fixed template selection, JSON content editing, SEO fields, OG image selection, sitemap flag, status actions, and internal admin preview.
+  - Added tests for schema validation, scheduling rejection, media-reference ownership, revalidation hook behavior, and publish status updates.
+- Files/modules changed:
+  - `lib/cms/schemas/templateContent.js`
+  - `lib/cms/validators/templateContent.js`
+  - `lib/cms/serializers/templateContent.js`
+  - `lib/cms/repositories/templateContent.js`
+  - `lib/cms/services/templateContent.js`
+  - `lib/cms/services/revalidation.js`
+  - `app/api/cms/template-content/route.js`
+  - `app/api/cms/template-content/[id]/route.js`
+  - `app/api/cms/template-content/[id]/publish/route.js`
+  - `app/api/cms/template-content/[id]/unpublish/route.js`
+  - `app/api/cms/template-content/[id]/trash/route.js`
+  - `app/api/cms/template-content/[id]/restore/route.js`
+  - `features/template-content/TemplateContentManager.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `test/milestone7-template-content.test.js`
+- Inputs/outputs added or changed:
+  - Input: selected `websiteId`, template key, path, title, schema-valid `contentData`, SEO fields, OG image, sitemap flag, and status.
+  - Output: website-scoped `cms_template_content` rows.
+  - Output: admin template content responses with normalized camelCase fields.
+  - Output: skipped revalidation metadata until real webhook settings are implemented.
+- Security and architecture checks:
+  - Template content APIs require the existing admin session and selected `websiteId`.
+  - All reads and writes are scoped by `website_id`.
+  - Generic arbitrary pages, layout builder, public preview tokens, and scheduling were not added.
+  - Image references are stored by `mediaId` and must belong to the selected website.
+  - Public RPC filtering from Milestone 3 remains responsible for exposing only published, non-trashed template content.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example tailwind.config.js`
+- Known caveats:
+  - Template content UI uses JSON editing for schema-defined fields in v1; richer field-specific controls can be added later without changing storage contracts.
+  - Revalidation is currently a no-op hook until settings/revalidation webhooks are built in a later milestone.
+  - Real end-to-end public template rendering should be tested when public website integration is implemented.
+- Follow-up items:
+  - Milestone 8 posts should reuse the media-reference and revalidation patterns.
+  - Milestone 9 must replace the no-op revalidation helper with configured webhook behavior.
+  - Public website integration must consume the Milestone 3 `get_public_template_content` RPC.
+- Readiness for next milestone: Ready for Milestone 8, Blog Posts.

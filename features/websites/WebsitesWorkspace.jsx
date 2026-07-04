@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import AuthorsManager from '@/features/authors/AuthorsManager'
 import CategoriesManager from '@/features/categories/CategoriesManager'
 import MediaLibrary from '@/features/media/MediaLibrary'
+import TemplateContentManager from '@/features/template-content/TemplateContentManager'
 
 const emptyCreateForm = {
   name: '',
@@ -232,6 +233,7 @@ export default function WebsitesWorkspace() {
         {selectedWebsite ? (
           <>
             <MediaLibrary websiteId={selectedWebsite.id} />
+            <TemplateContentManager websiteId={selectedWebsite.id} />
             <CategoriesManager websiteId={selectedWebsite.id} />
             <AuthorsManager websiteId={selectedWebsite.id} />
           </>

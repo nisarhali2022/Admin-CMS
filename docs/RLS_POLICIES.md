@@ -55,6 +55,7 @@ Default posture:
 
 Recommended grants:
 
+- Grant `select`, `insert`, `update`, and `delete` on CMS tables to `service_role` for trusted admin route handlers.
 - Grant `execute` on public read functions to `anon`.
 - Grant `select` on safe public views to `anon` only if views are used instead of functions.
 - Do not grant `insert`, `update`, or `delete` on CMS tables to `anon`.
