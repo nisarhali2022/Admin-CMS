@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AuthorsManager from '@/features/authors/AuthorsManager'
 import CategoriesManager from '@/features/categories/CategoriesManager'
+import ImportManager from '@/features/import/ImportManager'
 import MediaLibrary from '@/features/media/MediaLibrary'
+import PostsManager from '@/features/posts/PostsManager'
+import RedirectsManager from '@/features/redirects/RedirectsManager'
+import SettingsManager from '@/features/settings/SettingsManager'
 import TemplateContentManager from '@/features/template-content/TemplateContentManager'
 
 const emptyCreateForm = {
@@ -47,6 +51,8 @@ export default function WebsitesWorkspace() {
       }
 
       setWebsites(result.websites || [])
+    } catch {
+      setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
     } finally {
       setLoading(false)
     }
@@ -94,6 +100,8 @@ export default function WebsitesWorkspace() {
       setCreateForm(emptyCreateForm)
       await loadWebsites()
       selectWebsite(result.website.id)
+    } catch {
+      setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
     } finally {
       setSaving(false)
     }
@@ -121,6 +129,8 @@ export default function WebsitesWorkspace() {
 
       await loadWebsites()
       selectWebsite(result.website.id)
+    } catch {
+      setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
     } finally {
       setSaving(false)
     }
@@ -146,6 +156,8 @@ export default function WebsitesWorkspace() {
 
       await loadWebsites()
       selectWebsite(result.website.id)
+    } catch {
+      setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
     } finally {
       setSaving(false)
     }
@@ -234,8 +246,12 @@ export default function WebsitesWorkspace() {
           <>
             <MediaLibrary websiteId={selectedWebsite.id} />
             <TemplateContentManager websiteId={selectedWebsite.id} />
+            <PostsManager websiteId={selectedWebsite.id} />
             <CategoriesManager websiteId={selectedWebsite.id} />
             <AuthorsManager websiteId={selectedWebsite.id} />
+            <RedirectsManager websiteId={selectedWebsite.id} />
+            <SettingsManager websiteId={selectedWebsite.id} />
+            <ImportManager website={selectedWebsite} />
           </>
         ) : null}
       </section>

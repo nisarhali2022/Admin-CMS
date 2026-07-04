@@ -451,3 +451,215 @@ Use this structure for every completed milestone:
   - Milestone 9 must replace the no-op revalidation helper with configured webhook behavior.
   - Public website integration must consume the Milestone 3 `get_public_template_content` RPC.
 - Readiness for next milestone: Ready for Milestone 8, Blog Posts.
+
+## Milestone 8: Blog Posts
+
+- Status: Complete
+- Date completed: 2026-07-04
+- Milestone goal: Let admin create, edit, publish, unpublish, trash, restore, and delete website-scoped blog posts with required authors, optional categories, media references, structured body blocks, and SEO fields.
+- Docs followed: `MILESTONE_REVIEWS.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `ARCHITECTURE.md`, `TESTING.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added supported structured post block schemas for paragraph, heading, image, list, quote, link button, table of contents, FAQ, table, and callout blocks.
+  - Added post validators for title, slug, required author, optional category, featured image, body blocks, SEO fields, OG image, sitemap flag, status, and scheduling rejection.
+  - Added post serializers, repository functions, services, and API routes.
+  - Added create, list, read, update, publish, unpublish, trash, restore, and permanent delete flows.
+  - Added same-website validation for author, category, featured image, OG image, and body image references.
+  - Reused the no-op revalidation service hook so post changes follow the same future webhook path as template content.
+  - Added blog post UI inside the selected website workspace with author/category/media selection, JSON body block editing, SEO fields, status actions, and FAQ block readiness display.
+  - Added tests for body block validation, FAQ support, scheduling rejection, reference ownership checks, inactive author rejection, media rejection, and publish status updates.
+- Files/modules changed:
+  - `lib/cms/schemas/postBlocks.js`
+  - `lib/cms/validators/posts.js`
+  - `lib/cms/serializers/posts.js`
+  - `lib/cms/repositories/posts.js`
+  - `lib/cms/services/posts.js`
+  - `lib/cms/repositories/authors.js`
+  - `lib/cms/repositories/categories.js`
+  - `app/api/cms/posts/route.js`
+  - `app/api/cms/posts/[id]/route.js`
+  - `app/api/cms/posts/[id]/publish/route.js`
+  - `app/api/cms/posts/[id]/unpublish/route.js`
+  - `app/api/cms/posts/[id]/trash/route.js`
+  - `app/api/cms/posts/[id]/restore/route.js`
+  - `features/posts/PostsManager.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `test/milestone8-posts.test.js`
+- Inputs/outputs added or changed:
+  - Input: selected `websiteId`, post title, slug, required active author, optional category, featured image, body blocks, SEO fields, OG image, sitemap flag, and status.
+  - Output: website-scoped `cms_posts` rows.
+  - Output: admin post responses with normalized camelCase fields and embedded author/category/media data when available.
+  - Output: skipped revalidation metadata until real webhook settings are implemented.
+- Security and architecture checks:
+  - Post APIs require the existing admin session and selected `websiteId`.
+  - All reads and writes are scoped by `website_id`.
+  - Posts cannot be created without an active, non-trashed same-website author.
+  - Category and media references are blocked unless they belong to the selected website and are not trashed.
+  - Scheduling, tags, multiple categories, author login accounts, generic layout building, and public rendering were not added.
+  - Public RPC filtering from Milestone 3 remains responsible for exposing only published, non-trashed posts.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- supabase test docs app lib features package.json package-lock.json .env.example tailwind.config.js`
+- Known caveats:
+  - Post body editing uses JSON blocks in v1; richer block-specific admin controls can be added later without changing the storage contract.
+  - Revalidation is still a no-op hook until settings/revalidation webhooks are built in Milestone 9.
+  - Real end-to-end public post rendering should be tested when public website integration is implemented.
+- Follow-up items:
+  - Milestone 9 must replace the no-op revalidation helper with configured webhook behavior for post, template, media, author, redirect, and settings changes.
+  - Milestone 10 WordPress import must create or reuse website-scoped authors before importing posts.
+  - Public website integration must consume the Milestone 3 `get_public_posts` and `get_public_post` RPCs.
+- Readiness for next milestone: Ready for Milestone 9, Redirects, Settings, Robots, Sitemap, AdSense, And Revalidation.
+
+## Post-Milestone 8 Fix: Admin Relationship Queries And Layout Width
+
+- Status: Complete
+- Date completed: 2026-07-04
+- Milestone goal: Fix issues found during manual admin UI testing after website creation and post/author panels loaded.
+- What was implemented:
+  - Removed fragile embedded PostgREST relationship selects from admin author and post list queries.
+  - Kept direct website-scoped ID validation in the service layer for authors, categories, and media.
+  - Resolved author avatar previews in the client from the already-loaded media list instead of requiring embedded media rows.
+  - Widened the admin shell and slimmed the left navigation column so nested CMS panels have enough working room.
+- Files/modules changed:
+  - `lib/cms/repositories/authors.js`
+  - `lib/cms/repositories/posts.js`
+  - `lib/cms/serializers/authors.js`
+  - `lib/cms/serializers/posts.js`
+  - `features/authors/AuthorsManager.jsx`
+  - `features/admin-shell/AdminShell.jsx`
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+- Known caveats:
+  - Admin post responses no longer include embedded author/category/media objects from PostgREST. The admin UI uses IDs and separate option lists for those resources, which is enough for v1 editing.
+  - Public website data still uses the Milestone 3 public RPCs for resolved media objects.
+- Readiness for next milestone: Ready for Milestone 9 after restarting the dev server and retesting the admin panels.
+
+## Milestone 9: Redirects, Settings, Robots, Sitemap, AdSense, And Revalidation
+
+- Status: Complete
+- Date completed: 2026-07-04
+- Milestone goal: Add website-scoped redirect management, site settings, robots/sitemap/SEO defaults, AdSense controls, and real revalidation webhook behavior.
+- Docs followed: `MILESTONE_REVIEWS.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `RLS_POLICIES.md`, `USER_FLOWS.md`, `TESTING.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added redirect validators, serializers, repository functions, services, API routes, and admin UI.
+  - Added redirect create, list, update, trash, restore, and permanent delete flows.
+  - Added redirect validation for relative source paths, 301/302 type, active status, duplicate source path handling, and simple loop prevention.
+  - Added settings validators, serializers, repository functions, services, API route, and admin UI.
+  - Added editable robots.txt, sitemap settings JSON, SEO defaults JSON, site config JSON, AdSense settings, and revalidation webhook settings.
+  - Added AES-256-GCM encryption/decryption helpers for revalidation secrets using `CMS_ENCRYPTION_KEY`.
+  - Replaced the no-op revalidation helper with real per-website webhook lookup and webhook POST behavior.
+  - Kept webhook failures non-blocking: content/settings saves return the failure metadata but do not roll back.
+  - Added tests for redirect rules, duplicate normalization, AdSense validation, encrypted revalidation secret storage, decrypted webhook headers, and webhook failure handling.
+  - Documented that final hardening must replace the current temporary all-in-one workspace with separate admin pages or navigable sections.
+- Files/modules changed:
+  - `lib/cms/crypto/secrets.js`
+  - `lib/cms/validators/redirects.js`
+  - `lib/cms/validators/settings.js`
+  - `lib/cms/serializers/redirects.js`
+  - `lib/cms/serializers/settings.js`
+  - `lib/cms/repositories/redirects.js`
+  - `lib/cms/repositories/settings.js`
+  - `lib/cms/services/redirects.js`
+  - `lib/cms/services/settings.js`
+  - `lib/cms/services/revalidation.js`
+  - `app/api/cms/redirects/route.js`
+  - `app/api/cms/redirects/[id]/route.js`
+  - `app/api/cms/redirects/[id]/trash/route.js`
+  - `app/api/cms/redirects/[id]/restore/route.js`
+  - `app/api/cms/settings/route.js`
+  - `features/redirects/RedirectsManager.jsx`
+  - `features/settings/SettingsManager.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `test/milestone9-settings-redirects.test.js`
+  - `docs/IMPLEMENTATION_MILESTONES.md`
+- Inputs/outputs added or changed:
+  - Input: selected `websiteId`, redirect source path, destination, type, and active state.
+  - Output: website-scoped `cms_redirects` rows and admin redirect responses.
+  - Input: robots.txt, sitemap settings, SEO defaults, site config, AdSense settings, revalidation URL, and revalidation secret.
+  - Output: website-scoped `cms_site_settings` updates with encrypted webhook secret storage.
+  - Output: revalidation metadata after public-facing changes.
+- Security and architecture checks:
+  - Redirect and settings APIs require the existing admin session and selected `websiteId`.
+  - Revalidation secrets are encrypted before storage and are never returned to admin or public clients.
+  - Public settings continue to be exposed through the Milestone 3 public RPCs, which omit secrets and sanitize AdSense.
+  - Public anon clients still do not write redirect hit tracking fields.
+  - AdSense remains website-scoped database configuration, not `.env`.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- docs app lib features test supabase package.json package-lock.json .env.example tailwind.config.js`
+- Known caveats:
+  - The current admin UI still displays milestone panels in one selected-website workspace. Final hardening must split this into real pages or navigable sections before v1 release.
+  - Sitemap and robots public rendering endpoints for the deployed public websites are still part of public website integration, not the admin app itself.
+  - Revalidation path calculation is basic in v1 service events; public websites can choose to revalidate broader route sets from the event payload.
+- Follow-up items:
+  - Milestone 10 WordPress import should use the existing settings/media/authors/posts helpers where applicable.
+  - Milestone 11 public website integration must consume public settings, redirects, AdSense, robots, sitemap data, and revalidation webhooks.
+  - Milestone 13 must replace the temporary all-in-one workspace with separate admin pages/sections.
+- Readiness for next milestone: Ready for Milestone 10, WordPress Import.
+
+## Milestone 10: WordPress Import
+
+- Status: Complete
+- Date completed: 2026-07-04
+- Milestone goal: Provide inactive-website-only WordPress import with job tracking, author/category/post/template/media mapping, optional application-password access, imported media copy to Supabase Storage, and reset cleanup.
+- Docs followed: `MILESTONE_REVIEWS.md`, `ARCHITECTURE.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `USER_FLOWS.md`, `TESTING.md`, `IMPLEMENTATION_CONTEXT.md`, `IMPLEMENTATION_MILESTONES.md`.
+- What was implemented:
+  - Added import job serializers, repository functions, validators, services, API routes, and admin UI.
+  - Added synchronous v1 WordPress REST import using `/wp-json/wp/v2/posts`, `pages`, `categories`, `users`, and `media`.
+  - Added optional WordPress username/application-password Basic auth for protected REST data.
+  - Added encrypted temporary credential storage for import jobs when credentials are supplied, then clear it on success or failure.
+  - Added inactive-website guard for import and reset.
+  - Added fallback author creation/reuse using `Imported Author` when WordPress author data is missing.
+  - Added category creation/reuse where WordPress categories are available.
+  - Added known-page template mapping for home, about, contact, privacy, terms, and packages.
+  - Added basic WordPress HTML-to-body-block conversion for paragraphs, headings, quotes, and inline images.
+  - Added imported image download, WebP optimization, Supabase Storage upload, and `cms_media` metadata creation with source `wordpress_import`.
+  - Added import reset that deletes inactive selected website import/content rows and deletes only WordPress-imported Supabase Storage objects.
+  - Added tests for active-site import blocking, optional credential use, fallback author behavior, post creation with `author_id`, temporary credential clearing, and reset media scoping.
+- Files/modules changed:
+  - `lib/cms/serializers/importJobs.js`
+  - `lib/cms/repositories/importJobs.js`
+  - `lib/cms/validators/import.js`
+  - `lib/cms/services/import.js`
+  - `lib/cms/services/wordpress.js`
+  - `lib/cms/services/media.js`
+  - `app/api/cms/import/route.js`
+  - `app/api/cms/import/[jobId]/route.js`
+  - `app/api/cms/import/reset/route.js`
+  - `features/import/ImportManager.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `test/milestone10-wordpress-import.test.js`
+- Inputs/outputs added or changed:
+  - Input: selected inactive `websiteId`, WordPress base URL, optional WordPress username, optional application password, and inactive-import confirmation.
+  - Output: `cms_import_jobs` row with status, sanitized report, counts, skipped items, unmatched pages, failed media, and errors.
+  - Output: imported template content, posts, categories, authors, media rows, and Supabase Storage objects where source data exists.
+  - Output: reset result for inactive website import/content cleanup.
+- Security and architecture checks:
+  - Import and reset APIs require the existing admin session and selected `websiteId`.
+  - Active website import and reset are blocked.
+  - WordPress credentials are never stored in `.env`.
+  - WordPress credentials are not returned in job serializers, reports, public responses, or error details.
+  - Temporary encrypted credentials are cleared after import success or failure.
+  - Reset deletes WordPress-imported storage objects and WordPress-imported media rows only; manually uploaded media objects are not deleted by the storage cleanup.
+  - Imported posts are never created without an `author_id`; fallback author is used when necessary.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- docs app lib features test supabase package.json package-lock.json .env.example tailwind.config.js`
+- Known caveats:
+  - V1 import runs synchronously inside the admin request. Large WordPress sites may need a background worker/queue later.
+  - WordPress pagination beyond the first 100 records per resource is not implemented yet.
+  - HTML-to-block conversion is intentionally basic; complex shortcodes, builders, galleries, tables, embeds, and custom fields may be skipped or reduced to text.
+  - SEO import is limited to title/excerpt/featured image fallback data; plugin-specific metadata such as Yoast/RankMath can be added later.
+  - Reset deletes website-scoped content rows for the inactive selected website; use it only during setup before activation.
+- Follow-up items:
+  - Milestone 11 public website integration must verify imported content renders correctly through public RPCs.
+  - Consider paginated/background import before importing very large production WordPress sites.
+  - Final admin UI refinement should move import into its own page or navigable section.
+- Readiness for next milestone: Ready for Milestone 11, Public Website Integration.

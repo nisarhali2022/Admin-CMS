@@ -158,6 +158,10 @@ export default function AuthorsManager({ websiteId }) {
     )
   }
 
+  function getAvatarImage(author) {
+    return author.avatarImage || media.find((item) => item.id === author.avatarImageId)
+  }
+
   return (
     <section className="mt-8 border-t border-slate-200 pt-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -242,6 +246,7 @@ export default function AuthorsManager({ websiteId }) {
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {authors.map((author) => {
+          const avatarImage = getAvatarImage(author)
           const draft = editing[author.id] || {
             name: author.name,
             slug: author.slug,
@@ -259,10 +264,10 @@ export default function AuthorsManager({ websiteId }) {
             >
               <div className="flex items-start gap-3">
                 <div className="h-14 w-14 overflow-hidden rounded-md bg-slate-100">
-                  {author.avatarImage?.publicUrl ? (
+                  {avatarImage?.publicUrl ? (
                     <img
-                      src={author.avatarImage.publicUrl}
-                      alt={author.avatarImage.altText || ''}
+                      src={avatarImage.publicUrl}
+                      alt={avatarImage.altText || ''}
                       className="h-full w-full object-cover"
                     />
                   ) : null}

@@ -745,6 +745,7 @@ Build:
 - Verify security boundaries for Supabase service-role access, Supabase Storage mutations, revalidation, and website scoping.
 - Update docs if implementation changes any contract.
 - Remove temporary scaffold code only after real admin shell/pages replace it.
+- Replace the temporary all-in-one milestone workspace with separate admin pages or navigable sections for websites, media, template content, posts, categories, authors, redirects, settings, and quiz.
 
 Files/modules:
 
@@ -775,3 +776,4 @@ Exit tests:
 - Public anon checks pass for all public RPCs/views.
 - Cross-website content, author, media, redirect, and settings access is blocked.
 - WordPress import, media, revalidation, public rendering, and quiz regression flows pass.
+- Admin UI no longer depends on one long page for all website-scoped resources.

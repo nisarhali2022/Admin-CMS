@@ -18,7 +18,7 @@ export default function AdminShell({ authenticated }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between px-6 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Admin CMS
@@ -38,7 +38,7 @@ export default function AdminShell({ authenticated }) {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[18rem_1fr]">
+      <main className="mx-auto grid max-w-[96rem] gap-6 px-6 py-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
         <aside className="rounded-lg border border-slate-200 bg-white p-4">
           <nav aria-label="Admin sections" className="space-y-1 text-sm">
             <div className="rounded-md bg-slate-950 px-3 py-2 font-semibold text-white">
