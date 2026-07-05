@@ -7,7 +7,7 @@ export async function GET() {
   if (unauthorized) return unauthorized
 
   try {
-    return cmsJson({ quiz: getGlobalQuiz() })
+    return cmsJson({ quiz: await getGlobalQuiz() })
   } catch (error) {
     return cmsErrorResponse(error)
   }
@@ -18,7 +18,7 @@ export async function PATCH(request) {
   if (unauthorized) return unauthorized
 
   try {
-    const quiz = updateGlobalQuiz(validateQuizPayload(await request.json()))
+    const quiz = await updateGlobalQuiz(validateQuizPayload(await request.json()))
 
     return cmsJson({ quiz })
   } catch (error) {

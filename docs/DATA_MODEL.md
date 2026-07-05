@@ -384,6 +384,36 @@ Behavior:
 - Encrypt revalidation secrets with server-only `CMS_ENCRYPTION_KEY`.
 - AdSense setting changes affect public rendering and must trigger revalidation.
 
+### `cms_global_quiz`
+
+Stores the current global quiz. This table is not website-scoped and must not include `website_id`.
+
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| `quiz_id` | uuid | yes | primary key |
+| `questions` | jsonb | yes | exactly 5 question objects |
+| `is_published` | boolean | yes | public visibility |
+| `updated_at` | timestamptz | yes | updated on change |
+
+Question JSON shape:
+
+```json
+{
+  "question": "Question text",
+  "options": ["A", "B", "C", "D"],
+  "answer": "A"
+}
+```
+
+Behavior:
+
+- Quiz is global for all public websites.
+- The table stores only the current quiz, not quiz history or page metadata.
+- Public websites read only the latest published quiz through `cms_public_get_current_quiz()`.
+- Admin writes use server-only service-role code.
+- Validation requires exactly 5 questions, 4 non-empty options per question, and an answer that matches an option.
+- Homepage/page SEO is managed by website template/settings data, not by the quiz table.
+
 ## Removed From V1
 
 Do not create these tables in v1:

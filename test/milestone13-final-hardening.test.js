@@ -47,5 +47,9 @@ test('admin navigation links to separated sections and keeps quiz global', async
     assert.match(shell, new RegExp(href))
   }
 
-  assert.match(shell, /href: '\/admin\/quiz', label: 'Quiz', scoped: false/)
+  assert.doesNotMatch(shell, /\{ href: '\/admin\/quiz'/)
+  assert.match(shell, /const isQuizRoute = pathname === '\/admin\/quiz'/)
+  assert.match(shell, /<Link href="\/admin\/quiz">/)
+  assert.match(shell, /!isQuizRoute \? \(/)
+  assert.match(shell, /className=\{isQuizRoute \? '' : 'lg:pl-56'\}/)
 })

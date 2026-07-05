@@ -2,6 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { LogIn } from 'lucide-react'
+import { Field, MessageAlert } from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function AdminLoginForm() {
   const router = useRouter()
@@ -28,6 +32,7 @@ export default function AdminLoginForm() {
       }
 
       setSecret('')
+      router.push('/admin/quiz')
       router.refresh()
     } finally {
       setSubmitting(false)
@@ -35,33 +40,28 @@ export default function AdminLoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 max-w-sm space-y-4">
-      <div>
-        <label
-          htmlFor="admin-secret"
-          className="block text-sm font-medium text-slate-700"
-        >
-          Admin secret
-        </label>
-        <input
+    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      <Field label="Admin secret">
+        <Input
           id="admin-secret"
           type="password"
           value={secret}
           onChange={(event) => setSecret(event.target.value)}
           autoComplete="current-password"
-          className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
+          placeholder="Admin secret key"
+          autoFocus
+          className="h-12 rounded-lg px-4"
         />
-      </div>
-      {message ? (
-        <p className="text-sm font-medium text-red-700">{message}</p>
-      ) : null}
-      <button
+      </Field>
+      <MessageAlert message={message} />
+      <Button
         type="submit"
         disabled={submitting || !secret}
-        className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="h-12 w-full rounded-lg font-semibold"
       >
-        {submitting ? 'Signing in...' : 'Sign in'}
-      </button>
+        <LogIn />
+        {submitting ? 'Checking...' : 'Login'}
+      </Button>
     </form>
   )
 }

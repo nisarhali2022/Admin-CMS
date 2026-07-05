@@ -1,6 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { RefreshCw, Upload } from 'lucide-react'
+import {
+  AdminPanel,
+  EmptyState,
+  Field,
+  MessageAlert,
+  PageHeader,
+} from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
@@ -173,75 +183,67 @@ export default function MediaLibrary({ websiteId }) {
   }
 
   return (
-    <section className="mt-8 border-t border-slate-200 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Media
-          </p>
-          <h3 className="mt-1 text-xl font-bold">Media library</h3>
-        </div>
-        <button
-          type="button"
-          onClick={loadMedia}
-          disabled={loading}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Refresh media'}
-        </button>
-      </div>
+    <section className="space-y-5">
+      <PageHeader
+        eyebrow="Media"
+        title="Media library"
+        description="Upload optimized WebP images and manage alt text, captions, usage, trash, and permanent delete checks."
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={loadMedia}
+            disabled={loading}
+          >
+            <RefreshCw className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
+        }
+      />
 
-      {message ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-          {message}
-        </p>
-      ) : null}
+      <MessageAlert message={message} />
 
-      <form
-        onSubmit={upload}
-        className="mt-5 grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(12rem,18rem)_minmax(12rem,18rem)_auto]"
-      >
-        <label className="block text-sm font-medium text-slate-700">
-          Image
-          <input
-            type="file"
-            accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
-            onChange={(event) => setFile(event.target.files?.[0] || null)}
-            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-          />
-        </label>
-        <label className="block text-sm font-medium text-slate-700">
-          Alt text
-          <input
-            type="text"
-            value={altText}
-            onChange={(event) => setAltText(event.target.value)}
-            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
-          />
-        </label>
-        <label className="block text-sm font-medium text-slate-700">
-          Caption
-          <input
-            type="text"
-            value={caption}
-            onChange={(event) => setCaption(event.target.value)}
-            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={saving || !file}
-          className="self-end rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+      <AdminPanel title="Upload image" description="Images are converted to WebP and stored under this website's storage path.">
+        <form
+          onSubmit={upload}
+          className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(12rem,18rem)_minmax(12rem,18rem)_auto]"
         >
-          {saving ? 'Uploading...' : 'Upload'}
-        </button>
-      </form>
+          <Field label="Image">
+            <Input
+              type="file"
+              accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+              onChange={(event) => setFile(event.target.files?.[0] || null)}
+            />
+          </Field>
+          <Field label="Alt text">
+            <Input
+              type="text"
+              value={altText}
+              onChange={(event) => setAltText(event.target.value)}
+            />
+          </Field>
+          <Field label="Caption">
+            <Input
+              type="text"
+              value={caption}
+              onChange={(event) => setCaption(event.target.value)}
+            />
+          </Field>
+          <Button type="submit" disabled={saving || !file} className="self-end">
+            <Upload />
+            {saving ? 'Uploading...' : 'Upload'}
+          </Button>
+        </form>
+      </AdminPanel>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {media.length === 0 && !loading ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-            No media for this website yet.
-          </div>
+          <EmptyState
+            title="No media yet"
+            description="Upload the first image for this website to make it available for posts, authors, SEO images, and template content."
+            className="md:col-span-2"
+          />
         ) : null}
 
         {media.map((item) => {
@@ -314,7 +316,7 @@ export default function MediaLibrary({ websiteId }) {
                   type="button"
                   onClick={() => patchMedia(item.id)}
                   disabled={saving}
-                  className="rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Save
                 </button>

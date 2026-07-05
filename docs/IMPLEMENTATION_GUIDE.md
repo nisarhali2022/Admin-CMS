@@ -150,7 +150,7 @@ Scheduling:
 
 - Template content and posts do not support future scheduling in v1.
 - Use only `draft`, `published`, and `unpublished` for template content and posts.
-- Quiz has its own date rollover behavior and must not be implemented as generic CMS scheduling.
+- Quiz is global current data and must not be implemented as generic CMS scheduling.
 
 Revalidation:
 

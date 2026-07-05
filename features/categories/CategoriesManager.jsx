@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
+import { MessageAlert, PageHeader } from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
 
 const emptyForm = {
   name: '',
@@ -128,29 +131,26 @@ export default function CategoriesManager({ websiteId }) {
   }
 
   return (
-    <section className="mt-8 border-t border-slate-200 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Blog
-          </p>
-          <h3 className="mt-1 text-xl font-bold">Categories</h3>
-        </div>
-        <button
-          type="button"
-          onClick={loadCategories}
-          disabled={loading}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Refresh categories'}
-        </button>
-      </div>
+    <section className="space-y-5">
+      <PageHeader
+        eyebrow="Blog"
+        title="Categories"
+        description="Manage the website-scoped category list used by posts and public filtering."
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={loadCategories}
+            disabled={loading}
+          >
+            <RefreshCw className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
+        }
+      />
 
-      {message ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-          {message}
-        </p>
-      ) : null}
+      <MessageAlert message={message} />
 
       <form
         onSubmit={createCategory}

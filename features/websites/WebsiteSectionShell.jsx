@@ -2,6 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Globe2, Plus, RefreshCw, Save } from 'lucide-react'
+import {
+  AdminPanel,
+  EmptyState,
+  Field,
+  LoadingState,
+  MessageAlert,
+  PageHeader,
+  StatusBadge,
+} from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const emptyCreateForm = {
   name: '',
@@ -37,9 +49,7 @@ export default function WebsiteSectionShell({
     setMessage('')
 
     try {
-      const response = await fetch('/api/cms/websites', {
-        cache: 'no-store',
-      })
+      const response = await fetch('/api/cms/websites', { cache: 'no-store' })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -161,201 +171,194 @@ export default function WebsiteSectionShell({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-      <section>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              {sectionLabel}
-            </p>
-            <h2 className="mt-1 text-2xl font-bold">{sectionTitle}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={loadWebsites}
-            disabled={loading}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? 'Loading...' : 'Refresh websites'}
-          </button>
-        </div>
-
-        {message ? (
-          <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-            {message}
-          </p>
-        ) : null}
-
-        <div className="mt-6 grid gap-3">
-          {loading ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
-              Loading websites...
-            </div>
-          ) : null}
-
-          {!loading && websites.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-600">
-              No websites have been added yet.
-            </div>
-          ) : null}
-
-          {websites.map((website) => (
-            <button
-              key={website.id}
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <section className="space-y-5">
+        <PageHeader
+          eyebrow={sectionLabel}
+          title={sectionTitle}
+          description="Choose the website context first. The selected website controls which records load in this section."
+          action={
+            <Button
               type="button"
-              onClick={() => selectWebsite(website.id)}
-              className={`rounded-lg border px-4 py-4 text-left transition ${
-                website.id === selectedWebsiteId
-                  ? 'border-slate-950 bg-slate-950 text-white'
-                  : 'border-slate-200 bg-white text-slate-950 hover:border-slate-400'
-              }`}
+              variant="outline"
+              size="sm"
+              onClick={loadWebsites}
+              disabled={loading}
             >
-              <span className="flex flex-wrap items-center justify-between gap-3">
-                <span>
-                  <span className="block font-semibold">{website.name}</span>
-                  <span
-                    className={`mt-1 block text-sm ${
-                      website.id === selectedWebsiteId
-                        ? 'text-slate-200'
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    {website.primaryDomain}
-                  </span>
-                </span>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    website.isActive
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : website.id === selectedWebsiteId
-                        ? 'bg-white/15 text-slate-100'
-                        : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {website.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
+              <RefreshCw className={loading ? 'animate-spin' : ''} />
+              {loading ? 'Loading...' : 'Refresh'}
+            </Button>
+          }
+        />
 
-        {selectedWebsite ? (
-          <div className="mt-8 border-t border-slate-200 pt-8">
-            {children({ selectedWebsite })}
+        <MessageAlert message={message} />
+
+        <AdminPanel
+          title="Websites"
+          description="Website-scoped CMS resources load only for the selected website."
+          contentClassName="p-0"
+        >
+          <div>
+            {loading ? <LoadingState label="Loading websites..." /> : null}
+
+            {!loading && websites.length === 0 ? (
+              <EmptyState
+                title="No websites yet"
+                description="Create your first website from the panel on the right."
+                className="m-4"
+              />
+            ) : null}
+
+            {websites.map((website) => (
+              <button
+                key={website.id}
+                type="button"
+                onClick={() => selectWebsite(website.id)}
+                className={`w-full border-b border-[#dcdcde] px-4 py-3 text-left transition last:border-b-0 ${
+                  website.id === selectedWebsiteId
+                    ? 'bg-[#f0f6fc] shadow-[inset_3px_0_0_#2271b1]'
+                    : 'bg-white hover:bg-[#f6f7f7]'
+                }`}
+              >
+                <span className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-start gap-3">
+                    <span
+                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-sm ${
+                        website.id === selectedWebsiteId
+                          ? 'bg-[#dbeafe] text-[#2271b1]'
+                          : 'bg-[#f6f7f7] text-[#2271b1]'
+                      }`}
+                    >
+                      <Globe2 className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">
+                        {website.name}
+                      </span>
+                      <span
+                        className={`mt-1 block truncate text-sm ${
+                          website.id === selectedWebsiteId
+                            ? 'text-[#50575e]'
+                            : 'text-[#646970]'
+                        }`}
+                      >
+                        {website.primaryDomain}
+                      </span>
+                    </span>
+                  </span>
+                  <StatusBadge active={website.isActive}>
+                    {website.isActive ? 'Active' : 'Inactive'}
+                  </StatusBadge>
+                </span>
+              </button>
+            ))}
           </div>
-        ) : null}
+        </AdminPanel>
+
+        {selectedWebsite ? <div className="pt-1">{children({ selectedWebsite })}</div> : null}
       </section>
 
-      <aside className="space-y-6">
-        <form
-          onSubmit={createWebsite}
-          className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-        >
-          <h3 className="text-base font-bold">Add website</h3>
-          <label className="mt-4 block text-sm font-medium text-slate-700">
-            Name
-            <input
-              type="text"
-              value={createForm.name}
-              onChange={(event) =>
-                setCreateForm((current) => ({
-                  ...current,
-                  name: event.target.value,
-                }))
-              }
-              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
-            />
-          </label>
-          <label className="mt-4 block text-sm font-medium text-slate-700">
-            Primary domain
-            <input
-              type="text"
-              value={createForm.primaryDomain}
-              onChange={(event) =>
-                setCreateForm((current) => ({
-                  ...current,
-                  primaryDomain: event.target.value,
-                }))
-              }
-              placeholder="example.com"
-              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={saving || !createForm.name || !createForm.primaryDomain}
-            className="mt-4 w-full rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {saving ? 'Saving...' : 'Create website'}
-          </button>
-        </form>
-
-        {selectedWebsite && editForm ? (
-          <form
-            onSubmit={updateWebsite}
-            className="rounded-lg border border-slate-200 bg-white p-4"
-          >
-            <h3 className="text-base font-bold">Selected website</h3>
-            <label className="mt-4 block text-sm font-medium text-slate-700">
-              Name
-              <input
+      <aside className="space-y-5 xl:sticky xl:top-20 xl:self-start">
+        <div id="add-website" className="scroll-mt-20">
+        <AdminPanel title="Add website" description="New websites start inactive.">
+          <form onSubmit={createWebsite} className="space-y-4">
+            <Field label="Name">
+              <Input
                 type="text"
-                value={editForm.name}
+                value={createForm.name}
                 onChange={(event) =>
-                  setEditForm((current) => ({
+                  setCreateForm((current) => ({
                     ...current,
                     name: event.target.value,
                   }))
                 }
-                className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
               />
-            </label>
-            <label className="mt-4 block text-sm font-medium text-slate-700">
-              Primary domain
-              <input
+            </Field>
+            <Field label="Primary domain">
+              <Input
                 type="text"
-                value={editForm.primaryDomain}
+                value={createForm.primaryDomain}
                 onChange={(event) =>
-                  setEditForm((current) => ({
+                  setCreateForm((current) => ({
                     ...current,
                     primaryDomain: event.target.value,
                   }))
                 }
-                className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
+                placeholder="example.com"
               />
-            </label>
-            <label className="mt-4 flex items-center gap-3 text-sm font-medium text-slate-700">
-              <input
-                type="checkbox"
-                checked={editForm.isActive}
-                onChange={(event) =>
-                  setEditForm((current) => ({
-                    ...current,
-                    isActive: event.target.checked,
-                  }))
-                }
-                className="h-4 w-4 rounded border-slate-300 text-slate-950"
-              />
-              Active public website
-            </label>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                type="button"
-                onClick={deactivateSelectedWebsite}
-                disabled={saving || !selectedWebsite.isActive}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Deactivate
-              </button>
-            </div>
+            </Field>
+            <Button
+              type="submit"
+              disabled={saving || !createForm.name || !createForm.primaryDomain}
+              className="w-full"
+            >
+              <Plus />
+              {saving ? 'Saving...' : 'Create website'}
+            </Button>
           </form>
+        </AdminPanel>
+        </div>
+
+        {selectedWebsite && editForm ? (
+          <AdminPanel
+            title="Selected website"
+            description="These details control public domain resolution and site status."
+          >
+            <form onSubmit={updateWebsite} className="space-y-4">
+              <Field label="Name">
+                <Input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(event) =>
+                    setEditForm((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Primary domain">
+                <Input
+                  type="text"
+                  value={editForm.primaryDomain}
+                  onChange={(event) =>
+                    setEditForm((current) => ({
+                      ...current,
+                      primaryDomain: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={editForm.isActive}
+                  onChange={(event) =>
+                    setEditForm((current) => ({
+                      ...current,
+                      isActive: event.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-input"
+                />
+                Active public website
+              </label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button type="submit" disabled={saving}>
+                  <Save />
+                  {saving ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={deactivateSelectedWebsite}
+                  disabled={saving || !selectedWebsite.isActive}
+                >
+                  Deactivate
+                </Button>
+              </div>
+            </form>
+          </AdminPanel>
         ) : null}
       </aside>
     </div>

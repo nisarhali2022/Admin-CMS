@@ -127,8 +127,11 @@ Public reads should be exposed through:
 - `list_public_authors(domain text)`
 - `get_public_site_settings(domain text)`
 - `list_public_redirects(domain text)`
+- `cms_public_get_current_quiz()`
 
 Functions should be `security definer` only when needed and must set a safe `search_path`. They must not expose drafts, inactive websites, trashed rows, service-only fields, or revalidation secrets.
+
+`cms_public_get_current_quiz()` is global and does not accept a domain or `website_id`. It returns only the latest published quiz from `cms_global_quiz`.
 
 ## Admin Server Access
 
@@ -159,6 +162,7 @@ Test that anon reads cannot access:
 - inactive websites
 - draft template content
 - draft posts
+- unpublished global quiz
 - unpublished content
 - trashed content
 - another website's content

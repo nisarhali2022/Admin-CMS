@@ -37,12 +37,14 @@ test('public CMS client calls documented Supabase RPCs with anon credentials', a
   await client.listAuthors('example.com')
   await client.getSiteSettings('example.com')
   await client.listRedirects('example.com')
+  await client.getCurrentQuiz()
 
   assert.ok(calls.every((call) => call.options.method === 'POST'))
   assert.ok(calls.every((call) => call.options.headers.Authorization === 'Bearer anon-key'))
   assert.ok(calls.every((call) => !call.options.headers.Authorization.includes('service')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/get_public_site_by_domain')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/list_public_redirects')))
+  assert.ok(calls.some((call) => call.url.endsWith('/rpc/cms_public_get_current_quiz')))
   assert.deepEqual(JSON.parse(calls[0].options.body), { domain: 'example.com' })
 })
 

@@ -1,6 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Plus, RefreshCw } from 'lucide-react'
+import {
+  AdminPanel,
+  EmptyState,
+  MessageAlert,
+  PageHeader,
+  StatusBadge,
+} from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
 
 const defaultBlocks = [
   { type: 'paragraph', text: '' },
@@ -229,62 +238,84 @@ export default function PostsManager({ websiteId }) {
   }
 
   return (
-    <section className="mt-8 border-t border-slate-200 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Blog
-          </p>
-          <h3 className="mt-1 text-xl font-bold">Posts</h3>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            loadPosts()
-            loadOptions()
-          }}
-          disabled={loading}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Refresh posts'}
-        </button>
-      </div>
-
-      {message ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-          {message}
-        </p>
-      ) : null}
-
-      <div className="mt-5 grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="space-y-3">
-          <button
+    <section className="space-y-5">
+      <PageHeader
+        eyebrow="Blog"
+        title="Posts"
+        description="Create structured posts with authors, categories, media, SEO fields, body blocks, and publish controls."
+        action={
+          <Button
             type="button"
-            onClick={newPost}
-            className="w-full rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              loadPosts()
+              loadOptions()
+            }}
+            disabled={loading}
           >
-            New post
-          </button>
-          {posts.map((post) => (
-            <button
-              key={post.id}
-              type="button"
-              onClick={() => selectPost(post)}
-              className={`w-full rounded-lg border px-3 py-3 text-left ${
-                post.id === selectedId
-                  ? 'border-slate-950 bg-slate-950 text-white'
-                  : 'border-slate-200 bg-white'
-              }`}
-            >
-              <span className="block font-semibold">{post.title}</span>
-              <span className="mt-1 block text-sm opacity-75">
-                {post.slug} - {post.status}
-              </span>
-            </button>
-          ))}
-        </aside>
+            <RefreshCw className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
+        }
+      />
 
-        <form onSubmit={savePost} className="rounded-lg border border-slate-200 bg-white p-4">
+      <MessageAlert message={message} />
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <AdminPanel
+          title="Posts"
+          description={`${posts.length} record(s) in this website.`}
+          action={
+            <Button type="button" size="sm" onClick={newPost}>
+              <Plus />
+              Add New
+            </Button>
+          }
+          contentClassName="p-0"
+        >
+          {posts.length === 0 ? (
+            <EmptyState
+              title="No posts yet"
+              description="Create the first blog post for this website."
+              className="m-4"
+            />
+          ) : (
+            <div className="divide-y divide-[#dcdcde]">
+              {posts.map((post) => (
+                <button
+                  key={post.id}
+                  type="button"
+                  onClick={() => selectPost(post)}
+                  className={`grid w-full gap-1 px-4 py-3 text-left transition ${
+                    post.id === selectedId
+                      ? 'bg-[#f0f6fc] shadow-[inset_3px_0_0_#2271b1]'
+                      : 'bg-white hover:bg-[#f6f7f7]'
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center justify-between gap-2">
+                    <span className="truncate text-sm font-semibold text-[#2271b1]">
+                      {post.title || 'Untitled'}
+                    </span>
+                    <StatusBadge active={post.status === 'published'}>
+                      {post.status}
+                    </StatusBadge>
+                  </span>
+                  <span className="truncate text-xs text-[#646970]">
+                    /{post.slug || 'no-slug'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </AdminPanel>
+
+        <form onSubmit={savePost} className="border border-[#c3c4c7] bg-white p-4">
+          <div className="-mx-4 -mt-4 mb-4 border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
+            <h3 className="text-sm font-semibold text-[#1d2327]">
+              {selectedId ? 'Edit post' : 'Add New Post'}
+            </h3>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <input
               type="text"
@@ -369,7 +400,7 @@ export default function PostsManager({ websiteId }) {
             />
           </label>
 
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="mt-4 border border-[#dcdcde] bg-[#f6f7f7] p-3">
             <p className="text-sm font-semibold text-slate-700">Media IDs</p>
             <div className="mt-2 grid gap-2 text-xs text-slate-600">
               {media.length === 0 ? <span>No uploaded media yet.</span> : null}
@@ -451,35 +482,31 @@ export default function PostsManager({ websiteId }) {
             </div>
           ) : null}
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white disabled:bg-slate-400"
-            >
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-[#dcdcde] pt-4">
+            <Button type="submit" disabled={saving}>
               {saving ? 'Saving...' : 'Save'}
-            </button>
+            </Button>
             {selectedId ? (
               <>
-                <button type="button" onClick={() => action('publish')} className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">
+                <Button type="button" variant="outline" onClick={() => action('publish')}>
                   Publish
-                </button>
-                <button type="button" onClick={() => action('unpublish')} className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">
+                </Button>
+                <Button type="button" variant="outline" onClick={() => action('unpublish')}>
                   Unpublish
-                </button>
+                </Button>
                 {selectedPost?.deletedAt ? (
                   <>
-                    <button type="button" onClick={() => action('restore')} className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">
+                    <Button type="button" variant="outline" onClick={() => action('restore')}>
                       Restore
-                    </button>
-                    <button type="button" onClick={() => action('', 'DELETE')} className="rounded-md border border-red-200 px-3 py-2 text-sm font-semibold text-red-700">
+                    </Button>
+                    <Button type="button" variant="destructive" onClick={() => action('', 'DELETE')}>
                       Delete
-                    </button>
+                    </Button>
                   </>
                 ) : (
-                  <button type="button" onClick={() => action('trash')} className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">
+                  <Button type="button" variant="outline" onClick={() => action('trash')}>
                     Trash
-                  </button>
+                  </Button>
                 )}
               </>
             ) : null}

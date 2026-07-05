@@ -1,4 +1,5 @@
 import '@/styles/globals.css'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 export const metadata = {
   title: 'Admin CMS',
@@ -12,9 +13,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className="font-sans">
       <body>
-        <main>{children}</main>
+        <TooltipProvider>
+          <main>{children}</main>
+        </TooltipProvider>
       </body>
     </html>
   )

@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
+import { MessageAlert, PageHeader } from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
 
 const emptyForm = {
   fromPath: '',
@@ -129,29 +132,26 @@ export default function RedirectsManager({ websiteId }) {
   }
 
   return (
-    <section className="mt-8 border-t border-slate-200 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Routing
-          </p>
-          <h3 className="mt-1 text-xl font-bold">Redirects</h3>
-        </div>
-        <button
-          type="button"
-          onClick={loadRedirects}
-          disabled={loading}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Refresh redirects'}
-        </button>
-      </div>
+    <section className="space-y-5">
+      <PageHeader
+        eyebrow="Routing"
+        title="Redirects"
+        description="Create and manage website-scoped 301 and 302 redirects without duplicate source paths or redirect loops."
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={loadRedirects}
+            disabled={loading}
+          >
+            <RefreshCw className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
+        }
+      />
 
-      {message ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-          {message}
-        </p>
-      ) : null}
+      <MessageAlert message={message} />
 
       <form
         onSubmit={createRedirect}

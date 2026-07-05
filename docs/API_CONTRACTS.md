@@ -337,6 +337,36 @@ Behavior:
 - record unmatched pages and skipped items in report
 - failed reset clears only the inactive website's scoped rows and Supabase Storage objects
 
+## Admin Global Quiz API
+
+Quiz is global and is not scoped by `websiteId`.
+
+`GET /api/quiz`
+
+- requires admin session
+- returns the current global quiz from `cms_global_quiz`
+- if no row exists yet, returns an empty 5-question scaffold for the admin UI
+
+`PATCH /api/quiz`
+
+- requires admin session
+- writes through server-only Supabase service-role code
+- accepts exactly 5 questions and optional published status
+- validates 4 non-empty options per question
+- validates that each answer matches one option
+- replaces the current global quiz data
+- does not accept website ID, title, slug, description, visible date, or SEO date
+
+Public quiz response shape:
+
+```json
+{
+  "quizId": "11111111-1111-4111-8111-111111111111",
+  "questions": [],
+  "updatedAt": "2026-07-05T00:00:00.000Z"
+}
+```
+
 ## Public RPC/View Contracts
 
 Public functions return only safe fields for active websites and public-safe resources.
@@ -351,6 +381,7 @@ Required public functions/views:
 - `list_public_authors(domain)`
 - `get_public_site_settings(domain)`
 - `list_public_redirects(domain)`
+- `cms_public_get_current_quiz()`
 
 Resolved public image object:
 
@@ -397,6 +428,14 @@ Public template result should include:
 - content data with image references resolved to image objects
 - SEO fields
 - OG image object
+
+Public current quiz result should include:
+
+- questions
+- quiz ID
+- updated date
+
+Quiz is global and does not accept a domain or `websiteId`.
 
 Author avatar image object must include `url` and `alt` at minimum. Use the full resolved public image object shape when dimensions and caption are available.
 

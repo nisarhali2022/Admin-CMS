@@ -31,7 +31,7 @@ The CMS manages website data only: text, links, images, fixed-template page cont
 - Blog layouts are fixed, but blog article bodies support structured content blocks.
 - Blog authors are website-scoped profile records, not login users.
 - Template content and blog posts do not support future scheduling in v1.
-- Quiz keeps its own global date rollover behavior separate from CMS page/post scheduling.
+- Quiz is global current data and separate from CMS page/post scheduling.
 - Template content schemas are code-defined.
 - AdSense control is website-scoped, stored in site settings, and not configured through `.env`.
 - No page builder or layout builder in v1.
@@ -504,17 +504,19 @@ V1 behavior:
 - Admin visits `/admin/quiz` without selecting a website.
 - Website selection must not filter quiz targets.
 - One quiz update applies to all websites.
-- Port or rebuild the global quiz behavior during the quiz milestone, using the separate live quiz copy as reference if needed.
+- Admin edits one global 5-question quiz.
+- Quiz data is stored in Supabase in a global table with no `website_id`.
+- Public websites read the current published quiz from Supabase.
 - Quiz code stays isolated from website-scoped CMS modules.
-- Quiz date behavior is separate from CMS page/post scheduling.
-- Visible quiz/page title uses the current Karachi date.
-- SEO/meta/schema date can roll over 6 hours early.
+- Quiz storage contains only current quiz questions, publish state, and update timestamp.
+- Quiz table does not store title, slug, description, visible date, SEO date, or page metadata.
+- Homepage/page SEO is managed by website template/settings data, not by the quiz table.
 
-Long-term direction:
+Storage direction:
 
-- Move quiz to Supabase later.
-- Public websites should eventually read the global current quiz from Supabase.
-- Quiz still remains global when moved to Supabase.
+- Supabase is the quiz source of truth.
+- Quiz remains global and must not add `website_id`.
+- Public website rendering remains separate from the admin app.
 
 ## Admin Features
 
@@ -884,8 +886,8 @@ Required tests:
 - AdSense Active/Inactive changes affect public settings and trigger revalidation.
 - Public website revalidation webhook is called after public-facing changes.
 - Quiz remains global and independent of selected website.
-- Quiz visible date follows current Karachi date.
-- Quiz SEO/meta/schema date can roll over 6 hours early.
+- Quiz storage contains only current quiz questions, publish state, and update timestamp.
+- Quiz SEO/page metadata is managed by website template/settings data.
 
 Required checks:
 

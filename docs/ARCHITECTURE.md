@@ -215,8 +215,8 @@ Quiz remains global:
 - route: `/admin/quiz`
 - no selected `website_id` required
 - one quiz update applies to all public websites
+- quiz is stored in Supabase in `cms_global_quiz`
+- public websites read the current published quiz through `cms_public_get_current_quiz()`
 - quiz code stays separate from website-scoped CMS modules
-- visible quiz/page title uses the current Karachi date
-- SEO/meta/schema date can roll over 6 hours early
-
-Long term, quiz may move to Supabase, but it still remains global.
+- quiz storage contains only current quiz questions, publish state, and update timestamp
+- homepage/page SEO stays in website template/settings data

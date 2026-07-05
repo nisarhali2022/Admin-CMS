@@ -725,8 +725,7 @@ Use this structure for every completed milestone:
   - Added a separate global quiz route at `/admin/quiz`.
   - Added a global quiz admin API at `/api/quiz`.
   - Added isolated quiz helpers under `lib/quiz`.
-  - Added a quiz manager UI that edits global quiz title, slug, description, and published status.
-  - Added Karachi date handling where visible quiz output follows the current Karachi date and SEO/schema output uses a six-hour offset.
+  - Originally added a quiz manager UI with title, slug, description, publish status, and date handling; those metadata/date fields were removed by the Supabase-backed correction below.
   - Updated the admin shell so website CMS work remains on `/admin` while quiz work is available from `/admin/quiz`.
   - Added tests proving quiz date behavior, singleton/global scope, and slug validation without website input.
 - Files/modules changed:
@@ -734,32 +733,69 @@ Use this structure for every completed milestone:
   - `features/quiz/QuizManager.jsx`
   - `app/(admin)/admin/quiz/page.jsx`
   - `app/api/quiz/route.js`
-  - `lib/quiz/dates.js`
   - `lib/quiz/state.js`
   - `lib/quiz/validators.js`
   - `test/milestone12-quiz-isolation.test.js`
 - Inputs/outputs added or changed:
-  - Input: admin session plus quiz title, slug, description, and published status.
-  - Output: global quiz payload with visible title/date, SEO title/date, schema date, `global: true`, and `websiteScoped: false`.
+  - Original input/output included quiz metadata and date fields; the active contract is the corrected current-only shape below.
   - Output: no `websiteId` is required or returned for quiz updates.
 - Security and architecture checks:
   - Quiz API requires the existing admin session.
   - Quiz implementation does not use website-scoped CMS tables or selected website state.
   - Quiz data is not exposed through website-scoped public CMS APIs in this milestone.
-  - Quiz remains separate from Supabase website resources until a future global quiz persistence decision is made.
+  - Original milestone kept quiz separate from website-scoped resources; persistence was corrected later in the Supabase-backed quiz correction.
 - Tests and validation run:
   - `npm.cmd test`
   - `npm.cmd run lint`
   - `npm.cmd run build`
 - Known caveats:
-  - Current quiz storage is an in-memory v1 scaffold, so data persists only for the running server process. This matches the current rebuild/testing stage but should be replaced with global persistent storage before production use if quiz editing must survive restarts.
+  - Original milestone used temporary in-memory quiz storage; this was replaced by the Supabase-backed correction below.
   - Public website quiz rendering remains outside this admin CMS milestone.
   - The admin navigation active state is still simple and will be refined in final hardening.
 - Follow-up items:
-  - Milestone 13 should decide whether to persist quiz data in a global Supabase table or keep using the existing separate quiz project/instance.
-  - If quiz becomes Supabase-backed later, it must remain global and must not add `website_id`.
+  - Supabase-backed correction below replaces the original persistence follow-up.
   - Final hardening should polish `/admin/quiz` navigation and layout together with the rest of the admin pages.
 - Readiness for next milestone: Ready for Milestone 13, Final Hardening.
+
+## Milestone 12 Correction: Supabase-Backed Global Quiz
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Replace the temporary in-memory quiz scaffold with a global Supabase-backed quiz source of truth while keeping quiz independent from selected website context.
+- What was implemented:
+  - Added `cms_global_quiz` migration with no `website_id`.
+  - Added public `cms_public_get_current_quiz()` RPC for published quiz reads.
+  - Updated `/api/quiz` to read/write quiz data through server-only Supabase service-role code.
+  - Replaced the basic quiz metadata form with a 5-question editor based on the separate quiz admin reference UI.
+  - Updated login/header flow so login has no admin shell header, successful login routes to `/admin/quiz`, and the authenticated header contains website selection plus Add Website.
+  - Added a corrective migration that simplifies `cms_global_quiz` to current-only quiz data with `quiz_id`, `questions`, `is_published`, and `updated_at`.
+  - Removed quiz title, slug, description, visible date, SEO date, and created date from the quiz contract.
+- Files/modules changed:
+  - `supabase/migrations/202607050007_global_quiz.sql`
+  - `features/quiz/QuizManager.jsx`
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/admin-shell/AdminLoginForm.jsx`
+  - `app/api/quiz/route.js`
+  - `lib/quiz/state.js`
+  - `lib/quiz/validators.js`
+  - `lib/public-cms/client.js`
+  - `test/milestone12-quiz-isolation.test.js`
+- Inputs/outputs added or changed:
+  - Input: exactly 5 questions with 4 options each, plus optional published flag.
+  - Output: Supabase-backed global quiz payload with `quizId`, questions, `updatedAt`, `global: true`, and `websiteScoped: false`.
+  - Public output: current published quiz through `cms_public_get_current_quiz()` with no page SEO/date metadata.
+- Security and architecture checks:
+  - Admin writes use server-only service-role requests after admin-session validation.
+  - Public reads use anon RPC and expose only published quiz data.
+  - Quiz still has no `website_id` and is not affected by website selection.
+- Tests and validation run:
+  - `npm.cmd test -- test\milestone12-quiz-isolation.test.js`
+- Known caveats:
+  - New migrations `202607050007_global_quiz.sql` and `202607050008_simplify_global_quiz.sql` must be applied in Supabase before live admin quiz saves can work.
+  - Public website rendering still needs to call the new public quiz RPC when public-site integration is wired.
+- Follow-up items:
+  - Run full test/lint/build validation after the remaining docs and UI changes in this correction.
+- Readiness for next milestone: Ready for final validation after this correction.
 
 ## Milestone 13: Final Hardening
 
@@ -774,6 +810,9 @@ Use this structure for every completed milestone:
   - Added client workspace wrappers for each website-scoped resource so each page loads only the relevant manager.
   - Updated admin navigation to link directly to each section and preserve the selected `websiteId` for website-scoped pages.
   - Kept `/admin/quiz` global and outside selected-website scoping.
+  - Moved Quiz navigation to the top header and hid the left sidebar only on `/admin/quiz`.
+  - Fixed quiz answer selection so typing option text does not auto-select an answer before the option selector is clicked.
+  - Added a corrective Supabase grant so service-role quiz saves can execute the quiz question validation function.
   - Added final hardening tests that assert separate admin pages exist and the website workspace no longer mounts every resource manager.
 - Files/modules changed:
   - `features/admin-shell/AdminShell.jsx`
@@ -814,12 +853,10 @@ Use this structure for every completed milestone:
   - Stale term scan for old R2/Cloudflare wording and unresolved docs markers.
 - Known caveats:
   - Public website repo integration is still deferred by user decision; helper code and docs are ready, but visitor-facing routes need to be wired in the public website app.
-  - Quiz persistence is still an in-memory rebuild scaffold. Before production use, either keep using the separate existing quiz instance or add a global persistent quiz store without `website_id`.
   - WordPress import remains synchronous and limited to the first 100 records per resource.
   - Manual browser regression should be run against the user's local Supabase data before production deployment, especially media upload, import reset, AdSense settings, and publish/unpublish flows.
 - Follow-up items:
   - Wire the first public website repo to `lib/public-cms` patterns when ready.
-  - Decide production quiz persistence strategy before relying on `/admin/quiz` for live content.
   - Consider pagination/background jobs for large WordPress imports.
   - Perform final manual QA with real Supabase data and public website deployment before release.
 - Readiness for next milestone: Implementation milestones are complete; ready for manual QA, public website integration, and production hardening decisions.

@@ -32,7 +32,7 @@ Implemented:
 Deferred or caveated:
 
 - Public website repo integration is prepared but not wired yet.
-- Quiz persistence is currently in-memory in this rebuild scaffold.
+- Quiz persistence is Supabase-backed in `cms_global_quiz`.
 - WordPress import is synchronous and currently limited to the first 100 records per source resource.
 - Production release still needs manual browser QA against real Supabase data.
 
@@ -53,7 +53,8 @@ flowchart TD
   PublicSite --> PublicImages["Supabase Storage public image URLs"]
   PublicImages --> Storage
   AdminUI --> QuizRoute["Global quiz API"]
-  QuizRoute --> QuizState["Global quiz state"]
+  QuizRoute --> QuizTable["Supabase global quiz table"]
+  QuizTable --> SupabaseDB
 ```
 
 ## Admin Pages
@@ -73,7 +74,7 @@ All admin pages use `AdminShell` and require the admin session before showing th
 | `/admin/import` | WordPress import/reset for inactive websites | `features/import/ImportWorkspace.jsx` |
 | `/admin/quiz` | Global quiz management | `features/quiz/QuizManager.jsx` |
 
-Website-scoped pages preserve `websiteId` in the query string when navigating between sections. Quiz intentionally does not require or preserve `websiteId`.
+Website-scoped pages preserve `websiteId` in the query string when navigating between sections. Quiz intentionally does not require or preserve `websiteId`; it is linked from the top header and `/admin/quiz` does not show the left sidebar.
 
 ## App Route Layout
 
@@ -355,7 +356,6 @@ Files:
 app/(admin)/admin/quiz/page.jsx
 app/api/quiz/route.js
 features/quiz/QuizManager.jsx
-lib/quiz/dates.js
 lib/quiz/state.js
 lib/quiz/validators.js
 ```
@@ -366,12 +366,10 @@ Behavior:
 - Does not require selected website.
 - Does not accept or return `websiteId`.
 - One global quiz update applies to all websites.
-- Visible quiz output follows current Karachi date.
-- SEO/schema date uses Karachi date with a six-hour offset.
-
-Current caveat:
-
-- Quiz state is currently in memory. For production, either keep the existing separate quiz project/instance or add a global persistent table that does not include `website_id`.
+- Stores only current quiz questions, publish state, and update timestamp in `cms_global_quiz`.
+- Public websites read the published quiz through `cms_public_get_current_quiz()`.
+- Quiz table does not store title, slug, description, visible date, SEO date, or page metadata.
+- Homepage/page SEO is managed by website template/settings data.
 
 ## Environment Variables
 
@@ -484,7 +482,6 @@ Before production use, manually verify:
 These are not blockers for the current admin CMS rebuild, but they matter before real release:
 
 - Public website repo wiring and end-to-end rendering.
-- Persistent global quiz storage strategy.
 - Background/paginated WordPress import for large sites.
 - Final UX polish for rich editors and media picking.
 - Deployment target and environment variable setup.

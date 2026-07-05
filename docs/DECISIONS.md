@@ -105,6 +105,6 @@ This file records decisions that should not be re-decided during implementation 
 ## Quiz Decisions
 
 - Quiz remains global and separate from selected website context.
-- Quiz date behavior is not generic CMS scheduling.
-- Visible quiz/page title uses the current Karachi date.
-- SEO/meta/schema date can roll over 6 hours early.
+- Quiz storage contains only the current quiz questions, publish state, and update timestamp.
+- Quiz table has no `website_id`, title, slug, description, visible date, SEO date, or page metadata.
+- Homepage/page SEO belongs to website template/settings data, not the quiz table.

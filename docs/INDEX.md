@@ -61,7 +61,8 @@ Read the docs in this order:
 - Authors are website-scoped blog profile records, not login users.
 - Template content and blog posts do not support future scheduling in v1.
 - Quiz remains global and separate from selected website context.
-- Quiz date rollover is quiz-specific: visible quiz/page title follows current Karachi date, while SEO/meta/schema date can roll over 6 hours early.
+- Quiz storage contains only current quiz questions, publish state, and update timestamp.
+- Quiz SEO/page metadata belongs to website template/settings data, not the quiz table.
 - Public websites are separate apps and keep their own layouts/themes.
 - Public websites read public-safe CMS data from Supabase through public read-only RPCs/views.
 - Admin writes happen through server route handlers only.

@@ -241,12 +241,16 @@ Test:
 Test:
 
 - `/admin/quiz` does not require selected website
+- `/admin/quiz` hides the left sidebar
+- Quiz appears in the top header, not the left sidebar
 - website selection does not filter quiz targets
+- typing option text does not auto-select the answer
+- clicking an option selector chooses the answer
 - one quiz update applies globally
 - quiz code stays isolated from CMS website-scoped modules
-- visible quiz/page title follows current Karachi date
-- SEO/meta/schema date uses Karachi date plus 6-hour offset
-- quiz date behavior is not generic CMS page/post scheduling
+- quiz storage contains only current quiz questions, publish state, and update timestamp
+- quiz table does not store title, slug, description, visible date, SEO date, or page metadata
+- homepage/page SEO remains in website template/settings data
 
 ## Manual Regression Checklist
 

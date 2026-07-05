@@ -693,8 +693,9 @@ Build:
 
 - Port or rebuild the global quiz behavior without making it website-scoped.
 - Keep quiz outside selected website context.
-- Apply quiz-specific Karachi date rollover rules.
-- Keep quiz storage and logic separate from website-scoped CMS modules.
+- Store current quiz questions in Supabase using global quiz storage with no `website_id`.
+- Do not store quiz title, slug, description, visible date, SEO date, or page metadata.
+- Keep quiz logic separate from website-scoped CMS modules.
 
 Files/modules:
 
@@ -706,26 +707,28 @@ Inputs/outputs:
 
 - Input: global quiz update payload.
 - Output: one global quiz update applied for all public websites.
-- Output: visible date and SEO/meta/schema date following quiz-specific rules.
+- Output: current quiz questions, update timestamp, `global: true`, and `websiteScoped: false`.
 
 Interactions:
 
 - Quiz can live in the admin shell but must not require `websiteId`.
 - Website selection must not filter quiz behavior.
-- Future Supabase quiz storage must still remain global.
+- Supabase quiz storage must remain global.
 
 Constraints:
 
 - Do not add website-scoped quiz behavior.
 - Do not implement generic CMS scheduling for template content or posts.
-- Do not move quiz to Supabase unless scope changes later.
+- Do not add `website_id` to quiz.
 
 Exit tests:
 
 - Quiz does not require selected `websiteId`.
+- Quiz saves to Supabase-backed global storage.
 - One quiz update applies globally.
-- Visible quiz/page title follows current Karachi date.
-- SEO/meta/schema date can roll over 6 hours early.
+- Quiz storage contains only current quiz questions, publish state, and update timestamp.
+- Quiz table does not store title, slug, description, visible date, SEO date, or page metadata.
+- Homepage/page SEO remains in website template/settings data.
 - Website-scoped CMS changes do not affect quiz behavior.
 
 ## Milestone 13: Final Hardening

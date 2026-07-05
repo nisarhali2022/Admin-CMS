@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
+import { MessageAlert, PageHeader } from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
 
 const emptyForm = {
   wordpressBaseUrl: '',
@@ -100,29 +103,26 @@ export default function ImportManager({ website }) {
   }
 
   return (
-    <section className="mt-8 border-t border-slate-200 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Migration
-          </p>
-          <h3 className="mt-1 text-xl font-bold">WordPress import</h3>
-        </div>
-        <button
-          type="button"
-          onClick={loadJobs}
-          disabled={loading}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Refresh jobs'}
-        </button>
-      </div>
+    <section className="space-y-5">
+      <PageHeader
+        eyebrow="Migration"
+        title="WordPress import"
+        description="Import posts, authors, categories, known pages, and media into an inactive selected website."
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={loadJobs}
+            disabled={loading}
+          >
+            <RefreshCw className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
+        }
+      />
 
-      {message ? (
-        <p className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-          {message}
-        </p>
-      ) : null}
+      <MessageAlert message={message} tone={message?.includes('reset') || message?.includes('Import') ? 'info' : 'error'} />
 
       {website?.isActive ? (
         <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">

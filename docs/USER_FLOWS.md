@@ -259,9 +259,10 @@ Expected behavior:
 
 - quiz code stays isolated from CMS website-scoped logic
 - website selection never filters quiz targets
-- visible quiz/page title uses the current Karachi date
-- SEO/meta/schema date can roll over 6 hours early
-- quiz date rollover is not generic CMS page/post scheduling
+- quiz is linked from the top header, not the website-scoped left sidebar
+- `/admin/quiz` does not show the left sidebar
+- quiz storage contains only current quiz questions, publish state, and update timestamp
+- homepage/page SEO is managed through website template/settings data
 
 ## Public Website Read Flow
 

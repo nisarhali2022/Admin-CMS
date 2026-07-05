@@ -129,6 +129,16 @@ Public websites should call `listRedirects(domain)` or the equivalent helper ear
 
 V1 public websites must not update `hit_count` or `last_hit_at` with anon credentials.
 
+## Global Quiz
+
+Quiz is global and is not resolved by website domain.
+
+```js
+const quiz = await cms.getCurrentQuiz()
+```
+
+The helper calls `cms_public_get_current_quiz()` with Supabase anon credentials. It returns only the latest published quiz from `cms_global_quiz`.
+
 ## Not Implemented In This Repo
 
 The actual visitor-facing pages are not in this admin CMS repo. When the first public website repo is available, wire these helpers into its:
@@ -141,4 +151,5 @@ The actual visitor-facing pages are not in this admin CMS repo. When the first p
 - `/ads.txt`
 - `/robots.txt`
 - `/sitemap.xml`
+- global quiz rendering
 - revalidation endpoint
