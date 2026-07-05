@@ -302,7 +302,8 @@ Rules:
 
 Routes:
 
-- `POST /api/cms/import/wordpress?websiteId=...`
+- `GET /api/cms/import?websiteId=...`
+- `POST /api/cms/import?websiteId=...`
 - `GET /api/cms/import/:jobId?websiteId=...`
 - `POST /api/cms/import/reset?websiteId=...`
 
@@ -321,6 +322,7 @@ Behavior:
 
 - allow only inactive websites
 - create/update a `cms_import_jobs` row for progress and report output
+- write progress to `report.progress` with `phase`, `label`, `current`, `total`, and `percent`
 - support public WordPress REST import without credentials when the source site allows it
 - support optional WordPress username and application password for protected REST data
 - never require OAuth client ID/client secret for v1 WordPress import

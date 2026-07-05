@@ -326,7 +326,7 @@ Tracks long-running WordPress import progress and reports.
 | `started_at` | timestamptz | no | import start time |
 | `finished_at` | timestamptz | no | import end time |
 | `temporary_credentials_encrypted` | text | no | optional encrypted WordPress credentials for active background import only |
-| `report` | jsonb | yes | counts, skipped items, unmatched pages, failed media |
+| `report` | jsonb | yes | progress, counts, skipped items, unmatched pages, failed media |
 | `error_message` | text | no | failure summary |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
@@ -340,6 +340,7 @@ Behavior:
 
 - Admin-only table.
 - Import is allowed only for inactive websites.
+- `report.progress` stores current phase, label, current count, total count, and percent for admin progress UI.
 - WordPress credentials are optional and used only when public REST data is unavailable or incomplete.
 - WordPress username/application password must not be stored in `.env`.
 - If long-running import requires temporary credential persistence, store encrypted credentials only in `temporary_credentials_encrypted` using `CMS_ENCRYPTION_KEY`.

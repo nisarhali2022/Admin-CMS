@@ -1,18 +1,14 @@
 'use client'
 
 import CategoriesManager from '@/features/categories/CategoriesManager'
-import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
+import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 
 export default function CategoriesWorkspace() {
   return (
-    <WebsiteSectionShell
-      sectionLabel="Blog"
-      sectionTitle="Categories"
-      sectionPath="/admin/categories"
-    >
+    <WebsiteContextShell>
       {({ selectedWebsite }) => (
         <CategoriesManager websiteId={selectedWebsite.id} />
       )}
-    </WebsiteSectionShell>
+    </WebsiteContextShell>
   )
 }

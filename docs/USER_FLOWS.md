@@ -5,7 +5,7 @@
 1. Admin opens the admin CMS.
 2. Admin enters `ADMIN_SECRET`.
 3. App creates the existing admin session cookie.
-4. Admin is redirected to website selection.
+4. Admin is redirected to `/admin/quiz` for the global quiz update.
 
 Failure states:
 
@@ -16,16 +16,20 @@ Failure states:
 
 1. Admin sees all configured websites.
 2. Admin selects a website.
-3. Admin is taken to the selected website dashboard.
+3. Admin is taken to `/admin?websiteId=<id>`.
 4. Website-scoped routes include `websiteId` in the URL.
 
 Expected behavior:
 
-- selected website is visible in the admin shell
+- selected website is controlled by the header dropdown and `websiteId` URL query
+- header titles show only the selected website name when a website is selected
 - switching website reloads website-scoped screens
+- normal CMS menu pages do not show website management cards
 - quiz remains available without selected website context
 
 ## Website Management
+
+Website management lives on `/admin/add-website` and does not show the left sidebar.
 
 Create website:
 
@@ -34,7 +38,8 @@ Create website:
 3. CMS generates a unique slug.
 4. CMS creates inactive website and primary domain row.
 5. CMS creates or initializes default site settings.
-6. Admin CMS `.env` does not change for the new website.
+6. Admin stays on `/admin/add-website?websiteId=<new-id>`.
+7. Admin CMS `.env` does not change for the new website.
 
 Deactivate website:
 
@@ -63,19 +68,21 @@ Rules:
 
 ## WordPress Import
 
-1. Admin selects an inactive website.
-2. Admin enters WordPress base URL.
-3. Admin optionally enters WordPress username and application password if public REST access is blocked or incomplete.
-4. CMS tests WordPress REST API access.
-5. CMS fetches WordPress REST API data.
-6. CMS imports known pages into template content.
-7. CMS imports posts into structured body blocks.
-8. CMS imports categories and authors where available.
-9. CMS copies images to Supabase Storage.
-10. CMS rewrites inline image URLs.
-11. CMS tracks progress in an import job.
-12. CMS deletes any temporary WordPress credentials after success or failure.
-13. CMS shows import report.
+1. Admin opens `/admin/add-website`.
+2. Admin selects an inactive website.
+3. Admin enters WordPress base URL.
+4. Admin optionally enters WordPress username and application password if public REST access is blocked or incomplete.
+5. CMS tests WordPress REST API access.
+6. CMS fetches WordPress REST API data.
+7. CMS imports known pages into template content.
+8. CMS imports posts into structured body blocks.
+9. CMS imports categories and authors where available.
+10. CMS copies images to Supabase Storage.
+11. CMS rewrites inline image URLs.
+12. CMS tracks progress in `cms_import_jobs.report.progress`.
+13. Admin sees the progress bar update while import is running.
+14. CMS deletes any temporary WordPress credentials after success or failure.
+15. CMS shows import report.
 
 Blocked states:
 

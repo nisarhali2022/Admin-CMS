@@ -203,6 +203,14 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
   assert.equal(job.status, 'succeeded')
   assert.equal(report.counts.posts, 1)
   assert.equal(report.counts.authors, 1)
+  assert.equal(report.progress.phase, 'succeeded')
+  assert.equal(report.progress.percent, 100)
+  assert.ok(
+    importJobBodies.some((body) => body.report?.progress?.phase === 'fetching')
+  )
+  assert.ok(
+    importJobBodies.some((body) => body.report?.progress?.phase === 'posts')
+  )
   assert.equal(postBody.author_id, authorId)
   assert.ok(postBody.body_blocks.length > 0)
   assert.ok(wordpressAuthHeaders.every((header) => header?.startsWith('Basic ')))

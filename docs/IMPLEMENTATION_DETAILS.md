@@ -63,7 +63,8 @@ All admin pages use `AdminShell` and require the admin session before showing th
 
 | Route | Purpose | Main UI module |
 | --- | --- | --- |
-| `/admin` | Website creation, selection, editing, activation, deactivation | `features/websites/WebsitesWorkspace.jsx` |
+| `/admin` | Empty dashboard landing page | `features/dashboard/DashboardWorkspace.jsx` |
+| `/admin/add-website` | Website creation, selection, editing, activation, deactivation, and WordPress import | `features/websites/WebsitesWorkspace.jsx` |
 | `/admin/media` | Website-scoped media library | `features/media/MediaWorkspace.jsx` |
 | `/admin/content` | Fixed template/page content | `features/template-content/TemplateContentWorkspace.jsx` |
 | `/admin/posts` | Blog posts | `features/posts/PostsWorkspace.jsx` |
@@ -71,10 +72,9 @@ All admin pages use `AdminShell` and require the admin session before showing th
 | `/admin/authors` | Blog authors | `features/authors/AuthorsWorkspace.jsx` |
 | `/admin/redirects` | 301/302 redirects | `features/redirects/RedirectsWorkspace.jsx` |
 | `/admin/settings` | SEO, robots, sitemap, AdSense, revalidation settings | `features/settings/SettingsWorkspace.jsx` |
-| `/admin/import` | WordPress import/reset for inactive websites | `features/import/ImportWorkspace.jsx` |
 | `/admin/quiz` | Global quiz management | `features/quiz/QuizManager.jsx` |
 
-Website-scoped pages preserve `websiteId` in the query string when navigating between sections. Quiz intentionally does not require or preserve `websiteId`; it is linked from the top header and `/admin/quiz` does not show the left sidebar.
+Website-scoped pages preserve `websiteId` in the query string when navigating between sections. Quiz and Add Website intentionally do not show the left sidebar. Website creation/editing/import UI belongs only to `/admin/add-website`; normal CMS pages should not render the website list, Add Website card, Selected Website edit card, or WordPress import form.
 
 ## App Route Layout
 
@@ -89,7 +89,6 @@ app/(admin)/admin/categories/page.jsx
 app/(admin)/admin/authors/page.jsx
 app/(admin)/admin/redirects/page.jsx
 app/(admin)/admin/settings/page.jsx
-app/(admin)/admin/import/page.jsx
 app/(admin)/admin/quiz/page.jsx
 ```
 
@@ -131,7 +130,8 @@ features/quiz/
 
 Important UI patterns:
 
-- Website-scoped sections use `WebsiteSectionShell`.
+- Website-scoped resource sections use `WebsiteContextShell`.
+- Website management and WordPress import use `WebsiteSectionShell` only on `/admin/add-website`.
 - Resource UI components receive `websiteId` from the selected website shell.
 - Quiz UI is separate and does not receive `websiteId`.
 - UI components call app API routes; they do not call Supabase directly.

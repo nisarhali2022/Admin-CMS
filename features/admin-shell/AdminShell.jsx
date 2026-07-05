@@ -6,8 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   BookOpen,
   FolderOpen,
-  Globe2,
-  Import,
+  LayoutDashboard,
   LayoutTemplate,
   LogOut,
   Newspaper,
@@ -22,10 +21,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import AdminLoginForm from './AdminLoginForm'
-import WebsitesWorkspace from '@/features/websites/WebsitesWorkspace'
+import DashboardWorkspace from '@/features/dashboard/DashboardWorkspace'
 
 const navItems = [
-  { href: '/admin', label: 'Websites', scoped: true, icon: Globe2, group: 'Workspace' },
+  { href: '/admin', label: 'Dashboard', scoped: true, icon: LayoutDashboard, group: '' },
   { href: '/admin/media', label: 'Media', scoped: true, icon: FolderOpen, group: 'Content' },
   { href: '/admin/content', label: 'Pages', scoped: true, icon: LayoutTemplate, group: 'Content' },
   { href: '/admin/posts', label: 'Posts', scoped: true, icon: Newspaper, group: 'Content' },
@@ -33,7 +32,6 @@ const navItems = [
   { href: '/admin/authors', label: 'Authors', scoped: true, icon: Users, group: 'Blog' },
   { href: '/admin/redirects', label: 'Redirects', scoped: true, icon: Shuffle, group: 'Site' },
   { href: '/admin/settings', label: 'Settings', scoped: true, icon: Settings, group: 'Site' },
-  { href: '/admin/import', label: 'Import', scoped: true, icon: Import, group: 'Setup' },
 ]
 
 export default function AdminShell({ authenticated, children }) {
@@ -85,12 +83,23 @@ export default function AdminShell({ authenticated, children }) {
   }
 
   const isQuizRoute = pathname === '/admin/quiz'
+  const isAddWebsiteRoute = pathname === '/admin/add-website'
+  const hideSidebar = isQuizRoute || isAddWebsiteRoute
   const activeItem = navItems.find((item) => isActive(item))
-  const activeTitle = isQuizRoute ? 'Quiz' : activeItem?.label || 'Content manager'
   const selectedWebsite = useMemo(
     () => websites.find((website) => website.id === websiteId) || null,
-    [websiteId, websites]
+    [websiteId, websites],
   )
+  const pageTitle = isQuizRoute
+    ? 'Quiz Update'
+    : isAddWebsiteRoute
+      ? 'Add Website'
+      : activeItem?.label || 'Dashboard'
+  const activeTitle = isQuizRoute
+    ? pageTitle
+    : selectedWebsite
+      ? selectedWebsite.name
+      : pageTitle
   const groupedNav = navItems.reduce((groups, item) => {
     if (!groups[item.group]) groups[item.group] = []
     groups[item.group].push(item)
@@ -115,7 +124,7 @@ export default function AdminShell({ authenticated, children }) {
         </main>
       ) : (
         <>
-        {!isQuizRoute ? (
+        {!hideSidebar ? (
         <aside className="border-b border-slate-800 bg-slate-950 text-slate-300 lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-56 lg:border-b-0 lg:border-r">
           <div className="flex h-12 items-center gap-2 border-b border-white/10 px-4 text-white">
             <BookOpen className="h-4 w-4 text-sky-300" />
@@ -131,9 +140,11 @@ export default function AdminShell({ authenticated, children }) {
             {Object.entries(groupedNav).map(([group, items], groupIndex) => (
               <div key={group}>
                 {groupIndex > 0 ? <Separator className="my-2 bg-white/10" /> : null}
-                <p className="px-4 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                  {group}
-                </p>
+                {group ? (
+                  <p className="px-4 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    {group}
+                  </p>
+                ) : null}
                 <div className="space-y-0.5 px-2">
                   {items.map((item) => {
                     const Icon = item.icon
@@ -166,7 +177,7 @@ export default function AdminShell({ authenticated, children }) {
         </aside>
         ) : null}
 
-      <div className={isQuizRoute ? '' : 'lg:pl-56'}>
+      <div className={hideSidebar ? '' : 'lg:pl-56'}>
         <header className="sticky top-0 z-30 border-b border-[#c3c4c7] bg-white">
           <div className="flex min-h-12 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-6">
             <div className="min-w-0">
@@ -174,11 +185,6 @@ export default function AdminShell({ authenticated, children }) {
                 <h1 className="truncate text-[1.05rem] font-semibold leading-tight text-[#1d2327]">
                   {activeTitle}
                 </h1>
-                {websiteId && activeItem?.scoped ? (
-                  <Badge variant="outline" className="max-w-48 truncate rounded-sm border-[#c3c4c7] bg-[#f6f7f7] text-[#50575e]">
-                    Website selected
-                  </Badge>
-                ) : null}
                 {isQuizRoute ? (
                   <Badge className="rounded-sm bg-slate-800 text-white">Global</Badge>
                 ) : null}
@@ -207,7 +213,7 @@ export default function AdminShell({ authenticated, children }) {
                     router.push(`/admin?websiteId=${event.target.value}`)
                   }
                 }}
-                className="h-8 min-w-48 rounded-sm border-[#c3c4c7] bg-[#f6f7f7] px-2 text-sm"
+                className="h-8 min-w-48 rounded-sm border border-[#8c8f94] bg-[#f6f7f7] px-2 text-sm shadow-sm outline-none focus:border-[#2271b1] focus:ring-2 focus:ring-[#72aee6]"
                 aria-label="Select website"
               >
                 <option value="">
@@ -216,7 +222,6 @@ export default function AdminShell({ authenticated, children }) {
                 {websites.map((website) => (
                   <option key={website.id} value={website.id}>
                     {website.name}
-                    {selectedWebsite?.id === website.id ? ' (selected)' : ''}
                   </option>
                 ))}
               </select>
@@ -224,9 +229,13 @@ export default function AdminShell({ authenticated, children }) {
                 asChild
                 variant="outline"
                 size="sm"
-                className="rounded-sm border-[#c3c4c7] bg-[#f6f7f7] text-[#1d2327] hover:bg-white"
+                className={`rounded-sm border-[#c3c4c7] ${
+                  isAddWebsiteRoute
+                    ? 'bg-[#2271b1] text-white hover:bg-[#135e96]'
+                    : 'bg-[#f6f7f7] text-[#1d2327] hover:bg-white'
+                }`}
               >
-                <Link href="/admin#add-website">
+                <Link href="/admin/add-website">
                   <Plus />
                   Add Website
                 </Link>
@@ -248,7 +257,7 @@ export default function AdminShell({ authenticated, children }) {
 
         <main className="px-4 py-5 sm:px-6">
           <section className="mx-auto min-w-0 max-w-[104rem]">
-          {children || <WebsitesWorkspace />}
+          {children || <DashboardWorkspace />}
           </section>
         </main>
       </div>

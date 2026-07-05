@@ -1,18 +1,14 @@
 'use client'
 
 import RedirectsManager from '@/features/redirects/RedirectsManager'
-import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
+import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 
 export default function RedirectsWorkspace() {
   return (
-    <WebsiteSectionShell
-      sectionLabel="SEO"
-      sectionTitle="Redirects"
-      sectionPath="/admin/redirects"
-    >
+    <WebsiteContextShell>
       {({ selectedWebsite }) => (
         <RedirectsManager websiteId={selectedWebsite.id} />
       )}
-    </WebsiteSectionShell>
+    </WebsiteContextShell>
   )
 }

@@ -1,18 +1,14 @@
 'use client'
 
 import SettingsManager from '@/features/settings/SettingsManager'
-import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
+import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 
 export default function SettingsWorkspace() {
   return (
-    <WebsiteSectionShell
-      sectionLabel="Website"
-      sectionTitle="Settings"
-      sectionPath="/admin/settings"
-    >
+    <WebsiteContextShell>
       {({ selectedWebsite }) => (
         <SettingsManager websiteId={selectedWebsite.id} />
       )}
-    </WebsiteSectionShell>
+    </WebsiteContextShell>
   )
 }

@@ -8,6 +8,12 @@ const EMPTY_QUESTIONS = Array.from({ length: 5 }, () => ({
   ...EMPTY_QUESTION,
   options: [...EMPTY_QUESTION.options],
 }))
+const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Karachi',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+})
 
 function cloneQuestions(questions = EMPTY_QUESTIONS) {
   return questions.map((item) => ({
@@ -197,7 +203,9 @@ export default function QuizManager() {
           <div className="flex flex-wrap items-center justify-between gap-3 bg-primary px-5 py-4 text-white">
             <div>
               <h1 className="font-heading text-lg font-bold">Quiz Admin</h1>
-              <p className="mt-0.5 text-sm text-blue-100">Current global quiz</p>
+              <p className="mt-0.5 text-sm text-blue-100">
+                {DATE_FORMATTER.format(new Date())}
+              </p>
             </div>
             <button
               type="button"

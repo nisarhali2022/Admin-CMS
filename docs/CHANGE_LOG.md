@@ -78,9 +78,16 @@ This file records the major product, architecture, schema, UI, and documentation
 - Admin UI was redesigned toward a WordPress-inspired layout.
 - Website-scoped CMS pages have a dark left sidebar.
 - Sidebar remains visible on website-scoped admin pages.
-- Sidebar is hidden only on `/admin/quiz`.
+- Sidebar is hidden on `/admin/quiz` and `/admin/add-website`.
 - Quiz link was removed from the left sidebar.
 - Quiz is now linked from the top header.
+- Add Website is a standalone header page at `/admin/add-website`.
+- `/admin` is a simple empty Dashboard landing page.
+- Website creation, selection/editing details, activation, and deactivation live only on `/admin/add-website`.
+- WordPress import now lives inside Website Workspace on `/admin/add-website`, after a website is selected.
+- Normal website-scoped CMS menu pages render only their resource UI and no longer show the repeated website workspace, website list, Add Website card, or Selected Website card.
+- The header title shows only the selected website name when `websiteId` is selected.
+- Quiz remains global and keeps `Quiz Update` as its header title.
 - Top header includes:
   - current section title
   - Quiz link
@@ -88,7 +95,8 @@ This file records the major product, architecture, schema, UI, and documentation
   - Add Website button
   - Sign out button
 - Website dropdown routes to `/admin?websiteId=<id>`.
-- Add Website routes to `/admin#add-website`.
+- Add Website routes to `/admin/add-website`.
+- Creating a new website keeps the admin on `/admin/add-website?websiteId=<new-id>` so setup/import can continue.
 
 ## Supabase Storage Changes
 
@@ -165,6 +173,8 @@ This file records the major product, architecture, schema, UI, and documentation
 
 - WordPress import is website-scoped.
 - Import is allowed only for inactive websites.
+- WordPress import is opened from Website Workspace, not from the left sidebar.
+- Import progress is stored in `cms_import_jobs.report.progress` and shown as a progress bar while import is running.
 - WordPress posts, categories, authors, pages, and images are imported where possible.
 - WordPress authors are imported into `cms_authors`.
 - If WordPress author data is unavailable, a website-scoped fallback author named `Imported Author` is used.

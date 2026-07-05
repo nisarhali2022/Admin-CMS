@@ -1,16 +1,12 @@
 'use client'
 
 import AuthorsManager from '@/features/authors/AuthorsManager'
-import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
+import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 
 export default function AuthorsWorkspace() {
   return (
-    <WebsiteSectionShell
-      sectionLabel="Blog"
-      sectionTitle="Authors"
-      sectionPath="/admin/authors"
-    >
+    <WebsiteContextShell>
       {({ selectedWebsite }) => <AuthorsManager websiteId={selectedWebsite.id} />}
-    </WebsiteSectionShell>
+    </WebsiteContextShell>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { MessageAlert, PageHeader } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,48 @@ function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
 }
 
+function ImportProgress({ job, importing }) {
+  const progress = job?.report?.progress || null
+  const percent =
+    typeof progress?.percent === 'number'
+      ? Math.max(0, Math.min(100, progress.percent))
+      : null
+  const label = progress?.label || (importing ? 'Starting import' : 'Import progress')
+  const status = job?.status || (importing ? 'running' : null)
+  const showIndeterminate = importing && percent === null
+
+  if (!importing && !progress) return null
+
+  return (
+    <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-sky-950">{label}</p>
+          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-sky-700">
+            {status || 'import'}{progress?.phase ? ` - ${progress.phase}` : ''}
+          </p>
+        </div>
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-sky-800 shadow-sm">
+          {percent === null ? 'Working...' : `${percent}%`}
+        </span>
+      </div>
+      <div className="mt-3 h-3 overflow-hidden rounded-full border border-sky-200 bg-white">
+        <div
+          className={`h-full rounded-full bg-[#2271b1] transition-all ${
+            showIndeterminate ? 'w-1/3 animate-pulse' : ''
+          }`}
+          style={showIndeterminate ? undefined : { width: `${percent ?? 0}%` }}
+        />
+      </div>
+      {Number.isFinite(progress?.total) && progress.total > 0 ? (
+        <p className="mt-2 text-xs text-sky-800">
+          {progress.current} of {progress.total}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export default function ImportManager({ website }) {
   const websiteId = website?.id
   const [jobs, setJobs] = useState([])
@@ -23,12 +65,22 @@ export default function ImportManager({ website }) {
   const [confirmReset, setConfirmReset] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState('')
+  const activeImportJob = useMemo(
+    () =>
+      jobs.find((job) => job.status === 'running' || job.status === 'queued') ||
+      jobs[0] ||
+      null,
+    [jobs],
+  )
 
-  async function loadJobs() {
+  async function loadJobs({ silent = false } = {}) {
     if (!websiteId) return
-    setLoading(true)
-    setMessage('')
+    if (!silent) {
+      setLoading(true)
+      setMessage('')
+    }
 
     try {
       const response = await fetch(`/api/cms/import?websiteId=${websiteId}`, {
@@ -43,7 +95,7 @@ export default function ImportManager({ website }) {
 
       setJobs(result.jobs || [])
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -51,9 +103,21 @@ export default function ImportManager({ website }) {
     loadJobs()
   }, [websiteId])
 
+  useEffect(() => {
+    if (!importing || !websiteId) return undefined
+
+    loadJobs({ silent: true })
+    const timer = window.setInterval(() => {
+      loadJobs({ silent: true })
+    }, 1200)
+
+    return () => window.clearInterval(timer)
+  }, [importing, websiteId])
+
   async function startImport(event) {
     event.preventDefault()
     setSaving(true)
+    setImporting(true)
     setMessage('')
 
     try {
@@ -73,6 +137,7 @@ export default function ImportManager({ website }) {
       setMessage(`Import ${result.job?.status || 'finished'}.`)
       await loadJobs()
     } finally {
+      setImporting(false)
       setSaving(false)
     }
   }
@@ -123,6 +188,8 @@ export default function ImportManager({ website }) {
       />
 
       <MessageAlert message={message} tone={message?.includes('reset') || message?.includes('Import') ? 'info' : 'error'} />
+
+      <ImportProgress job={activeImportJob} importing={importing} />
 
       {website?.isActive ? (
         <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">

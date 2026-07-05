@@ -1,18 +1,14 @@
 'use client'
 
 import TemplateContentManager from '@/features/template-content/TemplateContentManager'
-import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
+import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 
 export default function TemplateContentWorkspace() {
   return (
-    <WebsiteSectionShell
-      sectionLabel="Pages"
-      sectionTitle="Template content"
-      sectionPath="/admin/content"
-    >
+    <WebsiteContextShell>
       {({ selectedWebsite }) => (
         <TemplateContentManager websiteId={selectedWebsite.id} />
       )}
-    </WebsiteSectionShell>
+    </WebsiteContextShell>
   )
 }

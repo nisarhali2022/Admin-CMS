@@ -1,16 +1,12 @@
 'use client'
 
-import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
+import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 import MediaLibrary from '@/features/media/MediaLibrary'
 
 export default function MediaWorkspace() {
   return (
-    <WebsiteSectionShell
-      sectionLabel="Media"
-      sectionTitle="Media library"
-      sectionPath="/admin/media"
-    >
+    <WebsiteContextShell>
       {({ selectedWebsite }) => <MediaLibrary websiteId={selectedWebsite.id} />}
-    </WebsiteSectionShell>
+    </WebsiteContextShell>
   )
 }

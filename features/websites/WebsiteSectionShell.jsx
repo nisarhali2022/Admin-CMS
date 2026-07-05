@@ -28,6 +28,7 @@ export default function WebsiteSectionShell({
   sectionLabel,
   sectionTitle,
   sectionPath,
+  afterCreatePath = sectionPath,
   children,
 }) {
   const router = useRouter()
@@ -106,7 +107,7 @@ export default function WebsiteSectionShell({
 
       setCreateForm(emptyCreateForm)
       await loadWebsites()
-      selectWebsite(result.website.id)
+      router.push(`${afterCreatePath}?websiteId=${result.website.id}`)
     } catch {
       setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
     } finally {

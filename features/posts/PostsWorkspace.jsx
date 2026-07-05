@@ -1,16 +1,12 @@
 'use client'
 
 import PostsManager from '@/features/posts/PostsManager'
-import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
+import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 
 export default function PostsWorkspace() {
   return (
-    <WebsiteSectionShell
-      sectionLabel="Blog"
-      sectionTitle="Posts"
-      sectionPath="/admin/posts"
-    >
+    <WebsiteContextShell>
       {({ selectedWebsite }) => <PostsManager websiteId={selectedWebsite.id} />}
-    </WebsiteSectionShell>
+    </WebsiteContextShell>
   )
 }

@@ -805,17 +805,21 @@ Use this structure for every completed milestone:
 - Docs followed: `MILESTONE_REVIEWS.md`, `IMPLEMENTATION_MILESTONES.md`, `IMPLEMENTATION_CONTEXT.md`, `TESTING.md`, `RLS_POLICIES.md`, `SETUP.md`, `INDEX.md`.
 - What was implemented:
   - Replaced the long combined website workspace with a reusable website-scoped section shell.
-  - Kept `/admin` focused on website creation, selection, editing, activation, and deactivation.
-  - Added separate admin pages for media, template content, posts, categories, authors, redirects, settings, WordPress import, and quiz.
+  - Changed `/admin` into the selected website dashboard.
+  - Moved website creation, selection, editing, activation, and deactivation to `/admin/add-website`.
+  - Added separate admin pages for media, template content, posts, categories, authors, redirects, settings, and quiz.
   - Added client workspace wrappers for each website-scoped resource so each page loads only the relevant manager.
   - Updated admin navigation to link directly to each section and preserve the selected `websiteId` for website-scoped pages.
   - Kept `/admin/quiz` global and outside selected-website scoping.
-  - Moved Quiz navigation to the top header and hid the left sidebar only on `/admin/quiz`.
+  - Moved Quiz and Add Website navigation to the top header.
+  - Hid the left sidebar on `/admin/quiz` and `/admin/add-website`.
+  - Changed the header title to show `Quiz Update`, `Add Website`, or the selected website name.
   - Fixed quiz answer selection so typing option text does not auto-select an answer before the option selector is clicked.
   - Added a corrective Supabase grant so service-role quiz saves can execute the quiz question validation function.
   - Added final hardening tests that assert separate admin pages exist and the website workspace no longer mounts every resource manager.
 - Files/modules changed:
   - `features/admin-shell/AdminShell.jsx`
+  - `features/dashboard/DashboardWorkspace.jsx`
   - `features/websites/WebsiteSectionShell.jsx`
   - `features/websites/WebsitesWorkspace.jsx`
   - `features/media/MediaWorkspace.jsx`
@@ -825,7 +829,7 @@ Use this structure for every completed milestone:
   - `features/authors/AuthorsWorkspace.jsx`
   - `features/redirects/RedirectsWorkspace.jsx`
   - `features/settings/SettingsWorkspace.jsx`
-  - `features/import/ImportWorkspace.jsx`
+  - `features/import/ImportManager.jsx`
   - `app/(admin)/admin/media/page.jsx`
   - `app/(admin)/admin/content/page.jsx`
   - `app/(admin)/admin/posts/page.jsx`
@@ -833,7 +837,7 @@ Use this structure for every completed milestone:
   - `app/(admin)/admin/authors/page.jsx`
   - `app/(admin)/admin/redirects/page.jsx`
   - `app/(admin)/admin/settings/page.jsx`
-  - `app/(admin)/admin/import/page.jsx`
+  - `app/(admin)/admin/add-website/page.jsx`
   - `test/milestone13-final-hardening.test.js`
 - Inputs/outputs added or changed:
   - Input: selected `websiteId` query param is preserved when navigating between website-scoped admin sections.
@@ -860,3 +864,87 @@ Use this structure for every completed milestone:
   - Consider pagination/background jobs for large WordPress imports.
   - Perform final manual QA with real Supabase data and public website deployment before release.
 - Readiness for next milestone: Implementation milestones are complete; ready for manual QA, public website integration, and production hardening decisions.
+
+## Milestone 13 Correction: Admin Navigation And Dashboard Cleanup
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Simplify the admin dashboard and keep website management UI isolated to the Add Website page.
+- What was implemented:
+  - Changed `/admin` into an empty Dashboard page with only the title.
+  - Removed the Admin button from the authenticated top header.
+  - Removed the header `Website selected` badge and dropdown ` (selected)` suffix.
+  - Changed the header title to use the current page title instead of the selected website name.
+  - Added `WebsiteContextShell` for website-scoped resource pages.
+  - Kept `WebsiteSectionShell` as the website management shell for `/admin/add-website`.
+  - Removed website list, Add Website card, and Selected Website card from normal CMS menu pages.
+- Files/modules changed:
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/dashboard/DashboardWorkspace.jsx`
+  - `features/websites/WebsiteContextShell.jsx`
+  - `features/media/MediaWorkspace.jsx`
+  - `features/template-content/TemplateContentWorkspace.jsx`
+  - `features/posts/PostsWorkspace.jsx`
+  - `features/categories/CategoriesWorkspace.jsx`
+  - `features/authors/AuthorsWorkspace.jsx`
+  - `features/redirects/RedirectsWorkspace.jsx`
+  - `features/settings/SettingsWorkspace.jsx`
+  - `features/import/ImportManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+- Inputs/outputs added or changed:
+  - Website-scoped pages still receive `websiteId` from the URL and pass it to their managers.
+  - If no website is selected, website-scoped pages show a small empty state asking the admin to select a website from the header dropdown.
+- Security and architecture checks:
+  - No API, database, RLS, Supabase Storage, quiz persistence, or public website behavior changed.
+  - Website-scoped resource managers still receive the selected website id before loading data.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- app features docs test`
+- Known caveats:
+  - `/admin/add-website` remains the only place to add/edit/deactivate websites.
+- Follow-up items:
+  - Run browser QA to confirm the simplified pages match the desired visual layout.
+- Readiness for next milestone: Ready after test/lint/build validation passes.
+
+## Milestone 13 Correction: Website Header Context And Import Workspace
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Show selected website context in the header, move WordPress import into Website Workspace, and add visible import progress.
+- What was implemented:
+  - Header now shows the selected website name as the main title when `websiteId` is selected.
+  - Header shows only the selected website name for website-scoped pages.
+  - Website dropdown received a stronger border and focus ring.
+  - Removed Import from the left sidebar.
+  - Removed the standalone `/admin/import` admin page.
+  - Added WordPress import to `/admin/add-website` after a website is selected.
+  - New website creation now remains on `/admin/add-website?websiteId=<new-id>`.
+  - Import jobs now store progress in `cms_import_jobs.report.progress`.
+  - Import UI polls import jobs during the running request and shows a progress bar.
+- Files/modules changed:
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/websites/WebsitesWorkspace.jsx`
+  - `features/websites/WebsiteSectionShell.jsx`
+  - `features/import/ImportManager.jsx`
+  - `lib/cms/services/import.js`
+  - `test/milestone10-wordpress-import.test.js`
+  - `test/milestone13-final-hardening.test.js`
+- Inputs/outputs added or changed:
+  - Import job reports include `progress.phase`, `progress.label`, `progress.current`, `progress.total`, and `progress.percent`.
+  - `/admin/add-website` is now the UI entry point for WordPress import.
+- Security and architecture checks:
+  - Import remains inactive-website-only.
+  - No database schema change was needed because progress is stored inside existing `report` JSON.
+  - Admin import APIs still require admin session and selected `websiteId`.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- app features docs test lib`
+- Known caveats:
+  - Import remains synchronous; the progress bar is based on report updates and UI polling rather than a background queue.
+- Follow-up items:
+  - Browser-test a real WordPress import to confirm the progress bar updates with live network timing.
+- Readiness for next milestone: Ready after test/lint/build validation passes.
