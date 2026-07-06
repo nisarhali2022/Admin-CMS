@@ -108,7 +108,7 @@
 }
 
 .wp-admin-interface {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.45;
 }
 
@@ -116,20 +116,20 @@
 .wp-admin-interface textarea,
 .wp-admin-interface select {
   min-height: 34px;
-  border-radius: 2px !important;
-  border-color: #8c8f94 !important;
+  border-radius: 12px !important;
+  border-color: #d8dae0 !important;
   background-color: #ffffff !important;
-  color: #1d2327 !important;
+  color: #1f2330 !important;
   font-size: 13px;
-  box-shadow: 0 0 0 transparent;
+  box-shadow: 0 1px 2px rgba(31, 35, 48, 0.04);
 }
 
 .wp-admin-interface input:not([type="checkbox"]):not([type="radio"]):focus,
 .wp-admin-interface textarea:focus,
 .wp-admin-interface select:focus {
-  border-color: #2271b1 !important;
+  border-color: #673de6 !important;
   outline: 1px solid transparent;
-  box-shadow: 0 0 0 1px #2271b1 !important;
+  box-shadow: 0 0 0 4px #ebe4ff !important;
 }
 
 .wp-admin-interface textarea.font-mono,
@@ -141,23 +141,25 @@
 
 .wp-admin-interface button,
 .wp-admin-interface [role="button"] {
-  border-radius: 2px;
+  border-radius: 999px;
+  font-size: 13px;
 }
 
 .wp-admin-interface [data-slot="button"][data-variant="default"] {
-  background: #2271b1;
-  border-color: #2271b1;
+  background: #673de6;
+  border-color: #673de6;
   color: #ffffff;
 }
 
 .wp-admin-interface [data-slot="button"][data-variant="outline"] {
-  border-color: #8c8f94;
-  background: #f6f7f7;
-  color: #1d2327;
+  border-color: #d8dae0;
+  background: #ffffff;
+  color: #1f2330;
 }
 
 .wp-admin-interface [data-slot="button"]:hover {
-  filter: brightness(0.97);
+  filter: none;
+  box-shadow: 0 2px 8px rgba(103, 61, 230, 0.12);
 }
 
 .wp-admin-interface table {
@@ -166,5 +168,16 @@
 
 .wp-admin-interface pre,
 .wp-admin-interface code {
-  border-radius: 2px;
+  border-radius: 12px;
+}
+
+.wp-admin-interface .category-taxonomy-screen input:not([type="checkbox"]):not([type="radio"]),
+.wp-admin-interface .category-taxonomy-screen textarea,
+.wp-admin-interface .category-taxonomy-screen select {
+  border-radius: 0 !important;
+  box-shadow: none;
+}
+
+.wp-admin-interface .category-taxonomy-screen button {
+  border-radius: 3px;
 }

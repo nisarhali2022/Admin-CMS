@@ -24,6 +24,10 @@ function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
 }
 
+function notifyWebsitesUpdated() {
+  window.dispatchEvent(new Event('cms:websites-updated'))
+}
+
 export default function WebsiteSectionShell({
   sectionLabel,
   sectionTitle,
@@ -85,6 +89,7 @@ export default function WebsiteSectionShell({
 
   function selectWebsite(websiteId) {
     router.push(`${sectionPath}?websiteId=${websiteId}`)
+    notifyWebsitesUpdated()
   }
 
   async function createWebsite(event) {
@@ -107,6 +112,7 @@ export default function WebsiteSectionShell({
 
       setCreateForm(emptyCreateForm)
       await loadWebsites()
+      notifyWebsitesUpdated()
       router.push(`${afterCreatePath}?websiteId=${result.website.id}`)
     } catch {
       setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
@@ -136,6 +142,7 @@ export default function WebsiteSectionShell({
       }
 
       await loadWebsites()
+      notifyWebsitesUpdated()
       selectWebsite(result.website.id)
     } catch {
       setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
@@ -163,6 +170,7 @@ export default function WebsiteSectionShell({
       }
 
       await loadWebsites()
+      notifyWebsitesUpdated()
       selectWebsite(result.website.id)
     } catch {
       setMessage('Unable to reach the CMS server. Restart the dev server and try again.')

@@ -77,8 +77,10 @@ Stores fixed-template page content for each website.
 | `path` | text | yes | public path, such as `/about` |
 | `title` | text | yes | admin/public title |
 | `content_data` | jsonb | yes | code-defined template fields |
+| `focus_keyphrase` | text | no | page SEO focus keyphrase |
 | `seo_title` | text | no | manual SEO title |
 | `meta_description` | text | no | manual meta description |
+| `author_id` | uuid | no | optional website-scoped page author |
 | `canonical_url` | text | no | optional override |
 | `robots_meta` | text | no | optional robots value |
 | `og_image_id` | uuid | no | references `cms_media(id)` |
@@ -88,6 +90,8 @@ Stores fixed-template page content for each website.
 | `deleted_at` | timestamptz | no | trash marker |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
+
+`author_id`, when set, must reference an active/non-trashed author for the same website.
 
 Supported `template_key` values:
 

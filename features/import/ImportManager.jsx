@@ -253,7 +253,7 @@ export default function ImportManager({ website }) {
             !form.wordpressBaseUrl ||
             !form.confirmInactiveImport
           }
-          className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-400"
+          className="rounded-full bg-[#673de6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5025d1] disabled:bg-[#b9b2cc]"
         >
           {saving ? 'Importing...' : 'Start import'}
         </button>

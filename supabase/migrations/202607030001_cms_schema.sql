@@ -131,8 +131,10 @@ create table public.cms_template_content (
   path text not null,
   title text not null,
   content_data jsonb not null default '{}'::jsonb,
+  focus_keyphrase text,
   seo_title text,
   meta_description text,
+  author_id uuid,
   canonical_url text,
   robots_meta text,
   og_image_id uuid,
@@ -145,6 +147,8 @@ create table public.cms_template_content (
   constraint cms_template_content_template_key_check check (template_key in ('home', 'about', 'contact', 'privacy', 'terms', 'packages')),
   constraint cms_template_content_path_format check (path ~ '^/'),
   constraint cms_template_content_status_check check (status in ('draft', 'published', 'unpublished')),
+  constraint cms_template_content_author_same_website_fk foreign key (author_id, website_id)
+    references public.cms_authors (id, website_id) on delete restrict,
   constraint cms_template_content_og_image_same_website_fk foreign key (og_image_id, website_id)
     references public.cms_media (id, website_id) on delete restrict
 );
@@ -152,6 +156,7 @@ create table public.cms_template_content (
 create unique index cms_template_content_website_template_key on public.cms_template_content (website_id, template_key);
 create unique index cms_template_content_website_path_active_key on public.cms_template_content (website_id, path) where deleted_at is null;
 create index cms_template_content_website_status_idx on public.cms_template_content (website_id, status);
+create index cms_template_content_website_author_idx on public.cms_template_content (website_id, author_id);
 create index cms_template_content_website_deleted_idx on public.cms_template_content (website_id, deleted_at);
 
 create trigger cms_template_content_set_updated_at

@@ -3,7 +3,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { afterEach, test } from 'node:test'
 import sharp from 'sharp'
 
-import { optimizeImageToWebp } from '../lib/storage/imageOptimizer.js'
+import { MAX_IMAGE_WIDTH, optimizeImageToWebp } from '../lib/storage/imageOptimizer.js'
 import {
   MEDIA_CACHE_CONTROL_SECONDS,
   getPublicMediaUrl,
@@ -32,10 +32,14 @@ function setValidEnv() {
 }
 
 async function createPngFile() {
+  return createPngFileWithDimensions(2, 3)
+}
+
+async function createPngFileWithDimensions(width, height) {
   const bytes = await sharp({
     create: {
-      width: 2,
-      height: 3,
+      width,
+      height,
       channels: 3,
       background: '#2563eb',
     },
@@ -44,6 +48,21 @@ async function createPngFile() {
     .toBuffer()
 
   return new File([bytes], 'sample.png', { type: 'image/png' })
+}
+
+async function createJpgFile() {
+  const bytes = await sharp({
+    create: {
+      width: 4,
+      height: 5,
+      channels: 3,
+      background: '#16a34a',
+    },
+  })
+    .jpeg()
+    .toBuffer()
+
+  return new File([bytes], 'sample.jpg', { type: 'image/jpeg' })
 }
 
 afterEach(() => {
@@ -59,6 +78,38 @@ test('sharp optimizer converts accepted uploads to WebP with dimensions', async 
   assert.equal(result.height, 3)
   assert.ok(result.fileSize > 0)
   assert.equal((await sharp(result.bytes).metadata()).format, 'webp')
+})
+
+test('sharp optimizer converts JPG uploads to compressed WebP', async () => {
+  const optimizer = await readFile('lib/storage/imageOptimizer.js', 'utf8')
+  const result = await optimizeImageToWebp(await createJpgFile())
+
+  assert.equal(result.mimeType, 'image/webp')
+  assert.equal(result.width, 4)
+  assert.equal(result.height, 5)
+  assert.equal((await sharp(result.bytes).metadata()).format, 'webp')
+  assert.match(optimizer, /quality:\s*82/)
+  assert.match(optimizer, /effort:\s*5/)
+})
+
+test('sharp optimizer resizes only images wider than 1200px', async () => {
+  const optimizer = await readFile('lib/storage/imageOptimizer.js', 'utf8')
+  const small = await optimizeImageToWebp(await createPngFileWithDimensions(600, 300))
+  const medium = await optimizeImageToWebp(await createPngFileWithDimensions(900, 450))
+  const exact = await optimizeImageToWebp(await createPngFileWithDimensions(1200, 600))
+  const large = await optimizeImageToWebp(await createPngFileWithDimensions(1600, 800))
+
+  assert.equal(MAX_IMAGE_WIDTH, 1200)
+  assert.equal(small.width, 600)
+  assert.equal(small.height, 300)
+  assert.equal(medium.width, 900)
+  assert.equal(medium.height, 450)
+  assert.equal(exact.width, 1200)
+  assert.equal(exact.height, 600)
+  assert.equal(large.width, 1200)
+  assert.equal(large.height, 600)
+  assert.equal((await sharp(large.bytes).metadata()).format, 'webp')
+  assert.match(optimizer, /withoutEnlargement:\s*true/)
 })
 
 test('storage helper builds public URLs and uploads immutable WebP objects', async () => {
@@ -177,4 +228,13 @@ test('media upload service scopes storage path and creates cms_media metadata', 
   assert.equal(insertBody.width, 2)
   assert.equal(insertBody.height, 3)
   assert.match(uploadCall.options.headers['Cache-Control'], /max-age=31536000/)
+
+  const fallbackMedia = await uploadMedia({
+    websiteId,
+    file: await createJpgFile(),
+    altText: null,
+    caption: null,
+  })
+
+  assert.equal(fallbackMedia.altText, 'sample')
 })

@@ -43,27 +43,38 @@ export default function AdminShell({ authenticated, children }) {
   const [websites, setWebsites] = useState([])
   const [websiteMessage, setWebsiteMessage] = useState('')
 
-  useEffect(() => {
-    if (!authenticated) return
-
-    let active = true
-
+  async function loadHeaderWebsites(active = () => true) {
     fetch('/api/cms/websites', { cache: 'no-store' })
       .then((response) => response.json().then((body) => ({ response, body })))
       .then(({ response, body }) => {
-        if (!active) return
+        if (!active()) return
         if (!response.ok) {
           setWebsiteMessage(body?.error || 'Unable to load websites.')
           return
         }
+        setWebsiteMessage('')
         setWebsites(body.websites || [])
       })
       .catch(() => {
-        if (active) setWebsiteMessage('Unable to load websites.')
+        if (active()) setWebsiteMessage('Unable to load websites.')
       })
+  }
+
+  useEffect(() => {
+    if (!authenticated) return
+
+    let active = true
+    const isActive = () => active
+    const handleWebsitesUpdated = () => {
+      loadHeaderWebsites(isActive)
+    }
+
+    loadHeaderWebsites(isActive)
+    window.addEventListener('cms:websites-updated', handleWebsitesUpdated)
 
     return () => {
       active = false
+      window.removeEventListener('cms:websites-updated', handleWebsitesUpdated)
     }
   }, [authenticated])
 
@@ -107,7 +118,7 @@ export default function AdminShell({ authenticated, children }) {
   }, {})
 
   return (
-    <div className="wp-admin-interface min-h-screen bg-[#f0f0f1] text-[#1d2327]">
+    <div className="wp-admin-interface min-h-screen bg-[#f4f5f7] text-[#1f2330]">
       {!authenticated ? (
         <main className="flex min-h-screen items-center justify-center bg-surface px-4">
           <div className="w-full max-w-sm rounded-lg border border-border bg-white p-8 shadow-lg">
@@ -125,27 +136,27 @@ export default function AdminShell({ authenticated, children }) {
       ) : (
         <>
         {!hideSidebar ? (
-        <aside className="border-b border-slate-800 bg-slate-950 text-slate-300 lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-56 lg:border-b-0 lg:border-r">
-          <div className="flex h-12 items-center gap-2 border-b border-white/10 px-4 text-white">
-            <BookOpen className="h-4 w-4 text-sky-300" />
+        <aside className="border-b border-[#e5e7eb] bg-white text-[#1f2330] lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-60 lg:border-b-0 lg:border-r">
+          <div className="flex h-14 items-center gap-2 border-b border-[#edf0f3] px-5 text-[#111827]">
+            <BookOpen className="h-4 w-4 text-[#673de6]" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold leading-none">Telenor CMS</p>
-              <p className="mt-1 text-[0.68rem] uppercase tracking-[0.12em] text-slate-400">
+              <p className="truncate text-[0.95rem] font-bold leading-none">Telenor CMS</p>
+              <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
                 Admin
               </p>
             </div>
           </div>
 
-          <nav aria-label="Admin sections" className="max-h-[calc(100vh-3rem)] overflow-y-auto py-3 text-sm">
+          <nav aria-label="Admin sections" className="max-h-[calc(100vh-3.5rem)] overflow-y-auto px-3 py-4 text-[0.95rem]">
             {Object.entries(groupedNav).map(([group, items], groupIndex) => (
               <div key={group}>
-                {groupIndex > 0 ? <Separator className="my-2 bg-white/10" /> : null}
+                {groupIndex > 0 ? <Separator className="my-3 bg-[#edf0f3]" /> : null}
                 {group ? (
-                  <p className="px-4 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <p className="px-3 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#8b95a1]">
                     {group}
                   </p>
                 ) : null}
-                <div className="space-y-0.5 px-2">
+                <div className="space-y-1">
                   {items.map((item) => {
                     const Icon = item.icon
                     const active = isActive(item)
@@ -154,16 +165,16 @@ export default function AdminShell({ authenticated, children }) {
                       <Link
                         key={item.href}
                         href={getNavHref(item)}
-                        className={`flex min-h-9 items-center gap-2 rounded-sm px-2.5 py-2 text-sm transition ${
+                        className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2.5 font-semibold transition ${
                           active
-                            ? 'bg-sky-700 text-white shadow-[inset_3px_0_0_rgba(255,255,255,0.85)]'
-                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                            ? 'bg-[#f0ecff] text-[#2f1c6a]'
+                            : 'text-[#374151] hover:bg-[#f5f3ff] hover:text-[#2f1c6a]'
                         }`}
                       >
-                        <Icon className="h-4 w-4 shrink-0" />
+                        <Icon className="h-4 w-4 shrink-0 text-current" />
                         <span className="truncate">{item.label}</span>
                         {!item.scoped ? (
-                          <span className="ml-auto rounded-sm bg-white/10 px-1.5 py-0.5 text-[0.62rem] uppercase text-slate-200">
+                          <span className="ml-auto rounded-full bg-[#ebe4ff] px-2 py-0.5 text-[0.68rem] uppercase text-[#673de6]">
                             Global
                           </span>
                         ) : null}
@@ -177,35 +188,20 @@ export default function AdminShell({ authenticated, children }) {
         </aside>
         ) : null}
 
-      <div className={hideSidebar ? '' : 'lg:pl-56'}>
-        <header className="sticky top-0 z-30 border-b border-[#c3c4c7] bg-white">
-          <div className="flex min-h-12 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-6">
-            <div className="min-w-0">
+      <div className={hideSidebar ? '' : 'lg:pl-60'}>
+        <header className="sticky top-0 z-30 border-b border-[#e5e7eb] bg-white">
+          <div className="grid min-h-14 grid-cols-1 items-center gap-3 px-4 py-3 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,30rem)_minmax(0,1fr)]">
+            <div className="min-w-0 justify-self-start">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-[1.05rem] font-semibold leading-tight text-[#1d2327]">
+                <h1 className="truncate text-[1.08rem] font-bold leading-tight text-[#1f2330]">
                   {activeTitle}
                 </h1>
                 {isQuizRoute ? (
-                  <Badge className="rounded-sm bg-slate-800 text-white">Global</Badge>
+                  <Badge className="rounded-full bg-[#2f1c6a] px-2.5 text-white">Global</Badge>
                 ) : null}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={`rounded-sm border-[#c3c4c7] ${
-                  isQuizRoute
-                    ? 'bg-[#2271b1] text-white hover:bg-[#135e96]'
-                    : 'bg-[#f6f7f7] text-[#1d2327] hover:bg-white'
-                }`}
-              >
-                <Link href="/admin/quiz">
-                  <PlayCircle />
-                  Quiz
-                </Link>
-              </Button>
+            <div className="w-full justify-self-center">
               <select
                 value={websiteId || ''}
                 onChange={(event) => {
@@ -213,7 +209,7 @@ export default function AdminShell({ authenticated, children }) {
                     router.push(`/admin?websiteId=${event.target.value}`)
                   }
                 }}
-                className="h-8 min-w-48 rounded-sm border border-[#8c8f94] bg-[#f6f7f7] px-2 text-sm shadow-sm outline-none focus:border-[#2271b1] focus:ring-2 focus:ring-[#72aee6]"
+                className="h-10 w-full min-w-0 rounded-full border border-[#d8dae0] bg-white px-4 text-[0.95rem] font-semibold text-[#1f2330] shadow-sm outline-none focus:border-[#673de6] focus:ring-4 focus:ring-[#ebe4ff]"
                 aria-label="Select website"
               >
                 <option value="">
@@ -225,14 +221,31 @@ export default function AdminShell({ authenticated, children }) {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
               <Button
                 asChild
                 variant="outline"
                 size="sm"
-                className={`rounded-sm border-[#c3c4c7] ${
+                className={`rounded-full border-[#d8dae0] px-3.5 ${
+                  isQuizRoute
+                    ? 'bg-[#673de6] text-white hover:bg-[#5025d1]'
+                    : 'bg-white text-[#1f2330] hover:bg-[#f5f3ff]'
+                }`}
+              >
+                <Link href="/admin/quiz">
+                  <PlayCircle />
+                  Quiz
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className={`rounded-full border-[#d8dae0] px-3.5 ${
                   isAddWebsiteRoute
-                    ? 'bg-[#2271b1] text-white hover:bg-[#135e96]'
-                    : 'bg-[#f6f7f7] text-[#1d2327] hover:bg-white'
+                    ? 'bg-[#673de6] text-white hover:bg-[#5025d1]'
+                    : 'bg-white text-[#1f2330] hover:bg-[#f5f3ff]'
                 }`}
               >
                 <Link href="/admin/add-website">
@@ -246,7 +259,7 @@ export default function AdminShell({ authenticated, children }) {
                 size="sm"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="rounded-sm border-[#c3c4c7] bg-[#f6f7f7] text-[#1d2327] hover:bg-white"
+                className="rounded-full border-[#d8dae0] bg-white px-3.5 text-[#1f2330] hover:bg-[#f5f3ff]"
               >
                 <LogOut />
                 {loggingOut ? 'Signing out...' : 'Sign out'}
@@ -255,7 +268,7 @@ export default function AdminShell({ authenticated, children }) {
           </div>
         </header>
 
-        <main className="px-4 py-5 sm:px-6">
+        <main className="px-4 py-6 sm:px-6">
           <section className="mx-auto min-w-0 max-w-[104rem]">
           {children || <DashboardWorkspace />}
           </section>

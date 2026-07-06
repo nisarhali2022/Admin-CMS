@@ -948,3 +948,632 @@ Use this structure for every completed milestone:
 - Follow-up items:
   - Browser-test a real WordPress import to confirm the progress bar updates with live network timing.
 - Readiness for next milestone: Ready after test/lint/build validation passes.
+
+## Milestone 13 Correction: Hostinger-Inspired Admin UI Styling
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Restyle the admin frame and shared UI controls toward the provided Hostinger-style reference without changing product behavior.
+- What was implemented:
+  - Changed the admin sidebar from dark to light with rounded active navigation.
+  - Changed the header into a three-zone layout: title left, website dropdown centered, actions right.
+  - Updated shared cards, empty states, loading states, labels, alerts, inputs, selects, and buttons with softer borders and rounded surfaces.
+  - Increased admin UI base font size from 14px to 15px.
+- Files/modules changed:
+  - `features/admin-shell/AdminShell.jsx`
+  - `components/admin/admin-ui.jsx`
+  - `components/ui/button.jsx`
+  - `components/ui/input.jsx`
+  - `features/authors/AuthorsManager.jsx`
+  - `features/categories/CategoriesManager.jsx`
+  - `features/import/ImportManager.jsx`
+  - `features/redirects/RedirectsManager.jsx`
+  - `styles/globals.css`
+  - `test/milestone13-final-hardening.test.js`
+- Inputs/outputs added or changed:
+  - No API, database, or route behavior changed.
+- Security and architecture checks:
+  - Styling-only change; admin session, website scoping, import, quiz, and Supabase behavior are unchanged.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- app features components styles docs test`
+  - Browser smoke check confirmed the unauthenticated `/admin` login screen renders with the updated rounded card, input, and button styling.
+- Known caveats:
+  - Authenticated browser QA with live admin data should confirm the centered dropdown and right-aligned actions behave well on desktop and narrow screens.
+- Follow-up items:
+  - Adjust individual feature-page spacing only if manual QA finds crowding after the shared style change.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: WordPress-Style Category Page
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Restyle the Categories admin page to match the provided WordPress taxonomy reference while keeping the v1 flat category model.
+- What was implemented:
+  - Rebuilt the category manager into a two-column layout with an Add Category form on the left and a searchable table on the right.
+  - Added client-side search across category name, slug, and description.
+  - Added table selection with bulk trash and restore actions.
+  - Kept row-level edit, save, trash, restore, and permanent delete behavior.
+  - Added category post counts using the existing posts API; count displays `—` if posts cannot be loaded.
+  - Reduced admin input/select/textarea and button text by 1px.
+- Files/modules changed:
+  - `features/categories/CategoriesManager.jsx`
+  - `styles/globals.css`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, route, RLS, or public website behavior changed.
+  - The category UI now also reads `/api/cms/posts?websiteId=...` to calculate display-only counts.
+- Security and architecture checks:
+  - Category data remains website-scoped.
+  - Parent category hierarchy was intentionally not added.
+  - Bulk permanent delete was not added; permanent delete remains a row-level action.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features components styles docs test`
+  - Cleared stale local `.next` build cache after Next reported missing generated chunks; the clean rebuild passed.
+- Known caveats:
+  - Counts are display-only and derived client-side from the current non-trashed post list.
+- Follow-up items:
+  - If category counts become expensive on large sites, move count aggregation to a dedicated admin API later.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Authors Taxonomy UI And Website Dropdown Sync
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Align the Authors page with the WordPress-style category structure, remove duplicate bottom category bulk actions, and keep the header website dropdown in sync with Website Workspace changes.
+- What was implemented:
+  - Removed the duplicate bottom category bulk-action toolbar.
+  - Rebuilt Authors into a two-column add-form and searchable table layout.
+  - Added author search, top bulk trash/restore, row edit/save/cancel, row trash/restore/delete, active status display, avatar display, and post count display.
+  - Added a `cms:websites-updated` browser event after website create/update/deactivate.
+  - Updated `AdminShell` to reload header website options when that event fires.
+- Files/modules changed:
+  - `features/categories/CategoriesManager.jsx`
+  - `features/authors/AuthorsManager.jsx`
+  - `features/admin-shell/AdminShell.jsx`
+  - `features/websites/WebsiteSectionShell.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, route, RLS, or public website behavior changed.
+  - The Authors UI now reads `/api/cms/posts?websiteId=...` to calculate display-only author post counts.
+- Security and architecture checks:
+  - Authors and categories remain website-scoped.
+  - Website dropdown sync is client-only and does not expose any new data.
+  - Bulk permanent delete was not added; permanent delete remains row-level only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features components styles docs test`
+- Known caveats:
+  - Author counts are display-only and derived client-side from the current non-trashed post list.
+- Follow-up items:
+  - If author/category counts become expensive on large sites, move count aggregation to dedicated admin APIs later.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Author Image Preview And Website Selection Sync
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Improve author image selection feedback and make Website Workspace card selection update the header website context.
+- What was implemented:
+  - Added author image preview to the Add Author form using existing Media Library images.
+  - Added a neutral user placeholder when no author image is selected.
+  - Added edit-mode author avatar preview beside the avatar selector.
+  - Kept author image storage as `avatarImageId`; no direct author-page upload was added.
+  - Updated Website Workspace card selection to dispatch the existing `cms:websites-updated` event after routing.
+- Files/modules changed:
+  - `features/authors/AuthorsManager.jsx`
+  - `features/websites/WebsiteSectionShell.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, or public website behavior changed.
+- Security and architecture checks:
+  - Author image selection still uses same-website media loaded through existing admin media APIs.
+  - Website header sync remains client-side only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features components styles docs test`
+- Known caveats:
+  - Author images must still be uploaded through the Media page before selection.
+- Follow-up items:
+  - Direct upload from Authors can be added later if the workflow needs it.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Authors Actions, Redirects Taxonomy UI, And Settings Layout
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Move author row actions into a dedicated table column, align Redirects with the WordPress-style taxonomy management screens, and fix the Settings page layout so form sections render at usable width.
+- What was implemented:
+  - Added an `Actions` column after `Count` on Authors and moved edit/trash/restore/delete/save/cancel controls into it.
+  - Rebuilt Redirects as a two-column add form and searchable table layout with top bulk trash/restore controls.
+  - Reorganized Settings into stacked full-width panels for SEO/site config, robots/sitemap, AdSense, and revalidation.
+- Files/modules changed:
+  - `features/authors/AuthorsManager.jsx`
+  - `features/redirects/RedirectsManager.jsx`
+  - `features/settings/SettingsManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, route, RLS, storage, quiz, or public website behavior changed.
+  - Redirect bulk actions reuse the existing row trash/restore endpoints.
+- Security and architecture checks:
+  - All changes are admin UI-only and remain website-scoped through the existing route wrappers.
+  - Bulk permanent delete was not added; permanent delete remains row-level only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - Redirect search and bulk selection are client-side over the loaded redirect list.
+- Follow-up items:
+  - If redirect lists become large, add server-side search/pagination later.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Category Actions Column And Redirects Row Layout
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Move Category row actions into a dedicated table column and change Redirects from a side-by-side add/table layout into stacked rows.
+- What was implemented:
+  - Added an `Actions` column after `Count` on Categories.
+  - Moved Category edit/trash/restore/delete/save/cancel controls out of the Name cell and into the new Actions column.
+  - Changed Redirects to render the Add Redirect form as a full-width row above the search, bulk action, and table row.
+- Files/modules changed:
+  - `features/categories/CategoriesManager.jsx`
+  - `features/redirects/RedirectsManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, route, RLS, storage, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Changes are admin UI-only and continue using existing website-scoped APIs.
+  - Permanent delete remains row-level only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - Category and Redirect search remain client-side over loaded rows.
+- Follow-up items:
+  - Add server-side search/pagination later if row counts become large.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Categories Authors Row Layout And Redirect URL Normalization
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Change Categories and Authors from side-by-side columns into stacked rows and let Redirect source fields accept pasted full URLs.
+- What was implemented:
+  - Changed Categories to render the Add Category form as a full-width row above search, bulk actions, and the table.
+  - Changed Authors to render the Add Author form as a full-width row above search, bulk actions, and the table.
+  - Updated redirect source validation so full `http://` and `https://` URLs normalize to relative `fromPath` values.
+- Files/modules changed:
+  - `features/categories/CategoriesManager.jsx`
+  - `features/authors/AuthorsManager.jsx`
+  - `lib/cms/validators/redirects.js`
+  - `test/milestone9-settings-redirects.test.js`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - Admin Redirect create/edit can now accept a full source URL, but the stored `fromPath` remains a relative path.
+  - No database, route, RLS, storage, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - URL normalization is limited to `http://` and `https://` source URLs.
+  - Redirect destination validation remains unchanged.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features lib docs test styles`
+- Known caveats:
+  - URL fragments are not stored because redirect matching happens by request path/query, not browser fragment.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Max Width Resize
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Resize uploaded media wider than 1200px before WebP conversion while keeping smaller images unchanged.
+- What was implemented:
+  - Added `MAX_IMAGE_WIDTH = 1200` to the image optimizer.
+  - Added Sharp resize with `withoutEnlargement: true` before WebP conversion.
+  - Renamed Media table source filename label from `Original` to `Uploaded as`.
+  - Added tests for 600px, 900px, 1200px, and 1600px width behavior.
+- Files/modules changed:
+  - `lib/storage/imageOptimizer.js`
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone5-media.test.js`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - Media stored dimensions now cap width at 1200px for larger uploads/imports.
+  - No database, API, storage bucket, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Resizing remains server-side in the shared optimizer used by uploads and imports.
+  - Smaller images are not upscaled.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- lib features docs test`
+- Known caveats:
+  - Existing media already stored before this change is not retroactively resized.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media File Size And Dimensions Columns
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Replace the Media table `Author` column with `File size` and `Dimensions`.
+- What was implemented:
+  - Removed the `Author` header and `Admin` row value from the Media table.
+  - Added `File size` from optimized media `fileSize`.
+  - Added `Dimensions` from optimized media `width` and `height`.
+  - Added table formatting helpers for byte size and dimension display.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage path, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Values come from existing website-scoped media metadata returned by the admin media API.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - Missing file size or dimensions display as `-`.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media WebP Visibility
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Make WebP conversion visible in the Media Library UI after PNG/JPG uploads.
+- What was implemented:
+  - Added a success message confirming upload, compression, and WebP conversion.
+  - Updated the Media file cell to show the stored `.webp` filename and MIME type.
+  - Kept the original uploaded filename visible only as reference metadata.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage path, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Conversion still happens server-side through `sharp`.
+  - Original filenames are display metadata only; stored objects remain `.webp`.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features lib docs test styles`
+- Known caveats:
+  - Existing old media rows will only show WebP if their stored path and MIME metadata were already created by the optimizer.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Uploaded-To Removal And WebP Confirmation
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Remove the Media table `Uploaded to` column and confirm JPG/PNG uploads convert/compress to WebP.
+- What was implemented:
+  - Removed the `Uploaded to` header and row cell from the Media table.
+  - Kept `Usage` in the `Actions` column and moved usage results below the action links.
+  - Adjusted the inline editor row colspan for the smaller table.
+  - Added JPG optimizer coverage alongside existing PNG WebP coverage.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone5-media.test.js`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage path, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Image conversion remains server-side through trusted `sharp` code.
+  - Media storage still writes `.webp` objects with `image/webp` metadata.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features lib docs test styles`
+- Known caveats:
+  - `Author` still shows `Admin` because v1 has one admin user and no media uploader field.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Category And Author Name Slug Rows
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Place `Name` and `Slug` fields in one responsive two-column row on Category and Author add forms.
+- What was implemented:
+  - Wrapped Category add-form `Name` and `Slug` fields in a responsive two-column grid.
+  - Wrapped Author add-form `Name` and `Slug` fields in a responsive two-column grid.
+- Files/modules changed:
+  - `features/categories/CategoriesManager.jsx`
+  - `features/authors/AuthorsManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, route, RLS, storage, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - UI-only layout change.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - Fields still stack on small screens for readability.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Author Bio Image Row
+
+- Status: Complete
+- Date completed: 2026-07-05
+- Milestone goal: Place `Bio` and `Author Image` fields in one responsive two-column row on the Author add form.
+- What was implemented:
+  - Wrapped the Author add-form `Bio` and `Author Image` fields in a responsive two-column grid.
+- Files/modules changed:
+  - `features/authors/AuthorsManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, route, RLS, storage, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - UI-only layout change.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - Fields still stack on small screens for readability.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Upload Form Reset Crash
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Fix the media upload crash caused by calling `event.currentTarget.reset()` after an async upload.
+- What was implemented:
+  - Captured the upload form reference before async work starts.
+  - Reset the captured form after successful upload instead of reading `event.currentTarget` later.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Failed uploads still keep the selected form values intact for retry.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - None.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Grid And Attachment Details Modal
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Redesign the Media page into a dense image grid with a WordPress-style attachment details popup.
+- What was implemented:
+  - Added a media toolbar with view controls, media/date filters, bulk-select placeholder, and client-side search.
+  - Replaced large media cards with dense square thumbnails.
+  - Added an attachment details modal with large preview, metadata, alt text, caption, file URL copy, usage lookup, save, trash, restore, and permanent delete controls.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Media actions still use the existing website-scoped admin API handlers.
+  - Bulk select is visual-only in this pass and does not add destructive bulk behavior.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - Title and description fields were not added because the v1 media model only stores alt text and caption.
+- Follow-up items:
+  - Superseded by the Media Table List View correction below.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Table List View
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Replace the Media grid and attachment details modal with a WordPress-style media table/list view.
+- What was implemented:
+  - Replaced the square image grid with a table view using `File`, `Author`, `Uploaded to`, and `Date` columns.
+  - Added media toolbar controls for list/grid icons, media/date filters, search, safe bulk trash/restore, item count, and client-side pagination.
+  - Added inline alt text and caption editing inside the table instead of a popup modal.
+  - Kept row actions for trash, restore, permanent delete, view, copy URL, download, and usage lookup.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Permanent delete remains row-level only.
+  - Bulk actions are limited to trash and restore through existing website-scoped admin API handlers.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - `Author` shows `Admin` because v1 has one admin user and no media uploader field.
+  - `Uploaded to` shows `Unattached` unless the existing usage lookup is requested.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Alt Text And Actions Columns
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Move Media row actions into a dedicated final `Actions` column and add a visible `Alt text` column.
+- What was implemented:
+  - Added `Alt text` between `File` and `Author`.
+  - Added `Actions` after `Date`.
+  - Moved `Edit`, `Trash` or `Restore`, `Delete Permanently`, `View`, `Copy URL`, `Download file`, and `Usage` out of the `File` column and into `Actions`.
+  - Kept inline `Alternative Text` and `Caption` editing unchanged.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, route, quiz, or public website behavior changed.
+- Security and architecture checks:
+  - Permanent delete remains visible only for trashed media.
+  - Bulk actions remain limited to trash and restore.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test styles`
+- Known caveats:
+  - Empty alt text displays as `—`.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Filter Download And Table Footer Cleanup
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Fix Media Library filtering/download behavior and clean repeated footer/header styling from taxonomy-style admin tables.
+- What was implemented:
+  - Changed the Media Library status filter to default to `Live media`, with `All media items` and `Trash` options.
+  - Removed the unused `All dates` dropdown.
+  - Added filename fallback behavior for empty media alt text, including new uploads/imports.
+  - Replaced the unreliable cross-origin download link with a blob-based download handler.
+  - Removed duplicate table footer rows from Categories, Authors, and Redirects.
+  - Normalized Categories, Authors, and Redirects table body text to normal black styling.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `features/categories/CategoriesManager.jsx`
+  - `features/authors/AuthorsManager.jsx`
+  - `features/redirects/RedirectsManager.jsx`
+  - `lib/cms/services/media.js`
+  - `test/milestone13-final-hardening.test.js`
+  - `test/milestone5-media.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - New uploads/imports with empty alt text now store the uploaded filename without extension as fallback alt text.
+  - Existing media with empty alt text displays the same filename fallback in the admin UI.
+- Security and architecture checks:
+  - No database, RLS, storage bucket, route, or public website contract changes were made.
+  - Permanent delete remains row-level and still uses existing API checks.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features lib docs test`
+- Known caveats:
+  - Download falls back to opening the public URL in a new tab if the browser cannot fetch the image blob.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: WordPress-Style Pages Editor
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Redesign Template Content as a WordPress-style Pages screen with a table first and an Edit Page editor after selecting a page.
+- What was implemented:
+  - Replaced the JSON-first Template Content layout with a Pages table showing title, author, date, status filters, search, and bulk trash/restore actions.
+  - Added an Edit Page screen with title, permalink, WordPress-like editor toolbar, content textarea, and word count.
+  - Added an SEO card below the content editor with Focus keyphrase, SEO title, Meta description, and Author dropdown.
+  - Added nullable `focus_keyphrase` and `author_id` fields for template pages.
+  - Public template RPC output now includes page author data and focus keyphrase.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `lib/cms/repositories/templateContent.js`
+  - `lib/cms/serializers/templateContent.js`
+  - `lib/cms/services/templateContent.js`
+  - `lib/cms/validators/templateContent.js`
+  - `supabase/migrations/202607030001_cms_schema.sql`
+  - `supabase/migrations/202607030003_rls_public_rpcs.sql`
+  - `supabase/migrations/202607060001_template_content_author_focus.sql`
+  - `docs/DATA_MODEL.md`
+  - `docs/API_CONTRACTS.md`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+  - `test/milestone2-schema.test.js`
+  - `test/milestone3-rls-public-rpcs.test.js`
+  - `test/milestone7-template-content.test.js`
+  - `test/milestone13-final-hardening.test.js`
+- Inputs/outputs added or changed:
+  - Template content save payloads may now include `focusKeyphrase` and `authorId`.
+  - Public template content responses include `seo.focusKeyphrase` and an optional resolved `author` object.
+- Security and architecture checks:
+  - `authorId` is validated server-side as an active/non-trashed author belonging to the selected website.
+  - Media reference validation remains unchanged.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features lib docs test supabase`
+- Known caveats:
+  - The content textarea edits the primary content field for each fixed template; advanced multi-field page sections remain governed by the fixed template schema.
+- Follow-up items:
+  - Run the corrective migration `202607060001_template_content_author_focus.sql` in Supabase for existing databases.
+- Readiness for next milestone: Ready.

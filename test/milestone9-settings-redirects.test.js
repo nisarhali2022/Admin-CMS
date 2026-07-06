@@ -70,9 +70,27 @@ test('redirect validator rejects loops and accepts 301/302 payloads', () => {
     }
   )
 
+  assert.deepEqual(
+    validateRedirectPayload({
+      fromPath: 'https://example.com/old-path?from=wp',
+      toUrl: '/new',
+      redirectType: 301,
+    }),
+    {
+      fromPath: '/old-path?from=wp',
+      toUrl: '/new',
+      redirectType: 301,
+      isActive: true,
+    }
+  )
+
   assert.throws(
     () => validateRedirectPayload({ fromPath: '/same', toUrl: '/same' }),
     /cannot match/
+  )
+  assert.throws(
+    () => validateRedirectPayload({ fromPath: 'old-path', toUrl: '/new' }),
+    /relative path/
   )
   assert.throws(
     () => validateRedirectPatchPayload({ redirectType: 307 }),

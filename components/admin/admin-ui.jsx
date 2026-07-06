@@ -23,15 +23,15 @@ export function PageHeader({
     <div className={cn('flex flex-wrap items-end justify-between gap-3', className)}>
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#646970]">
+          <p className="text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#7c8490]">
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="mt-1 text-[1.45rem] font-semibold leading-tight text-[#1d2327]">
+        <h2 className="mt-1 text-[1.55rem] font-bold leading-tight text-[#1f2330]">
           {title}
         </h2>
         {description ? (
-          <p className="mt-1 max-w-4xl text-sm leading-6 text-[#50575e]">
+          <p className="mt-1 max-w-4xl text-[0.96rem] leading-6 text-[#596171]">
             {description}
           </p>
         ) : null}
@@ -52,22 +52,22 @@ export function AdminPanel({
   return (
     <Card
       className={cn(
-        'rounded-sm border border-[#c3c4c7] bg-white shadow-none ring-0 [--card-spacing:--spacing(4)]',
+        'overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(31,35,48,0.04)] ring-0 [--card-spacing:--spacing(4)]',
         className,
       )}
     >
       {(title || description || action) ? (
-        <CardHeader className="rounded-none border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
-          <CardTitle className="text-sm font-semibold text-[#1d2327]">{title}</CardTitle>
+        <CardHeader className="border-b border-[#edf0f3] bg-white px-5 py-4">
+          <CardTitle className="text-[1rem] font-bold text-[#1f2330]">{title}</CardTitle>
           {description ? (
-            <CardDescription className="text-xs leading-5 text-[#646970]">
+            <CardDescription className="text-[0.86rem] leading-5 text-[#6b7280]">
               {description}
             </CardDescription>
           ) : null}
           {action ? <CardAction>{action}</CardAction> : null}
         </CardHeader>
       ) : null}
-      <CardContent className={cn('px-4 py-4', contentClassName)}>{children}</CardContent>
+      <CardContent className={cn('px-5 py-5', contentClassName)}>{children}</CardContent>
     </Card>
   )
 }
@@ -85,10 +85,10 @@ export function StatusBadge({ active, children }) {
     <Badge
       variant={active ? 'default' : 'secondary'}
       className={cn(
-        'rounded-sm px-2 py-0 text-[0.68rem] font-semibold uppercase tracking-[0.08em]',
+        'rounded-full px-2.5 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em]',
         active
-          ? 'bg-[#00a32a] text-white hover:bg-[#00a32a]'
-          : 'bg-[#dcdcde] text-[#50575e]',
+          ? 'bg-[#00b090] text-white hover:bg-[#00b090]'
+          : 'bg-[#eef0f4] text-[#596171]',
       )}
     >
       {children || (active ? 'Active' : 'Inactive')}
@@ -104,10 +104,10 @@ export function MessageAlert({ message, tone = 'error', className }) {
   return (
     <div
       className={cn(
-        'flex items-start gap-2 border-l-4 bg-white px-3 py-2 text-sm shadow-sm',
+        'flex items-start gap-2 rounded-xl border px-4 py-3 text-[0.94rem] shadow-sm',
         isError
-          ? 'border-red-600 text-red-800'
-          : 'border-sky-600 text-[#1d2327]',
+          ? 'border-red-200 bg-red-50 text-red-800'
+          : 'border-[#d8ccff] bg-[#f5f3ff] text-[#2f1c6a]',
         className,
       )}
     >
@@ -121,13 +121,13 @@ export function EmptyState({ title, description, action, className }) {
   return (
     <div
       className={cn(
-        'border border-dashed border-[#c3c4c7] bg-[#f6f7f7] px-4 py-8 text-center',
+        'rounded-2xl border border-dashed border-[#d8dae0] bg-white px-5 py-10 text-center shadow-[0_8px_24px_rgba(31,35,48,0.03)]',
         className,
       )}
     >
-      <p className="font-medium text-foreground">{title}</p>
+      <p className="font-bold text-[#1f2330]">{title}</p>
       {description ? (
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        <p className="mx-auto mt-2 max-w-md text-[0.95rem] leading-6 text-[#6b7280]">
           {description}
         </p>
       ) : null}
@@ -138,8 +138,8 @@ export function EmptyState({ title, description, action, className }) {
 
 export function LoadingState({ label = 'Loading...' }) {
   return (
-    <div className="space-y-3 border border-[#c3c4c7] bg-white p-4">
-      <div className="flex items-center gap-2 text-sm text-[#50575e]">
+    <div className="space-y-3 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_8px_24px_rgba(31,35,48,0.03)]">
+      <div className="flex items-center gap-2 text-[0.95rem] text-[#596171]">
         <Loader2 className="h-4 w-4 animate-spin" />
         {label}
       </div>
@@ -152,9 +152,9 @@ export function LoadingState({ label = 'Loading...' }) {
 export function Field({ label, children, hint, className }) {
   return (
     <div className={cn('space-y-1.5', className)}>
-      {label ? <Label className="text-xs font-semibold text-[#1d2327]">{label}</Label> : null}
+      {label ? <Label className="text-[0.86rem] font-bold text-[#1f2330]">{label}</Label> : null}
       {children}
-      {hint ? <p className="text-xs leading-5 text-[#646970]">{hint}</p> : null}
+      {hint ? <p className="text-[0.82rem] leading-5 text-[#6b7280]">{hint}</p> : null}
     </div>
   )
 }

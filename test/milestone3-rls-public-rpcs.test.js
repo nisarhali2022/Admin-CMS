@@ -77,6 +77,9 @@ test('public RPC SQL resolves media and sanitizes AdSense settings', async () =>
 
   assert.match(sql, /cms_public_image_object/)
   assert.match(sql, /cms_resolve_media_references/)
+  assert.match(sql, /'focusKeyphrase', t\.focus_keyphrase/)
+  assert.match(sql, /left join public\.cms_authors a/)
+  assert.match(sql, /'author', case/)
   assert.match(sql, /'url', m\.public_url/)
   assert.match(sql, /'alt', coalesce\(m\.alt_text, ''\)/)
   assert.match(sql, /'caption', m\.caption/)

@@ -10,7 +10,6 @@ import {
 } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 
 const emptyForm = {
@@ -187,211 +186,196 @@ export default function SettingsManager({ websiteId }) {
 
       <MessageAlert message={message} tone={message?.includes('saved') ? 'info' : 'error'} />
 
-      <form onSubmit={saveSettings} className="space-y-5">
-        <Tabs defaultValue="seo" className="space-y-4">
-          <TabsList className="flex h-auto w-full flex-wrap justify-start">
-            <TabsTrigger value="seo">SEO</TabsTrigger>
-            <TabsTrigger value="robots">Robots & sitemap</TabsTrigger>
-            <TabsTrigger value="adsense">AdSense</TabsTrigger>
-            <TabsTrigger value="revalidation">Revalidation</TabsTrigger>
-          </TabsList>
+      <form onSubmit={saveSettings} className="max-w-6xl space-y-5">
+        <AdminPanel
+          title="SEO and site config"
+          description="JSON settings used by public websites for defaults and site-level content."
+        >
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Field label="SEO defaults">
+              <Textarea
+                value={form.seoDefaultsText}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    seoDefaultsText: event.target.value,
+                  }))
+                }
+                rows={10}
+                className="min-h-56 font-mono text-sm"
+              />
+            </Field>
+            <Field label="Site config">
+              <Textarea
+                value={form.siteConfigText}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    siteConfigText: event.target.value,
+                  }))
+                }
+                rows={10}
+                className="min-h-56 font-mono text-sm"
+              />
+            </Field>
+          </div>
+        </AdminPanel>
 
-          <TabsContent value="seo">
-            <AdminPanel
-              title="SEO and site config"
-              description="JSON settings used by public websites for defaults and site-level content."
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Field label="SEO defaults">
-                  <Textarea
-                    value={form.seoDefaultsText}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        seoDefaultsText: event.target.value,
-                      }))
-                    }
-                    rows={8}
-                    className="font-mono text-sm"
-                  />
-                </Field>
-                <Field label="Site config">
-                  <Textarea
-                    value={form.siteConfigText}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        siteConfigText: event.target.value,
-                      }))
-                    }
-                    rows={8}
-                    className="font-mono text-sm"
-                  />
-                </Field>
-              </div>
-            </AdminPanel>
-          </TabsContent>
+        <AdminPanel
+          title="Robots and sitemap"
+          description="Control crawler instructions and sitemap generation options."
+        >
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Field label="Robots.txt">
+              <Textarea
+                value={form.robotsTxt}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    robotsTxt: event.target.value,
+                  }))
+                }
+                rows={10}
+                className="min-h-56 font-mono text-sm"
+              />
+            </Field>
+            <Field label="Sitemap settings">
+              <Textarea
+                value={form.sitemapSettingsText}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    sitemapSettingsText: event.target.value,
+                  }))
+                }
+                rows={10}
+                className="min-h-56 font-mono text-sm"
+              />
+            </Field>
+          </div>
+        </AdminPanel>
 
-          <TabsContent value="robots">
-            <AdminPanel
-              title="Robots and sitemap"
-              description="Control crawler instructions and sitemap generation options."
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Field label="Robots.txt">
-                  <Textarea
-                    value={form.robotsTxt}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        robotsTxt: event.target.value,
-                      }))
-                    }
-                    rows={8}
-                    className="font-mono text-sm"
-                  />
-                </Field>
-                <Field label="Sitemap settings">
-                  <Textarea
-                    value={form.sitemapSettingsText}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        sitemapSettingsText: event.target.value,
-                      }))
-                    }
-                    rows={8}
-                    className="font-mono text-sm"
-                  />
-                </Field>
-              </div>
-            </AdminPanel>
-          </TabsContent>
+        <AdminPanel
+          title="AdSense"
+          description="Website-level AdSense toggle and public ads.txt content."
+        >
+          <div className="grid gap-4 lg:grid-cols-2">
+            <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={form.adsenseEnabled}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    adsenseEnabled: event.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-input"
+              />
+              Active
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={form.adsenseAutoAdsEnabled}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    adsenseAutoAdsEnabled: event.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-input"
+              />
+              Auto ads
+            </label>
+            <Field label="Publisher ID" className="lg:col-span-2">
+              <Input
+                type="text"
+                value={form.adsensePublisherId}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    adsensePublisherId: event.target.value,
+                  }))
+                }
+                placeholder="ca-pub-..."
+              />
+            </Field>
+            <Field label="ads.txt" className="lg:col-span-2">
+              <Textarea
+                value={form.adsenseAdsTxt}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    adsenseAdsTxt: event.target.value,
+                  }))
+                }
+                placeholder="google.com, pub-..., DIRECT, ..."
+                rows={5}
+                className="font-mono text-sm"
+              />
+            </Field>
+          </div>
+        </AdminPanel>
 
-          <TabsContent value="adsense">
-            <AdminPanel
-              title="AdSense"
-              description="Website-level AdSense toggle and public ads.txt content."
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    checked={form.adsenseEnabled}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        adsenseEnabled: event.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  Active
-                </label>
-                <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    checked={form.adsenseAutoAdsEnabled}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        adsenseAutoAdsEnabled: event.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  Auto ads
-                </label>
-                <Field label="Publisher ID" className="lg:col-span-2">
-                  <Input
-                    type="text"
-                    value={form.adsensePublisherId}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        adsensePublisherId: event.target.value,
-                      }))
-                    }
-                    placeholder="ca-pub-..."
-                  />
-                </Field>
-                <Field label="ads.txt" className="lg:col-span-2">
-                  <Textarea
-                    value={form.adsenseAdsTxt}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        adsenseAdsTxt: event.target.value,
-                      }))
-                    }
-                    placeholder="google.com, pub-..., DIRECT, ..."
-                    rows={4}
-                    className="font-mono text-sm"
-                  />
-                </Field>
-              </div>
-            </AdminPanel>
-          </TabsContent>
+        <AdminPanel
+          title="Revalidation webhook"
+          description="Notify the public website when public-facing CMS data changes."
+        >
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Field label="Webhook URL">
+              <Input
+                type="text"
+                value={form.revalidationUrl}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    revalidationUrl: event.target.value,
+                  }))
+                }
+                placeholder="https://site.com/api/revalidate"
+              />
+            </Field>
+            <Field label="Webhook secret">
+              <Input
+                type="password"
+                value={form.revalidationSecret}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    revalidationSecret: event.target.value,
+                  }))
+                }
+                placeholder={
+                  settings?.hasRevalidationSecret
+                    ? 'Secret already saved'
+                    : 'Webhook secret'
+                }
+              />
+            </Field>
+            <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={form.clearRevalidationSecret}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    clearRevalidationSecret: event.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-input"
+              />
+              Clear saved secret
+            </label>
+          </div>
+        </AdminPanel>
 
-          <TabsContent value="revalidation">
-            <AdminPanel
-              title="Revalidation webhook"
-              description="Notify the public website when public-facing CMS data changes."
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Field label="Webhook URL">
-                  <Input
-                    type="text"
-                    value={form.revalidationUrl}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        revalidationUrl: event.target.value,
-                      }))
-                    }
-                    placeholder="https://site.com/api/revalidate"
-                  />
-                </Field>
-                <Field label="Webhook secret">
-                  <Input
-                    type="password"
-                    value={form.revalidationSecret}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        revalidationSecret: event.target.value,
-                      }))
-                    }
-                    placeholder={
-                      settings?.hasRevalidationSecret
-                        ? 'Secret already saved'
-                        : 'Webhook secret'
-                    }
-                  />
-                </Field>
-                <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    checked={form.clearRevalidationSecret}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        clearRevalidationSecret: event.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  Clear saved secret
-                </label>
-              </div>
-            </AdminPanel>
-          </TabsContent>
-        </Tabs>
-
-        <Button type="submit" disabled={saving}>
-          <Save />
-          {saving ? 'Saving...' : 'Save settings'}
-        </Button>
+        <div className="flex justify-start border-t border-border pt-4">
+          <Button type="submit" disabled={saving}>
+            <Save />
+            {saving ? 'Saving...' : 'Save settings'}
+          </Button>
+        </div>
       </form>
     </section>
   )

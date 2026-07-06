@@ -93,8 +93,10 @@ Save payload:
   "path": "/about",
   "title": "About Us",
   "contentData": {},
+  "focusKeyphrase": "about company",
   "seoTitle": "About Us",
   "metaDescription": "About our company",
+  "authorId": "uuid",
   "canonicalUrl": null,
   "robotsMeta": null,
   "ogImageId": null,
@@ -109,6 +111,7 @@ Behavior:
 - validate `contentData` against code-defined template schema
 - enforce unique `(website_id, template_key)`
 - block cross-website media references
+- validate `authorId` as an active/non-trashed author for the selected website when provided
 - template content does not support future scheduling in v1
 
 ## Admin Authors

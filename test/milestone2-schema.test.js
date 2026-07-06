@@ -45,9 +45,12 @@ test('cms schema migration captures key milestone 2 constraints', async () => {
   const sql = await readMigration('cms_schema')
 
   assert.match(sql, /author_id uuid not null/)
+  assert.match(sql, /focus_keyphrase text/)
   assert.match(sql, /create unique index cms_media_storage_path_key/)
   assert.match(sql, /create index cms_import_jobs_website_status_idx/)
   assert.match(sql, /foreign key \(author_id, website_id\)/)
+  assert.match(sql, /cms_template_content_author_same_website_fk/)
+  assert.match(sql, /create index cms_template_content_website_author_idx/)
   assert.match(sql, /foreign key \(avatar_image_id, website_id\)/)
   assert.match(sql, /adsense_settings jsonb not null default/)
   assert.match(sql, /status in \('draft', 'published', 'unpublished'\)/)

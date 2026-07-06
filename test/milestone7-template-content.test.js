@@ -16,6 +16,7 @@ const originalEnv = { ...process.env }
 const websiteId = '11111111-1111-4111-8111-111111111111'
 const mediaId = '22222222-2222-4222-8222-222222222222'
 const templateId = '33333333-3333-4333-8333-333333333333'
+const authorId = '44444444-4444-4444-8444-444444444444'
 
 function setValidEnv() {
   process.env.ADMIN_SECRET = 'test-admin-secret'
@@ -42,9 +43,13 @@ test('template content validator accepts supported templates and rejects schedul
       heroImage: { mediaId },
     },
     status: 'draft',
+    focusKeyphrase: 'home page',
+    authorId,
   })
 
   assert.equal(payload.templateKey, 'home')
+  assert.equal(payload.focusKeyphrase, 'home page')
+  assert.equal(payload.authorId, authorId)
   assert.equal(payload.contentData.heroImage.mediaId, mediaId)
   assert.deepEqual([...collectMediaIds(payload.contentData)], [mediaId])
   assert.throws(
@@ -93,6 +98,23 @@ test('template service validates media references before creating content', asyn
       ])
     }
 
+    if (String(url).includes('/rest/v1/cms_authors')) {
+      return Response.json([
+        {
+          id: authorId,
+          website_id: websiteId,
+          name: 'Muhammad Shabbar',
+          slug: 'muhammad-shabbar',
+          bio: '',
+          avatar_image_id: null,
+          is_active: true,
+          deleted_at: null,
+          created_at: '2026-07-04T00:00:00.000Z',
+          updated_at: '2026-07-04T00:00:00.000Z',
+        },
+      ])
+    }
+
     if (String(url).endsWith('/rest/v1/cms_template_content')) {
       const body = JSON.parse(options.body)
       return Response.json([
@@ -103,8 +125,10 @@ test('template service validates media references before creating content', asyn
           path: body.path,
           title: body.title,
           content_data: body.content_data,
+          focus_keyphrase: body.focus_keyphrase,
           seo_title: body.seo_title,
           meta_description: body.meta_description,
+          author_id: body.author_id,
           canonical_url: body.canonical_url,
           robots_meta: body.robots_meta,
           og_image_id: body.og_image_id,
@@ -134,14 +158,19 @@ test('template service validates media references before creating content', asyn
         mainImage: { mediaId },
       },
       ogImageId: mediaId,
+      focusKeyphrase: 'about company',
+      authorId,
       status: 'draft',
     })
   )
 
   assert.equal(result.templateKey, 'about')
   assert.equal(result.ogImageId, mediaId)
+  assert.equal(result.focusKeyphrase, 'about company')
+  assert.equal(result.authorId, authorId)
   assert.equal(revalidation.skipped, true)
   assert.ok(calls.some((call) => call.url.includes('/rest/v1/cms_media')))
+  assert.ok(calls.some((call) => call.url.includes('/rest/v1/cms_authors')))
 })
 
 test('template service rejects cross-website or missing media references', async () => {

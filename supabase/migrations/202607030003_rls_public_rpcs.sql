@@ -238,7 +238,17 @@ as $$
     'path', t.path,
     'title', t.title,
     'contentData', public.cms_resolve_media_references(t.content_data, t.website_id),
+    'author', case
+      when a.id is null then null
+      else jsonb_build_object(
+        'name', a.name,
+        'slug', a.slug,
+        'bio', a.bio,
+        'avatar', public.cms_public_image_object(a.avatar_image_id, t.website_id)
+      )
+    end,
     'seo', jsonb_build_object(
+      'focusKeyphrase', t.focus_keyphrase,
       'title', t.seo_title,
       'metaDescription', t.meta_description,
       'canonicalUrl', t.canonical_url,
@@ -249,6 +259,11 @@ as $$
     'publishedAt', t.published_at
   )
   from public.cms_template_content t
+  left join public.cms_authors a
+    on a.id = t.author_id
+    and a.website_id = t.website_id
+    and a.is_active = true
+    and a.deleted_at is null
   where t.website_id = public.cms_public_website_id($1)
     and t.template_key = $2
     and t.status = 'published'

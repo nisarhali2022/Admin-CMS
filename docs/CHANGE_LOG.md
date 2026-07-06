@@ -75,8 +75,8 @@ This file records the major product, architecture, schema, UI, and documentation
 
 - Login page no longer shows the admin header/sidebar.
 - After login, the admin lands on `/admin/quiz`.
-- Admin UI was redesigned toward a WordPress-inspired layout.
-- Website-scoped CMS pages have a dark left sidebar.
+- Admin UI was redesigned toward a Hostinger-inspired light admin layout.
+- Website-scoped CMS pages have a light left sidebar.
 - Sidebar remains visible on website-scoped admin pages.
 - Sidebar is hidden on `/admin/quiz` and `/admin/add-website`.
 - Quiz link was removed from the left sidebar.
@@ -94,6 +94,8 @@ This file records the major product, architecture, schema, UI, and documentation
   - website dropdown
   - Add Website button
   - Sign out button
+- Header layout uses title on the left, website dropdown centered, and actions on the right.
+- Admin UI base font size is 15px.
 - Website dropdown routes to `/admin?websiteId=<id>`.
 - Add Website routes to `/admin/add-website`.
 - Creating a new website keeps the admin on `/admin/add-website?websiteId=<new-id>` so setup/import can continue.
@@ -203,6 +205,38 @@ This file records the major product, architecture, schema, UI, and documentation
 - `docs/MILESTONE_REVIEWS.md` must be updated after each completed milestone.
 - Future milestones should read the latest milestone review before starting.
 - This `docs/CHANGE_LOG.md` records major decisions and corrections across the rebuild.
+
+## Admin Category UI
+
+- Categories now use a WordPress-style taxonomy management layout.
+- The category model remains flat in v1; no parent category hierarchy was added.
+- The category screen has an add form, client-side search, bulk trash/restore, row edit actions, and post count display.
+- Admin input/select/textarea and button text was reduced by 1px after the Hostinger-style pass.
+- The duplicate bottom category bulk-action toolbar was removed; only the top toolbar remains.
+- Authors now use the same WordPress-style taxonomy management layout, with avatar, active status, search, bulk trash/restore, and post count display.
+- Website Workspace create/update/deactivate now refreshes the header website dropdown without requiring a manual browser refresh.
+- Author image selection now shows a live preview from existing Media Library images and a user placeholder when no image is selected.
+- Clicking a website inside Website Workspace now also refreshes the header dropdown/title context.
+- Author row actions now live in a dedicated `Actions` column after `Count`.
+- Redirects now use the same WordPress-style management structure as Categories, with add form, search, bulk trash/restore, and table actions.
+- Settings now use stable full-width section panels instead of the tab layout that collapsed JSON fields into a narrow column.
+- Category row actions now also live in a dedicated `Actions` column after `Count`.
+- Redirects now stack the add form above the search/table row instead of using a side-by-side add/table layout.
+- Categories and Authors now also use stacked full-width add-form and table rows instead of side-by-side columns.
+- Redirect source paths now accept pasted full source URLs and normalize them to relative paths before saving.
+- Category and Author add forms now place `Name` and `Slug` side by side on wider screens.
+- The Author add form now also places `Bio` and `Author Image` side by side on wider screens.
+- Media upload now resets a captured form reference after success, avoiding the `event.currentTarget.reset()` null crash.
+- Media Library now uses a WordPress-style table/list view with thumbnail rows, a dedicated `Alt text` column, no `Uploaded to` column, a final `Actions` column with usage feedback, search, safe bulk trash/restore, inline alt/caption editing, URL copy, and media actions.
+- Media Library no longer shows the placeholder `Author` column; it now shows optimized WebP `File size` and `Dimensions` columns from stored media metadata.
+- Media uploads keep using server-side `sharp` conversion/compression so PNG/JPG inputs are stored as optimized WebP files; images wider than 1200px are resized down to 1200px without upscaling smaller images.
+- The Media table now shows the stored `.webp` filename/type separately from the `Uploaded as` source filename.
+- Media Library status filtering now defaults to `Live media`, supports `All media items` and `Trash`, and no longer shows the unused date dropdown.
+- Media with empty alt text now falls back to the uploaded filename, and new uploads/imports save that filename fallback.
+- Media downloads now use a blob-based browser download handler instead of relying on cross-origin link download behavior.
+- Categories, Authors, and Redirects no longer render duplicate table footer headers, and their table body text now uses normal black styling.
+- Template Content is now presented as a WordPress-style Pages screen: a table of fixed pages first, then an Edit Page view after clicking a title.
+- Template pages now support `focus_keyphrase` and optional same-website `author_id`; the editor shows Focus keyphrase, SEO title, Meta description, and Author below the content box.
 
 ## Validation Completed
 
