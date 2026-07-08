@@ -29,22 +29,22 @@ Expected behavior:
 
 ## Website Management
 
-Website management lives on `/admin/add-website` and does not show the left sidebar.
+Website management lives in `setup-provisioning/`, not in the main Admin CMS.
 
 Create website:
 
-1. Admin opens Website Management.
+1. Admin opens the setup/provisioning app.
 2. Admin enters name and primary domain.
-3. CMS generates a unique slug.
-4. CMS creates inactive website and primary domain row.
-5. CMS creates or initializes default site settings.
-6. Admin stays on `/admin/add-website?websiteId=<new-id>`.
-7. Admin CMS `.env` does not change for the new website.
+3. Setup app generates a unique slug.
+4. Setup app creates inactive website and primary domain row.
+5. Setup app creates default site settings.
+6. Admin CMS `.env` does not change for the new website.
+7. Main CMS can now select the website from the header dropdown.
 
 Deactivate website:
 
 1. Admin confirms deactivation.
-2. CMS sets `is_active = false`.
+2. Setup app sets `is_active = false`.
 3. Public reads return no content for that website.
 4. Associated resources remain stored.
 
@@ -52,7 +52,7 @@ Activate website:
 
 1. Admin selects the website after setup/import is ready.
 2. Admin changes website status to Active.
-3. CMS sets `is_active = true`.
+3. Setup app sets `is_active = true`.
 4. Public reads can resolve that website by its configured domain.
 
 Blocked states:
@@ -68,21 +68,21 @@ Rules:
 
 ## WordPress Import
 
-1. Admin opens `/admin/add-website`.
+1. Admin opens the setup/provisioning app.
 2. Admin selects an inactive website.
 3. Admin enters WordPress base URL.
 4. Admin optionally enters WordPress username and application password if public REST access is blocked or incomplete.
-5. CMS tests WordPress REST API access.
-6. CMS fetches WordPress REST API data.
-7. CMS imports known pages into template content.
-8. CMS imports posts into structured body blocks.
-9. CMS imports categories and authors where available.
-10. CMS copies images to Supabase Storage.
-11. CMS rewrites inline image URLs.
-12. CMS tracks progress in `cms_import_jobs.report.progress`.
+5. Setup app tests WordPress REST API access.
+6. Setup app fetches WordPress REST API data.
+7. Setup app imports known pages into template content.
+8. Setup app imports posts into structured body blocks.
+9. Setup app imports categories and authors where available.
+10. Setup app copies images to Supabase Storage.
+11. Setup app rewrites inline image URLs.
+12. Setup app tracks progress in `cms_import_jobs.report.progress`.
 13. Admin sees the progress bar update while import is running.
-14. CMS deletes any temporary WordPress credentials after success or failure.
-15. CMS shows import report.
+14. Setup app deletes any temporary WordPress credentials after success or failure.
+15. Setup app shows import report.
 
 Blocked states:
 
@@ -104,7 +104,7 @@ Failure behavior:
 2. Admin opens Template Content.
 3. Admin chooses a template: home, about, contact, privacy, terms, or packages.
 4. Admin edits code-defined fields, links, image references, and SEO fields.
-5. Admin saves draft, publishes, unpublishes, trashes, restores, or permanently deletes.
+5. Admin saves published template content or permanently deletes it.
 
 Expected behavior:
 
@@ -113,13 +113,13 @@ Expected behavior:
 - content schema validates before save
 - image picker shows selected website media only
 - future scheduling is not available for template content in v1
-- publish triggers public revalidation
+- save/delete triggers public revalidation
 
 ## Author Management
 
 1. Admin selects website.
 2. Admin opens Authors.
-3. Admin creates, edits, trashes, restores, or permanently deletes author profiles.
+3. Admin creates, edits, or permanently deletes author profiles.
 4. Admin can add name, slug, bio, active state, and avatar image.
 
 Expected behavior:
@@ -128,7 +128,7 @@ Expected behavior:
 - author avatar image must belong to selected website
 - author slug is unique within selected website
 - same author slug can exist on different websites
-- inactive or trashed authors are not selectable for new posts
+- inactive authors are not selectable for new posts
 - permanent delete is blocked while posts reference the author, unless posts are reassigned first
 
 ## Blog Post Editing
@@ -141,7 +141,7 @@ Expected behavior:
 6. Admin selects featured image if needed.
 7. Admin edits article body blocks.
 8. Admin edits SEO fields.
-9. Admin saves draft, publishes, unpublishes, trashes, restores, or permanently deletes.
+9. Admin saves the published post or permanently deletes it.
 
 Supported body blocks:
 
@@ -180,17 +180,16 @@ Expected behavior:
 
 Delete behavior:
 
-- trash hides media from public reads
-- trash does not delete Supabase Storage object
-- permanent delete checks usage first
-- referenced media cannot be permanently deleted
+- delete is permanent after confirmation
+- delete checks usage first
+- referenced media cannot be deleted
 - unused media deletes Supabase Storage object before hard deleting metadata row
-- if Supabase Storage deletion fails, media remains trashed and admin sees an error
+- if Supabase Storage deletion fails, the metadata row stays in place and admin sees an error
 
 ## Categories
 
 1. Admin selects website.
-2. Admin creates, edits, trashes, restores, or permanently deletes categories.
+2. Admin creates, edits, or permanently deletes categories.
 3. Posts can select one category.
 
 Blocked states:
@@ -246,14 +245,13 @@ AdSense flow:
 6. CMS saves the settings for that website and triggers public revalidation.
 7. Public website reads safe settings and renders AdSense only when active.
 
-## Trash And Restore
+## Delete Behavior
 
-1. Admin trashes a resource.
-2. Resource disappears from public reads.
-3. Admin can restore it.
-4. Admin can permanently delete if rules allow it.
+1. Admin confirms delete for a resource.
+2. CMS checks usage rules where required.
+3. If allowed, CMS permanently deletes the resource.
 
-Website deactivation is separate from trash.
+Website deactivation is separate from resource deletion.
 
 ## Global Quiz
 
@@ -276,14 +274,11 @@ Expected behavior:
 1. Public website loads page.
 2. It calls Supabase public RPC/view with its domain.
 3. Supabase resolves active website.
-4. Supabase returns only published data for that website.
+4. Supabase returns public-safe data for that website.
 5. Public website renders with its own layout/theme.
 6. Public website uses media URLs returned from CMS records.
 
 Hidden from public:
 
 - inactive websites
-- draft content
-- unpublished content
-- trashed content
 - another website's resources

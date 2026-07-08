@@ -2,16 +2,18 @@
 
 ## System Overview
 
-The CMS is a separate Next.js admin app. It manages content and configuration for multiple separately deployed public websites.
+The CMS is a separate Next.js admin app. It manages content and configuration for multiple separately deployed public websites. Website setup, migrations, and WordPress import live in the separate `setup-provisioning/` project that shares the same Supabase database.
 
 Public websites do not use the admin app as a runtime backend. They read public-safe CMS data from Supabase using public read-only RPCs/views and render that data with their own existing code, layouts, and themes.
 
 ```mermaid
 flowchart LR
+  Setup["Setup/provisioning app"] --> Supabase["Supabase Postgres"]
+  Setup --> Storage["Supabase Storage"]
   Admin["Admin user"] --> AdminApp["Admin CMS app"]
   AdminApp --> AdminAPI["Next.js route handlers"]
-  AdminAPI --> Supabase["Supabase Postgres"]
-  AdminAPI --> Storage["Supabase Storage"]
+  AdminAPI --> Supabase
+  AdminAPI --> Storage
   AdminAPI --> Revalidate["Public site revalidation webhooks"]
   PublicSite["Public websites"] --> PublicRPC["Supabase public RPCs/views"]
   PublicRPC --> Supabase
@@ -25,12 +27,18 @@ Admin app responsibilities:
 
 - authenticate the single admin with `ADMIN_SECRET`
 - select website context after login
-- create/edit/deactivate websites
 - manage template content, posts, authors, categories, media, redirects, SEO, robots, sitemap settings, AdSense settings, and site settings
-- run WordPress imports for inactive websites
 - upload and delete media in Supabase Storage through server-only helpers
 - trigger public website revalidation after public-facing changes
 - keep global quiz behavior separate from selected website context
+
+Setup/provisioning app responsibilities:
+
+- own Supabase migrations
+- create/edit/deactivate websites
+- create default website setup rows
+- run WordPress imports for inactive websites
+- share the same Supabase database and storage bucket as the main CMS
 
 Public website responsibilities:
 
@@ -120,7 +128,7 @@ sequenceDiagram
   R-->>A: Return media record
 ```
 
-Permanent media delete checks all references first. If the media is unused, delete the Supabase Storage object and then hard delete the metadata row. If Supabase Storage deletion fails, keep the media row trashed and surface the error.
+Permanent media delete checks all references first. If the media is unused, delete the Supabase Storage object and then hard delete the metadata row. If Supabase Storage deletion fails, keep the media row and surface the error.
 
 ## Public Image Resolution Flow
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlignCenter,
   AlignLeft,
@@ -13,7 +13,6 @@ import {
   Quote,
   RefreshCw,
   Search,
-  Undo2,
 } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
@@ -24,6 +23,7 @@ const templateOptions = {
     defaultPath: '/',
     defaultTitle: 'Home',
     primaryContentField: 'heroText',
+    featuredImageField: 'heroImage',
     contentData: {
       heroTitle: '',
       heroText: '',
@@ -37,6 +37,7 @@ const templateOptions = {
     defaultPath: '/about',
     defaultTitle: 'About Us',
     primaryContentField: 'bodyText',
+    featuredImageField: 'mainImage',
     contentData: {
       introTitle: '',
       introText: '',
@@ -76,6 +77,7 @@ const templateOptions = {
     defaultPath: '/packages',
     defaultTitle: 'Packages',
     primaryContentField: 'introText',
+    featuredImageField: 'mainImage',
     contentData: {
       introTitle: '',
       introText: '',
@@ -91,19 +93,18 @@ const emptySeo = {
   authorId: '',
   canonicalUrl: '',
   robotsMeta: '',
-  ogImageId: '',
+  featuredImageId: '',
 }
 
 const editorTools = [
-  { label: 'Bold', icon: Bold },
-  { label: 'Italic', icon: Italic },
-  { label: 'Bulleted list', icon: List },
-  { label: 'Numbered list', icon: ListOrdered },
-  { label: 'Quote', icon: Quote },
-  { label: 'Align left', icon: AlignLeft },
-  { label: 'Align center', icon: AlignCenter },
-  { label: 'Align right', icon: AlignRight },
-  { label: 'Undo', icon: Undo2 },
+  { label: 'Bold', icon: Bold, before: '**', after: '**' },
+  { label: 'Italic', icon: Italic, before: '_', after: '_' },
+  { label: 'Bulleted list', icon: List, before: '- ', after: '' },
+  { label: 'Numbered list', icon: ListOrdered, before: '1. ', after: '' },
+  { label: 'Quote', icon: Quote, before: '> ', after: '' },
+  { label: 'Align left', icon: AlignLeft, before: '<div style="text-align:left">', after: '</div>' },
+  { label: 'Align center', icon: AlignCenter, before: '<div style="text-align:center">', after: '</div>' },
+  { label: 'Align right', icon: AlignRight, before: '<div style="text-align:right">', after: '</div>' },
 ]
 
 function getApiMessage(result, fallback) {
@@ -130,6 +131,11 @@ function getPrimaryContent(templateKey, contentData) {
   return field ? contentData?.[field] || '' : ''
 }
 
+function getFeaturedImageId(templateKey, contentData, fallbackImageId = '') {
+  const field = templateOptions[templateKey]?.featuredImageField
+  return fallbackImageId || (field ? contentData?.[field]?.mediaId || '' : '')
+}
+
 function getDefaultForm(templateKey = 'home', authorId = '') {
   const template = templateOptions[templateKey]
   const contentData = getDefaultContentData(templateKey)
@@ -141,9 +147,26 @@ function getDefaultForm(templateKey = 'home', authorId = '') {
     contentData,
     contentText: getPrimaryContent(templateKey, contentData),
     sitemapInclude: true,
-    status: 'draft',
     ...emptySeo,
     authorId,
+  }
+}
+
+function getEmptyCustomPageForm() {
+  return {
+    templateKey: 'custom',
+    path: '',
+    title: '',
+    contentData: {},
+    contentText: '',
+    focusKeyphrase: '',
+    seoTitle: '',
+    metaDescription: '',
+    authorId: '',
+    canonicalUrl: '',
+    robotsMeta: '',
+    featuredImageId: '',
+    sitemapInclude: true,
   }
 }
 
@@ -165,9 +188,30 @@ function toForm(template, fallbackAuthorId = '') {
     authorId: template.authorId || fallbackAuthorId,
     canonicalUrl: template.canonicalUrl || '',
     robotsMeta: template.robotsMeta || '',
-    ogImageId: template.ogImageId || '',
+    featuredImageId: getFeaturedImageId(
+      template.templateKey,
+      contentData,
+      template.ogImageId || ''
+    ),
     sitemapInclude: Boolean(template.sitemapInclude),
-    status: template.status || 'draft',
+  }
+}
+
+function customPageToForm(page, fallbackAuthorId = '') {
+  return {
+    templateKey: 'custom',
+    path: page.path,
+    title: page.title,
+    contentData: {},
+    contentText: page.bodyText || '',
+    focusKeyphrase: page.focusKeyphrase || '',
+    seoTitle: page.seoTitle || '',
+    metaDescription: page.metaDescription || '',
+    authorId: page.authorId || fallbackAuthorId,
+    canonicalUrl: page.canonicalUrl || '',
+    robotsMeta: page.robotsMeta || '',
+    featuredImageId: page.featuredImageId || '',
+    sitemapInclude: Boolean(page.sitemapInclude),
   }
 }
 
@@ -178,7 +222,6 @@ function pageMatchesSearch(page, query) {
     page.title,
     page.path,
     page.templateKey,
-    page.status,
     page.authorName,
   ]
     .filter(Boolean)
@@ -188,31 +231,57 @@ function pageMatchesSearch(page, query) {
   return haystack.includes(query.toLowerCase())
 }
 
-function statusLabel(status, deletedAt) {
-  if (deletedAt) return 'Trashed'
-  if (status === 'published') return 'Published'
-  if (status === 'unpublished') return 'Unpublished'
-  return 'Draft'
+function normalizePagePath(value, templateKey) {
+  const fallback = templateOptions[templateKey]?.defaultPath || '/'
+  const path = typeof value === 'string' && value.trim() ? value.trim() : fallback
+
+  return path
+}
+
+function normalizeEditorPath(value, title, templateKey) {
+  if (templateKey !== 'custom') return normalizePagePath(value, templateKey)
+
+  const raw = typeof value === 'string' ? value.trim() : ''
+  const source =
+    raw ||
+    String(title || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+
+  return source.startsWith('/') ? source : `/${source}`
+}
+
+function getPageSaveMessage(result, fallback) {
+  if (result?.code === 'DUPLICATE_TEMPLATE_CONTENT') {
+    return 'This page already exists for this website. Refresh the page list and select it to edit.'
+  }
+
+  return getApiMessage(result, fallback)
 }
 
 export default function TemplateContentManager({ websiteId }) {
+  const contentTextareaRef = useRef(null)
   const [templates, setTemplates] = useState([])
+  const [customPages, setCustomPages] = useState([])
   const [media, setMedia] = useState([])
   const [authors, setAuthors] = useState([])
   const [selectedId, setSelectedId] = useState(null)
+  const [selectedKind, setSelectedKind] = useState('template')
   const [form, setForm] = useState(getDefaultForm())
   const [screen, setScreen] = useState('list')
-  const [pageFilter, setPageFilter] = useState('all')
-  const [bulkAction, setBulkAction] = useState('trash')
-  const [selectedKeys, setSelectedKeys] = useState([])
-  const [searchDraft, setSearchDraft] = useState('')
+  const [editorMode, setEditorMode] = useState('visual')
+  const [isFeatureImagePickerOpen, setIsFeatureImagePickerOpen] = useState(false)
+  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   const firstActiveAuthorId = useMemo(
-    () => authors.find((author) => author.isActive && !author.deletedAt)?.id || '',
+    () => authors.find((author) => author.isActive)?.id || '',
     [authors]
   )
 
@@ -221,66 +290,58 @@ export default function TemplateContentManager({ websiteId }) {
     [authors]
   )
 
-  const selectedTemplate = useMemo(
-    () => templates.find((item) => item.id === selectedId) || null,
-    [selectedId, templates]
+  const selectedFeatureImage = useMemo(
+    () => media.find((item) => item.id === form.featuredImageId) || null,
+    [form.featuredImageId, media]
   )
 
   const pageRows = useMemo(() => {
-    const savedByKey = new Map(templates.map((template) => [template.templateKey, template]))
-
-    return Object.entries(templateOptions).map(([templateKey, option]) => {
-      const saved = savedByKey.get(templateKey)
-      const author = saved?.authorId ? authorsById.get(saved.authorId) : null
+    const templateRows = templates.map((template) => {
+      const author = template.authorId ? authorsById.get(template.authorId) : null
 
       return {
-        key: templateKey,
-        id: saved?.id || null,
-        templateKey,
-        title: saved?.title || option.defaultTitle,
-        path: saved?.path || option.defaultPath,
-        status: saved?.status || 'draft',
-        deletedAt: saved?.deletedAt || null,
-        publishedAt: saved?.publishedAt || null,
-        updatedAt: saved?.updatedAt || saved?.createdAt || null,
+        kind: 'template',
+        key: `template:${template.id}`,
+        id: template.id,
+        templateKey: template.templateKey,
+        title: template.title,
+        path: template.path,
+        publishedAt: template.publishedAt || null,
+        updatedAt: template.updatedAt || template.createdAt || null,
         authorName: author?.name || '-',
-        saved,
+        saved: template,
       }
     })
-  }, [authorsById, templates])
 
-  const counts = useMemo(() => {
-    const activeRows = pageRows.filter((page) => !page.deletedAt)
+    const customRows = customPages.map((page) => {
+      const author = page.authorId ? authorsById.get(page.authorId) : null
 
-    return {
-      all: activeRows.length,
-      published: activeRows.filter((page) => page.status === 'published').length,
-      trash: pageRows.filter((page) => page.deletedAt).length,
-    }
-  }, [pageRows])
+      return {
+        kind: 'custom',
+        key: `custom:${page.id}`,
+        id: page.id,
+        templateKey: 'custom',
+        title: page.title,
+        path: page.path,
+        publishedAt: page.publishedAt || null,
+        updatedAt: page.updatedAt || page.createdAt || null,
+        authorName: author?.name || '-',
+        saved: page,
+      }
+    })
+
+    return [...templateRows, ...customRows]
+  }, [authorsById, customPages, templates])
 
   const filteredPages = useMemo(() => {
-    return pageRows.filter((page) => {
-      if (pageFilter === 'published' && (page.deletedAt || page.status !== 'published')) {
-        return false
-      }
-
-      if (pageFilter === 'trash' && !page.deletedAt) return false
-      if (pageFilter === 'all' && page.deletedAt) return false
-
-      return pageMatchesSearch(page, searchQuery)
-    })
-  }, [pageFilter, pageRows, searchQuery])
-
-  const allVisibleSelected =
-    filteredPages.length > 0 &&
-    filteredPages.every((page) => selectedKeys.includes(page.key))
+    return pageRows.filter((page) => pageMatchesSearch(page, searchQuery))
+  }, [pageRows, searchQuery])
 
   useEffect(() => {
-    if (!form.authorId && firstActiveAuthorId) {
+    if (screen !== 'add' && !form.authorId && firstActiveAuthorId) {
       setForm((current) => ({ ...current, authorId: firstActiveAuthorId }))
     }
-  }, [firstActiveAuthorId, form.authorId])
+  }, [firstActiveAuthorId, form.authorId, screen])
 
   async function loadTemplates() {
     if (!websiteId) return
@@ -289,7 +350,7 @@ export default function TemplateContentManager({ websiteId }) {
 
     try {
       const response = await fetch(
-        `/api/cms/template-content?websiteId=${websiteId}&includeTrashed=true`,
+        `/api/cms/template-content?websiteId=${websiteId}`,
         { cache: 'no-store' }
       )
       const result = await response.json().catch(() => ({}))
@@ -303,6 +364,16 @@ export default function TemplateContentManager({ websiteId }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function loadPages() {
+    if (!websiteId) return
+    const response = await fetch(`/api/cms/pages?websiteId=${websiteId}`, {
+      cache: 'no-store',
+    })
+    const result = await response.json().catch(() => ({}))
+
+    if (response.ok) setCustomPages(result.pages || [])
   }
 
   async function loadMedia() {
@@ -327,24 +398,29 @@ export default function TemplateContentManager({ websiteId }) {
 
   useEffect(() => {
     loadTemplates()
+    loadPages()
     loadMedia()
     loadAuthors()
   }, [websiteId])
 
   function openPage(page) {
     setSelectedId(page.id)
+    setSelectedKind(page.kind)
     setForm(
-      page.saved
-        ? toForm(page.saved, firstActiveAuthorId)
-        : getDefaultForm(page.templateKey, firstActiveAuthorId)
+      page.kind === 'custom'
+        ? customPageToForm(page.saved, firstActiveAuthorId)
+        : toForm(page.saved, firstActiveAuthorId)
     )
     setScreen('edit')
     setMessage('')
   }
 
   function addPage() {
-    const firstMissing = pageRows.find((page) => !page.id) || pageRows[0]
-    if (firstMissing) openPage(firstMissing)
+    setSelectedId(null)
+    setSelectedKind('custom')
+    setForm(getEmptyCustomPageForm())
+    setScreen('add')
+    setMessage('')
   }
 
   function updateContentText(value) {
@@ -362,10 +438,55 @@ export default function TemplateContentManager({ websiteId }) {
     }))
   }
 
+  function insertIntoContent(before, after = '') {
+    const textarea = contentTextareaRef.current
+    const start = textarea?.selectionStart ?? form.contentText.length
+    const end = textarea?.selectionEnd ?? form.contentText.length
+    const selected = form.contentText.slice(start, end)
+    const nextText = `${form.contentText.slice(0, start)}${before}${selected}${after}${form.contentText.slice(end)}`
+
+    updateContentText(nextText)
+
+    requestAnimationFrame(() => {
+      textarea?.focus()
+      const cursor = start + before.length + selected.length + after.length
+      textarea?.setSelectionRange(cursor, cursor)
+    })
+  }
+
+  function addMediaToContent() {
+    const item = media[0]
+
+    if (!item) {
+      setMessage('Upload media first, then use Add Media.')
+      return
+    }
+
+    insertIntoContent(`![${item.altText || item.originalFilename || 'Image'}](${item.publicUrl})`)
+  }
+
+  function updateFeaturedImage(mediaId) {
+    const field = templateOptions[form.templateKey]?.featuredImageField
+
+    setForm((current) => ({
+      ...current,
+      featuredImageId: mediaId,
+      contentData: field
+        ? {
+            ...current.contentData,
+            [field]: {
+              ...(current.contentData?.[field] || {}),
+              mediaId: mediaId || null,
+            },
+          }
+        : current.contentData,
+    }))
+  }
+
   function buildPayload() {
     return {
       templateKey: form.templateKey,
-      path: form.path,
+      path: normalizeEditorPath(form.path, form.title, form.templateKey),
       title: form.title,
       contentData: form.contentData,
       focusKeyphrase: form.focusKeyphrase || null,
@@ -374,52 +495,105 @@ export default function TemplateContentManager({ websiteId }) {
       authorId: form.authorId || null,
       canonicalUrl: form.canonicalUrl || null,
       robotsMeta: form.robotsMeta || null,
-      ogImageId: form.ogImageId || null,
+      ogImageId: form.featuredImageId || null,
       sitemapInclude: form.sitemapInclude,
-      status: form.status,
+    }
+  }
+
+  function buildCustomPagePayload() {
+    return {
+      title: form.title,
+      path: normalizeEditorPath(form.path, form.title, 'custom'),
+      bodyText: form.contentText,
+      focusKeyphrase: form.focusKeyphrase || null,
+      seoTitle: form.seoTitle || null,
+      metaDescription: form.metaDescription || null,
+      authorId: form.authorId || null,
+      canonicalUrl: form.canonicalUrl || null,
+      robotsMeta: form.robotsMeta || null,
+      featuredImageId: form.featuredImageId || null,
+      sitemapInclude: form.sitemapInclude,
     }
   }
 
   async function saveTemplate(event) {
     event.preventDefault()
+    const isCustomPage = selectedKind === 'custom' || screen === 'add'
+    const nextPath = normalizeEditorPath(form.path, form.title, form.templateKey)
+
+    if (isCustomPage && nextPath === '/') {
+      setMessage('/ is reserved for the fixed Home page.')
+      return
+    }
+
+    const existingTemplatePath = templates.find(
+      (template) => template.path === nextPath
+    )
+    const existingCustomPath = customPages.find(
+      (page) =>
+        page.path === nextPath &&
+        !(selectedKind === 'custom' && selectedId && page.id === selectedId)
+    )
+
+    if (
+      existingCustomPath ||
+      (existingTemplatePath && !(selectedKind === 'template' && existingTemplatePath.id === selectedId))
+    ) {
+      setMessage('That slug is already used by another page on this website.')
+      return
+    }
+
     setSaving(true)
     setMessage('')
 
     try {
-      const url = selectedId
-        ? `/api/cms/template-content/${selectedId}?websiteId=${websiteId}`
-        : `/api/cms/template-content?websiteId=${websiteId}`
+      const url = isCustomPage
+        ? selectedId
+          ? `/api/cms/pages/${selectedId}?websiteId=${websiteId}`
+          : `/api/cms/pages?websiteId=${websiteId}`
+        : `/api/cms/template-content/${selectedId}?websiteId=${websiteId}`
       const response = await fetch(url, {
         method: selectedId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildPayload()),
+        body: JSON.stringify(isCustomPage ? buildCustomPagePayload() : buildPayload()),
       })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        setMessage(getApiMessage(result, 'Unable to save page.'))
+        setMessage(getPageSaveMessage(result, 'Unable to save page.'))
         return
       }
 
       await loadTemplates()
-      setSelectedId(result.template.id)
-      setForm(toForm(result.template, firstActiveAuthorId))
+      await loadPages()
+      const savedPage = isCustomPage ? result.page : result.template
+      setSelectedId(savedPage.id)
+      setSelectedKind(isCustomPage ? 'custom' : 'template')
+      setForm(
+        isCustomPage
+          ? customPageToForm(savedPage, firstActiveAuthorId)
+          : toForm(savedPage, firstActiveAuthorId)
+      )
+      setScreen('edit')
       setMessage('Page saved.')
     } finally {
       setSaving(false)
     }
   }
 
-  async function action(actionName, method = 'POST') {
+  async function deleteSelectedPage() {
     if (!selectedId) return
+    if (!window.confirm('Delete this page permanently? This cannot be undone.')) return
+
     setSaving(true)
     setMessage('')
 
     try {
-      const response = await fetch(
-        `/api/cms/template-content/${selectedId}${actionName ? `/${actionName}` : ''}?websiteId=${websiteId}`,
-        { method }
-      )
+      const endpoint =
+        selectedKind === 'custom'
+          ? `/api/cms/pages/${selectedId}?websiteId=${websiteId}`
+          : `/api/cms/template-content/${selectedId}?websiteId=${websiteId}`
+      const response = await fetch(endpoint, { method: 'DELETE' })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -428,39 +602,40 @@ export default function TemplateContentManager({ websiteId }) {
       }
 
       await loadTemplates()
+      await loadPages()
       if (result.template) setForm(toForm(result.template, firstActiveAuthorId))
-      if (method === 'DELETE') {
-        setScreen('list')
-        setSelectedId(null)
-      }
+      if (result.page) setForm(customPageToForm(result.page, firstActiveAuthorId))
+      setScreen('list')
+      setSelectedId(null)
+      setMessage('Page deleted.')
     } finally {
       setSaving(false)
     }
   }
 
-  async function runBulkAction() {
-    const selectedPages = pageRows.filter((page) => selectedKeys.includes(page.key) && page.id)
-    if (selectedPages.length === 0) return
+  async function deletePage(page) {
+    if (!page.id) return
+    if (!window.confirm('Delete this page permanently? This cannot be undone.')) return
 
     setSaving(true)
     setMessage('')
 
     try {
-      for (const page of selectedPages) {
-        const response = await fetch(
-          `/api/cms/template-content/${page.id}/${bulkAction}?websiteId=${websiteId}`,
-          { method: 'POST' }
-        )
-        const result = await response.json().catch(() => ({}))
+      const endpoint =
+        page.kind === 'custom'
+          ? `/api/cms/pages/${page.id}?websiteId=${websiteId}`
+          : `/api/cms/template-content/${page.id}?websiteId=${websiteId}`
+      const response = await fetch(endpoint, { method: 'DELETE' })
+      const result = await response.json().catch(() => ({}))
 
-        if (!response.ok) {
-          setMessage(getApiMessage(result, 'Unable to update selected pages.'))
-          return
-        }
+      if (!response.ok) {
+        setMessage(getApiMessage(result, 'Unable to update page.'))
+        return
       }
 
-      setSelectedKeys([])
       await loadTemplates()
+      await loadPages()
+      setMessage('Page deleted.')
     } finally {
       setSaving(false)
     }
@@ -468,23 +643,7 @@ export default function TemplateContentManager({ websiteId }) {
 
   function submitSearch(event) {
     event.preventDefault()
-    setSearchQuery(searchDraft.trim())
-  }
-
-  function toggleVisibleSelection(checked) {
-    const visibleKeys = filteredPages.map((page) => page.key)
-
-    setSelectedKeys((current) => {
-      if (checked) return Array.from(new Set([...current, ...visibleKeys]))
-      return current.filter((key) => !visibleKeys.includes(key))
-    })
-  }
-
-  function togglePageSelection(key, checked) {
-    setSelectedKeys((current) => {
-      if (checked) return Array.from(new Set([...current, key]))
-      return current.filter((item) => item !== key)
-    })
+    setSearchQuery(searchInput.trim())
   }
 
   function pageList() {
@@ -507,6 +666,7 @@ export default function TemplateContentManager({ websiteId }) {
             size="sm"
             onClick={() => {
               loadTemplates()
+              loadPages()
               loadMedia()
               loadAuthors()
             }}
@@ -518,70 +678,15 @@ export default function TemplateContentManager({ websiteId }) {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1 text-[13px]">
-          <button
-            type="button"
-            onClick={() => setPageFilter('all')}
-            className={pageFilter === 'all' ? 'text-[#1f2330]' : 'text-[#005cbb]'}
-          >
-            All ({counts.all})
-          </button>
-          <span className="text-[#8c8f94]">|</span>
-          <button
-            type="button"
-            onClick={() => setPageFilter('published')}
-            className={pageFilter === 'published' ? 'text-[#1f2330]' : 'text-[#005cbb]'}
-          >
-            Published ({counts.published})
-          </button>
-          <span className="text-[#8c8f94]">|</span>
-          <button
-            type="button"
-            onClick={() => setPageFilter('trash')}
-            className={pageFilter === 'trash' ? 'text-[#1f2330]' : 'text-[#005cbb]'}
-          >
-            Trash ({counts.trash})
-          </button>
-        </div>
-
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={bulkAction}
-              onChange={(event) => setBulkAction(event.target.value)}
-              className="h-8 min-w-36 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
-              aria-label="Bulk action"
-            >
-              <option value="trash">Move to Trash</option>
-              <option value="restore">Restore</option>
-            </select>
-            <button
-              type="button"
-              onClick={runBulkAction}
-              disabled={saving || selectedKeys.length === 0}
-              className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff] disabled:opacity-60"
-            >
-              Apply
-            </button>
-            <select
-              className="h-8 min-w-36 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
-              defaultValue="all"
-            >
-              <option value="all">All dates</option>
-            </select>
-            <button
-              type="button"
-              className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-            >
-              Filter
-            </button>
-          </div>
-
+          <p className="text-[13px] text-[#1f2330]">
+            {filteredPages.length} {filteredPages.length === 1 ? 'item' : 'items'}
+          </p>
           <form onSubmit={submitSearch} className="flex flex-wrap items-center gap-2">
             <input
               type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
               aria-label="Search pages"
             />
@@ -599,17 +704,10 @@ export default function TemplateContentManager({ websiteId }) {
           <table className="w-full min-w-[60rem] text-left text-[13px] text-[#1f2330]">
             <thead>
               <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
-                <th className="w-10 px-3 py-2">
-                  <input
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={(event) => toggleVisibleSelection(event.target.checked)}
-                    aria-label="Select all visible pages"
-                  />
-                </th>
                 <th className="px-3 py-2 font-medium">Title</th>
                 <th className="w-48 px-3 py-2 font-medium">Author</th>
                 <th className="w-52 px-3 py-2 font-medium">Date</th>
+                <th className="w-44 px-3 py-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -617,21 +715,9 @@ export default function TemplateContentManager({ websiteId }) {
                 <tr
                   key={page.key}
                   className={
-                    page.deletedAt
-                      ? 'border-b border-[#c3c4c7] bg-amber-50 align-top'
-                      : 'border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]'
+                    'border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]'
                   }
                 >
-                  <td className="px-3 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedKeys.includes(page.key)}
-                      onChange={(event) =>
-                        togglePageSelection(page.key, event.target.checked)
-                      }
-                      aria-label={`Select ${page.title}`}
-                    />
-                  </td>
                   <td className="px-3 py-4">
                     <button
                       type="button"
@@ -647,8 +733,22 @@ export default function TemplateContentManager({ websiteId }) {
                   </td>
                   <td className="px-3 py-4 text-[#005cbb]">{page.authorName}</td>
                   <td className="px-3 py-4">
-                    <p>{statusLabel(page.status, page.deletedAt)}</p>
                     <p className="text-[#50575e]">{formatDate(page.publishedAt || page.updatedAt)}</p>
+                  </td>
+                  <td className="px-3 py-4">
+                    <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.84rem]">
+                      {page.id ? (
+                        <button
+                          type="button"
+                          onClick={() => deletePage(page)}
+                          className="font-medium text-red-700 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      ) : (
+                        <span className="text-[#50575e]">-</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -671,19 +771,14 @@ export default function TemplateContentManager({ websiteId }) {
   }
 
   function editPage() {
+    const isAddingPage = screen === 'add'
+
     return (
       <form onSubmit={saveTemplate} className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-[1.55rem] font-normal leading-tight text-[#1f2330]">
-            Edit Page
+            {isAddingPage ? 'Add Page' : 'Edit Page'}
           </h2>
-          <button
-            type="button"
-            onClick={addPage}
-            className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-          >
-            Add Page
-          </button>
           <button
             type="button"
             onClick={() => setScreen('list')}
@@ -718,18 +813,32 @@ export default function TemplateContentManager({ websiteId }) {
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#c3c4c7] bg-[#f6f7f7] px-2 py-2">
             <button
               type="button"
+              onClick={addMediaToContent}
               className="inline-flex items-center gap-1 rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] text-[#3858e9]"
             >
               <ImagePlus className="h-4 w-4" />
               Add Media
             </button>
             <div className="flex overflow-hidden rounded-t-[3px] border border-[#c3c4c7] bg-white">
-              <button type="button" className="px-3 py-1.5 text-[13px] text-[#1f2330]">
+              <button
+                type="button"
+                onClick={() => setEditorMode('visual')}
+                className={`px-3 py-1.5 text-[13px] ${
+                  editorMode === 'visual'
+                    ? 'bg-white text-[#1f2330]'
+                    : 'bg-[#f6f7f7] text-[#50575e]'
+                }`}
+              >
                 Visual
               </button>
               <button
                 type="button"
-                className="border-l border-[#c3c4c7] bg-[#f6f7f7] px-3 py-1.5 text-[13px] text-[#50575e]"
+                onClick={() => setEditorMode('code')}
+                className={`border-l border-[#c3c4c7] px-3 py-1.5 text-[13px] ${
+                  editorMode === 'code'
+                    ? 'bg-white text-[#1f2330]'
+                    : 'bg-[#f6f7f7] text-[#50575e]'
+                }`}
               >
                 Code
               </button>
@@ -743,10 +852,11 @@ export default function TemplateContentManager({ websiteId }) {
             >
               <option value="paragraph">Paragraph</option>
             </select>
-            {editorTools.map(({ label, icon: Icon }) => (
+            {editorTools.map(({ label, icon: Icon, before, after }) => (
               <button
                 key={label}
                 type="button"
+                onClick={() => insertIntoContent(before, after)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-[3px] text-[#3c434a] hover:bg-[#f0f0f1]"
                 aria-label={label}
                 title={label}
@@ -757,6 +867,7 @@ export default function TemplateContentManager({ websiteId }) {
           </div>
 
           <textarea
+            ref={contentTextareaRef}
             value={form.contentText}
             onChange={(event) => updateContentText(event.target.value)}
             rows={16}
@@ -824,7 +935,6 @@ export default function TemplateContentManager({ websiteId }) {
               >
                 <option value="">Select author</option>
                 {authors
-                  .filter((author) => !author.deletedAt)
                   .map((author) => (
                     <option key={author.id} value={author.id}>
                       {author.name}
@@ -837,7 +947,7 @@ export default function TemplateContentManager({ websiteId }) {
 
         <div className="grid gap-4 border border-[#c3c4c7] bg-white p-4 md:grid-cols-2">
           <label className="block text-[13px] font-medium text-[#1f2330]">
-            Path
+            Slug
             <input
               type="text"
               value={form.path}
@@ -846,20 +956,6 @@ export default function TemplateContentManager({ websiteId }) {
               }
               className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
             />
-          </label>
-          <label className="block text-[13px] font-medium text-[#1f2330]">
-            Status
-            <select
-              value={form.status}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, status: event.target.value }))
-              }
-              className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-            >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="unpublished">Unpublished</option>
-            </select>
           </label>
           <label className="block text-[13px] font-medium text-[#1f2330]">
             Canonical URL
@@ -888,23 +984,91 @@ export default function TemplateContentManager({ websiteId }) {
               <option value="noindex,nofollow">noindex,nofollow</option>
             </select>
           </label>
-          <label className="block text-[13px] font-medium text-[#1f2330]">
-            Open Graph image
-            <select
-              value={form.ogImageId}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, ogImageId: event.target.value }))
-              }
-              className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-            >
-              <option value="">No OG image</option>
-              {media.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.altText || item.originalFilename}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="block text-[13px] font-medium text-[#1f2330]">
+            Feature Image
+            <div className="mt-2 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-3">
+              {selectedFeatureImage ? (
+                <div className="mb-3 flex items-center gap-3">
+                  <img
+                    src={selectedFeatureImage.publicUrl}
+                    alt={selectedFeatureImage.altText || selectedFeatureImage.originalFilename}
+                    className="h-16 w-16 rounded-[3px] border border-[#c3c4c7] object-cover"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium text-[#1f2330]">
+                      {selectedFeatureImage.altText || selectedFeatureImage.originalFilename}
+                    </p>
+                    <p className="truncate text-[12px] font-normal text-[#50575e]">
+                      {selectedFeatureImage.originalFilename}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mb-3 text-[13px] font-normal text-[#50575e]">
+                  No feature image selected.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFeatureImagePickerOpen((current) => !current)}
+                  className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+                >
+                  {selectedFeatureImage ? 'Change feature image' : 'Set feature image'}
+                </button>
+                {form.featuredImageId ? (
+                  <button
+                    type="button"
+                    onClick={() => updateFeaturedImage('')}
+                    className="rounded-[3px] border border-[#8c8f94] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2330] hover:border-[#1f2330]"
+                  >
+                    Remove feature image
+                  </button>
+                ) : null}
+              </div>
+              {isFeatureImagePickerOpen ? (
+                <div className="mt-3 max-h-72 overflow-y-auto border border-[#c3c4c7] bg-white p-3">
+                  {media.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {media.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            updateFeaturedImage(item.id)
+                            setIsFeatureImagePickerOpen(false)
+                          }}
+                          className={`flex items-center gap-3 rounded-[3px] border p-2 text-left hover:border-[#3858e9] ${
+                            form.featuredImageId === item.id
+                              ? 'border-[#3858e9] bg-[#f0f3ff]'
+                              : 'border-[#dcdcde] bg-white'
+                          }`}
+                        >
+                          <img
+                            src={item.publicUrl}
+                            alt={item.altText || item.originalFilename}
+                            className="h-14 w-14 rounded-[3px] object-cover"
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate text-[13px] font-medium text-[#1f2330]">
+                              {item.altText || item.originalFilename}
+                            </span>
+                            <span className="block text-[12px] font-normal text-[#3858e9]">
+                              Select
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[13px] font-normal text-[#50575e]">
+                      Upload media first, then choose a feature image.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </div>
           <label className="flex items-center gap-3 pt-7 text-[13px] font-medium text-[#1f2330]">
             <input
               type="checkbox"
@@ -925,32 +1089,9 @@ export default function TemplateContentManager({ websiteId }) {
             {saving ? 'Saving...' : 'Save'}
           </Button>
           {selectedId ? (
-            <>
-              <Button type="button" variant="outline" onClick={() => action('publish')}>
-                Publish
-              </Button>
-              <Button type="button" variant="outline" onClick={() => action('unpublish')}>
-                Unpublish
-              </Button>
-              {selectedTemplate?.deletedAt ? (
-                <>
-                  <Button type="button" variant="outline" onClick={() => action('restore')}>
-                    Restore
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => action('', 'DELETE')}
-                  >
-                    Delete
-                  </Button>
-                </>
-              ) : (
-                <Button type="button" variant="outline" onClick={() => action('trash')}>
-                  Move to Trash
-                </Button>
-              )}
-            </>
+            <Button type="button" variant="destructive" onClick={deleteSelectedPage}>
+              Delete
+            </Button>
           ) : null}
         </div>
       </form>
@@ -960,7 +1101,7 @@ export default function TemplateContentManager({ websiteId }) {
   return (
     <section className="space-y-5">
       <MessageAlert message={message} />
-      {screen === 'edit' ? editPage() : pageList()}
+      {screen === 'edit' || screen === 'add' ? editPage() : pageList()}
     </section>
   )
 }

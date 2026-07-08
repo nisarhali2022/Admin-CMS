@@ -5,13 +5,13 @@ import {
   getAdminSessionCookieOptions,
   hasAdminSession,
   isValidAdminSecret,
-} from '@/lib/adminAuth'
+} from 'cms-core/adminAuth'
 import {
   clearAdminLoginFailures,
   getAdminLoginLimitStatus,
   recordFailedAdminLogin,
-} from '@/lib/auth/adminLoginRateLimit'
-import { validateAdminEnv } from '@/lib/env/adminEnv'
+} from 'cms-core/auth/adminLoginRateLimit'
+import { validateAdminEnv } from 'cms-core/env/adminEnv'
 
 function jsonNoStore(body, init) {
   return NextResponse.json(body, {

@@ -6,14 +6,14 @@ import {
   normalizeDomain,
   validateCreateWebsitePayload,
   validateUpdateWebsitePayload,
-} from '../lib/cms/validators/websites.js'
+} from 'cms-core/cms/validators/websites'
 import {
   createWebsite,
   listWebsites,
   updateWebsite,
-} from '../lib/cms/repositories/websites.js'
+} from 'cms-core/cms/repositories/websites'
 
-const migrationDir = 'supabase/migrations'
+const migrationDir = 'setup-provisioning/supabase/migrations'
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }
 

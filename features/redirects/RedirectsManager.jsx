@@ -19,11 +19,7 @@ function getApiMessage(result, fallback) {
 function redirectMatchesSearch(redirect, query) {
   if (!query) return true
 
-  const status = redirect.deletedAt
-    ? 'trashed'
-    : redirect.isActive
-      ? 'active'
-      : 'inactive'
+  const status = redirect.isActive ? 'active' : 'inactive'
   const haystack = [
     redirect.fromPath,
     redirect.toUrl,
@@ -41,9 +37,7 @@ export default function RedirectsManager({ websiteId }) {
   const [redirects, setRedirects] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editing, setEditing] = useState({})
-  const [selectedIds, setSelectedIds] = useState([])
-  const [bulkAction, setBulkAction] = useState('trash')
-  const [searchDraft, setSearchDraft] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -54,20 +48,15 @@ export default function RedirectsManager({ websiteId }) {
     [redirects, searchQuery]
   )
 
-  const allVisibleSelected =
-    filteredRedirects.length > 0 &&
-    filteredRedirects.every((redirect) => selectedIds.includes(redirect.id))
-
   async function loadRedirects() {
     if (!websiteId) return
     setLoading(true)
     setMessage('')
 
     try {
-      const response = await fetch(
-        `/api/cms/redirects?websiteId=${websiteId}&includeTrashed=true`,
-        { cache: 'no-store' }
-      )
+      const response = await fetch(`/api/cms/redirects?websiteId=${websiteId}`, {
+        cache: 'no-store',
+      })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -76,9 +65,6 @@ export default function RedirectsManager({ websiteId }) {
       }
 
       setRedirects(result.redirects || [])
-      setSelectedIds((current) =>
-        current.filter((id) => (result.redirects || []).some((redirect) => redirect.id === id))
-      )
     } finally {
       setLoading(false)
     }
@@ -146,65 +132,26 @@ export default function RedirectsManager({ websiteId }) {
     }
   }
 
-  async function redirectAction(redirectId, action, method = 'POST', reload = true) {
-    if (reload) {
-      setSaving(true)
-      setMessage('')
-    }
-
-    try {
-      const response = await fetch(
-        `/api/cms/redirects/${redirectId}${action ? `/${action}` : ''}?websiteId=${websiteId}`,
-        { method }
-      )
-      const result = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        setMessage(getApiMessage(result, 'Unable to update redirect.'))
-        return false
-      }
-
-      if (reload) await loadRedirects()
-      return true
-    } finally {
-      if (reload) setSaving(false)
-    }
-  }
-
-  async function runBulkAction() {
-    if (selectedIds.length === 0) return
+  async function deleteRedirect(redirectId) {
+    if (!window.confirm('Delete this redirect permanently?')) return
     setSaving(true)
     setMessage('')
 
     try {
-      for (const redirectId of selectedIds) {
-        const ok = await redirectAction(redirectId, bulkAction, 'POST', false)
-        if (!ok) return
+      const response = await fetch(`/api/cms/redirects/${redirectId}?websiteId=${websiteId}`, {
+        method: 'DELETE',
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setMessage(getApiMessage(result, 'Unable to delete redirect.'))
+        return
       }
-      setSelectedIds([])
+
       await loadRedirects()
     } finally {
       setSaving(false)
     }
-  }
-
-  function toggleVisibleSelection(checked) {
-    const visibleIds = filteredRedirects.map((redirect) => redirect.id)
-
-    setSelectedIds((current) => {
-      if (checked) {
-        return Array.from(new Set([...current, ...visibleIds]))
-      }
-
-      return current.filter((id) => !visibleIds.includes(id))
-    })
-  }
-
-  function toggleRedirectSelection(redirectId, checked) {
-    setSelectedIds((current) => {
-      if (checked) return Array.from(new Set([...current, redirectId]))
-      return current.filter((id) => id !== redirectId)
-    })
   }
 
   function startEditing(redirect) {
@@ -229,7 +176,7 @@ export default function RedirectsManager({ websiteId }) {
 
   function submitSearch(event) {
     event.preventDefault()
-    setSearchQuery(searchDraft.trim())
+    setSearchQuery(searchInput.trim())
   }
 
   return (
@@ -358,8 +305,8 @@ export default function RedirectsManager({ websiteId }) {
           >
             <input
               type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               className="w-full max-w-xs rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               aria-label="Search redirects"
             />
@@ -373,25 +320,7 @@ export default function RedirectsManager({ websiteId }) {
           </form>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={bulkAction}
-                onChange={(event) => setBulkAction(event.target.value)}
-                className="rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                aria-label="Bulk action"
-              >
-                <option value="trash">Trash selected</option>
-                <option value="restore">Restore selected</option>
-              </select>
-              <button
-                type="button"
-                onClick={runBulkAction}
-                disabled={saving || selectedIds.length === 0}
-                className="rounded-[3px] border border-[#3858e9] bg-white px-4 py-2 font-semibold text-[#3858e9] hover:bg-[#f0f3ff] disabled:cursor-not-allowed disabled:border-[#b8bfd6] disabled:text-[#8a93a7]"
-              >
-                Apply
-              </button>
-            </div>
+            <div />
             <p className="text-[0.85rem] text-[#1f2330]">
               {filteredRedirects.length} {filteredRedirects.length === 1 ? 'item' : 'items'}
             </p>
@@ -401,14 +330,6 @@ export default function RedirectsManager({ websiteId }) {
             <table className="w-full min-w-[58rem] text-left text-[#1f2330]">
               <thead>
                 <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
-                  <th className="w-10 px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={(event) => toggleVisibleSelection(event.target.checked)}
-                      aria-label="Select all visible redirects"
-                    />
-                  </th>
                   <th className="px-3 py-2 font-medium">Source</th>
                   <th className="px-3 py-2 font-medium">Destination</th>
                   <th className="w-28 px-3 py-2 font-medium">Type</th>
@@ -420,32 +341,13 @@ export default function RedirectsManager({ websiteId }) {
                 {filteredRedirects.map((redirect) => {
                   const draft = editing[redirect.id]
                   const isEditing = Boolean(draft)
-                  const isSelected = selectedIds.includes(redirect.id)
-                  const status = redirect.deletedAt
-                    ? 'Trashed'
-                    : redirect.isActive
-                      ? 'Active'
-                      : 'Inactive'
+                  const status = redirect.isActive ? 'Active' : 'Inactive'
 
                   return (
                     <tr
                       key={redirect.id}
-                      className={
-                        redirect.deletedAt
-                          ? 'border-b border-[#c3c4c7] bg-amber-50 align-top'
-                          : 'border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]'
-                      }
+                      className="border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]"
                     >
-                      <td className="px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(event) =>
-                            toggleRedirectSelection(redirect.id, event.target.checked)
-                          }
-                          aria-label={`Select ${redirect.fromPath}`}
-                        />
-                      </td>
                       <td className="px-3 py-3">
                         {isEditing ? (
                           <input
@@ -464,11 +366,6 @@ export default function RedirectsManager({ websiteId }) {
                             <p className="font-normal text-[#1f2330]">
                               {redirect.fromPath}
                             </p>
-                            {redirect.deletedAt ? (
-                              <p className="text-[0.78rem] font-semibold uppercase text-amber-700">
-                                Trashed
-                              </p>
-                            ) : null}
                           </div>
                         )}
                       </td>
@@ -535,11 +432,9 @@ export default function RedirectsManager({ websiteId }) {
                         ) : (
                           <span
                             className={`inline-flex rounded-sm px-2 py-1 text-[0.78rem] font-semibold ${
-                              redirect.deletedAt
-                                ? 'bg-amber-100 text-amber-700'
-                                : redirect.isActive
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-[#f0f0f1] text-[#646970]'
+                              redirect.isActive
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-[#f0f0f1] text-[#646970]'
                             }`}
                           >
                             {status}
@@ -576,33 +471,13 @@ export default function RedirectsManager({ websiteId }) {
                               Edit
                             </button>
                             <span className="text-[#8c8f94]">|</span>
-                            {redirect.deletedAt ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => redirectAction(redirect.id, 'restore')}
-                                  className="font-medium text-[#3858e9] hover:underline"
-                                >
-                                  Restore
-                                </button>
-                                <span className="text-[#8c8f94]">|</span>
-                                <button
-                                  type="button"
-                                  onClick={() => redirectAction(redirect.id, '', 'DELETE')}
-                                  className="font-medium text-red-700 hover:underline"
-                                >
-                                  Delete Permanently
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => redirectAction(redirect.id, 'trash')}
-                                className="font-medium text-red-700 hover:underline"
-                              >
-                                Trash
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => deleteRedirect(redirect.id)}
+                              className="font-medium text-red-700 hover:underline"
+                            >
+                              Delete
+                            </button>
                           </div>
                         )}
                       </td>
@@ -611,7 +486,7 @@ export default function RedirectsManager({ websiteId }) {
                 })}
                 {filteredRedirects.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-[#596171]">
+                    <td colSpan={5} className="px-3 py-8 text-center text-[#596171]">
                       No redirects found.
                     </td>
                   </tr>

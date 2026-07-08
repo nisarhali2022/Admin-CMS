@@ -1,7 +1,7 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { permanentlyDeleteAuthor, updateAuthorForWebsite } from '@/lib/cms/services/authors'
-import { validateAuthorPatchPayload } from '@/lib/cms/validators/authors'
-import { assertMediaId, getRequiredWebsiteId } from '@/lib/cms/validators/media'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { permanentlyDeleteAuthor, updateAuthorForWebsite } from 'cms-core/cms/services/authors'
+import { validateAuthorPatchPayload } from 'cms-core/cms/validators/authors'
+import { assertMediaId, getRequiredWebsiteId } from 'cms-core/cms/validators/media'
 
 async function getAuthorId(context) {
   const params = await context.params

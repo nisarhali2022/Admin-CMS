@@ -4,10 +4,10 @@ All normal CMS resources are scoped by `website_id`. Use UUID primary keys, `cre
 
 ## Global Rules
 
-- Use `deleted_at timestamptz` for trashable resources.
-- Public reads must ignore rows where `deleted_at is not null`.
-- Use status values consistently: `draft`, `published`, `unpublished`.
-- `published_at` controls publish date.
+- V1 is publish-only for content resources.
+- Draft, unpublish, trash, and restore workflows are not part of the active CMS.
+- `published_at` is set when pages/posts/template content are saved.
+- Delete means permanent delete after admin confirmation.
 - Slugs are lowercase, URL-safe, and unique within each website where applicable.
 - Use `jsonb` for template `content_data`, post `body_blocks`, SEO extras, sitemap settings, and site content/config values.
 - Validate JSON shape in app validators before saving.
@@ -85,13 +85,11 @@ Stores fixed-template page content for each website.
 | `robots_meta` | text | no | optional robots value |
 | `og_image_id` | uuid | no | references `cms_media(id)` |
 | `sitemap_include` | boolean | yes | default true |
-| `status` | text | yes | draft/published/unpublished |
 | `published_at` | timestamptz | no | publish date |
-| `deleted_at` | timestamptz | no | trash marker |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
-`author_id`, when set, must reference an active/non-trashed author for the same website.
+`author_id`, when set, must reference an active author for the same website.
 
 Supported `template_key` values:
 
@@ -105,17 +103,52 @@ Supported `template_key` values:
 Constraints and indexes:
 
 - unique `(website_id, template_key)`
-- unique `(website_id, path)` for non-trashed rows
-- index `(website_id, status)`
-- index `(website_id, deleted_at)`
+- unique `(website_id, path)`
+- index `(website_id, published_at)`
 
 Behavior:
 
-- Replaces generic pages in v1.
+- Stores fixed website templates only. Generic/custom admin pages are stored in `cms_pages`.
 - No layout data is stored.
 - `content_data` stores editable text, links, and image references only.
 - Template content does not support future scheduling in v1.
 - Image references inside `content_data` must point to media rows owned by the same `website_id`.
+
+### `cms_pages`
+
+Stores WordPress-style custom pages per website.
+
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| `id` | uuid | yes | primary key |
+| `website_id` | uuid | yes | references `cms_websites(id)` |
+| `title` | text | yes | admin/public title |
+| `path` | text | yes | public path, such as `/about-us`; `/` is reserved for Home |
+| `body_text` | text | yes | page editor body content |
+| `focus_keyphrase` | text | no | page SEO focus keyphrase |
+| `seo_title` | text | no | manual SEO title |
+| `meta_description` | text | no | manual meta description |
+| `author_id` | uuid | no | optional website-scoped page author |
+| `canonical_url` | text | no | optional override |
+| `robots_meta` | text | no | optional robots value |
+| `featured_image_id` | uuid | no | references `cms_media(id)` |
+| `sitemap_include` | boolean | yes | default true |
+| `published_at` | timestamptz | no | publish date |
+| `created_at` | timestamptz | yes | default now |
+| `updated_at` | timestamptz | yes | updated on change |
+
+Constraints and indexes:
+
+- unique `(website_id, path)`
+- `/` is reserved for fixed Home template content
+- same-website foreign keys for `author_id` and `featured_image_id`
+- RLS enabled; direct anon/authenticated table access revoked
+
+Behavior:
+
+- `Add Page` creates rows here and never consumes fixed template slots.
+- Public custom page reads use `get_public_page(domain, path)`.
+- WordPress pages that do not map to known fixed templates import here.
 
 ### `cms_categories`
 
@@ -128,13 +161,12 @@ Stores blog categories per website.
 | `name` | text | yes | category name |
 | `slug` | text | yes | URL-safe |
 | `description` | text | no | optional |
-| `deleted_at` | timestamptz | no | trash marker |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
 Constraints and indexes:
 
-- unique `(website_id, slug)` for non-trashed rows
+- unique `(website_id, slug)`
 - index `website_id`
 
 Behavior:
@@ -155,22 +187,20 @@ Stores blog author profiles per website. Authors are content records, not login 
 | `bio` | text | no | author bio |
 | `avatar_image_id` | uuid | no | references `cms_media(id)` |
 | `is_active` | boolean | yes | default true |
-| `deleted_at` | timestamptz | no | trash marker |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
 Constraints and indexes:
 
-- unique `(website_id, slug)` for non-trashed rows
+- unique `(website_id, slug)`
 - index `(website_id, is_active)`
-- index `(website_id, deleted_at)`
 
 Behavior:
 
 - Authors cannot sign in.
 - One admin user manages all authors.
 - Author avatar image must belong to the same `website_id`.
-- Trashed or inactive authors are not selectable for new posts.
+- Inactive authors are not selectable for new posts.
 - Permanent delete is blocked while posts reference the author, unless posts are reassigned first.
 
 Migration note:
@@ -199,9 +229,7 @@ Stores blog posts per website.
 | `robots_meta` | text | no | optional robots value |
 | `og_image_id` | uuid | no | references `cms_media(id)` |
 | `sitemap_include` | boolean | yes | default true |
-| `status` | text | yes | draft/published/unpublished |
 | `published_at` | timestamptz | no | publish date |
-| `deleted_at` | timestamptz | no | trash marker |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
@@ -220,11 +248,10 @@ Supported `body_blocks`:
 
 Constraints and indexes:
 
-- unique `(website_id, slug)` for non-trashed rows
-- index `(website_id, status, published_at)`
+- unique `(website_id, slug)`
+- index `(website_id, published_at)`
 - index `(website_id, category_id)`
 - index `(website_id, author_id)`
-- index `(website_id, deleted_at)`
 
 Behavior:
 
@@ -254,7 +281,6 @@ Stores media metadata. File bytes live in Supabase Storage.
 | `mime_type` | text | yes | usually `image/webp` |
 | `file_size` | bigint | no | optimized size |
 | `source` | text | yes | `upload` or `wordpress_import` |
-| `deleted_at` | timestamptz | no | trash marker |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
@@ -267,7 +293,6 @@ websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
 Constraints and indexes:
 
 - unique `storage_path`
-- index `(website_id, deleted_at)`
 - index `(website_id, source)`
 
 Behavior:
@@ -278,11 +303,10 @@ Behavior:
 - V1 stores one optimized public WebP object per media row; thumbnail/object variants are deferred unless matching metadata fields are added later.
 - Media objects are immutable public assets; image replacement creates a new UUID storage path and updates CMS references.
 - Do not overwrite an existing public image URL.
-- Trash keeps Supabase Storage object.
-- Permanent delete checks references first.
-- If references exist, permanent delete is blocked.
+- Delete checks references first.
+- If references exist, delete is blocked.
 - If unused, delete the Supabase Storage object first, then hard delete the `cms_media` row.
-- If Supabase Storage deletion fails, keep the row trashed and return an error.
+- If Supabase Storage deletion fails, keep the metadata row and return an error.
 
 ### `cms_redirects`
 
@@ -298,13 +322,12 @@ Stores redirects per website.
 | `is_active` | boolean | yes | default true |
 | `hit_count` | integer | yes | default 0 |
 | `last_hit_at` | timestamptz | no | optional |
-| `deleted_at` | timestamptz | no | trash marker |
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
 Constraints and indexes:
 
-- unique `(website_id, from_path)` for non-trashed rows
+- unique `(website_id, from_path)`
 - check `redirect_type in (301, 302)`
 - index `(website_id, is_active)`
 
@@ -353,7 +376,7 @@ Behavior:
 - Import creates or selects website-scoped authors for imported posts.
 - If WordPress author data is unavailable, create or select a fallback author named `Imported Author`.
 - Posts must never be imported without `author_id`.
-- Report must include imported template content, posts, categories, authors when detected, images, rewritten URLs, unmatched pages, skipped items, failed media URLs, and errors.
+- Report must include imported template content, custom pages, posts, categories, authors when detected, images, rewritten URLs, unmatched/skipped pages, failed media URLs, and errors.
 
 ### `cms_site_settings`
 
@@ -423,7 +446,6 @@ Behavior:
 
 Do not create these tables in v1:
 
-- `cms_pages`
 - `cms_tags`
 - `cms_post_tags`
 - `cms_audit_events`
@@ -435,6 +457,7 @@ Before permanent media delete, check:
 - `cms_posts.featured_image_id`
 - `cms_posts.og_image_id`
 - `cms_posts.body_blocks` image references
+- `cms_pages.featured_image_id`
 - `cms_authors.avatar_image_id`
 - `cms_template_content.og_image_id`
 - `cms_template_content.content_data` image references

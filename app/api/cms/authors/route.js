@@ -1,8 +1,8 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { listAuthors } from '@/lib/cms/repositories/authors'
-import { createAuthorForWebsite } from '@/lib/cms/services/authors'
-import { validateAuthorPayload } from '@/lib/cms/validators/authors'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { listAuthors } from 'cms-core/cms/repositories/authors'
+import { createAuthorForWebsite } from 'cms-core/cms/services/authors'
+import { validateAuthorPayload } from 'cms-core/cms/validators/authors'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
 
 export async function GET(request) {
   const unauthorized = await requireAdminSessionResponse()
@@ -11,9 +11,8 @@ export async function GET(request) {
   try {
     const url = new URL(request.url)
     const websiteId = getRequiredWebsiteId(url.searchParams)
-    const includeTrashed = url.searchParams.get('includeTrashed') === 'true'
 
-    return cmsJson({ authors: await listAuthors(websiteId, { includeTrashed }) })
+    return cmsJson({ authors: await listAuthors(websiteId) })
   } catch (error) {
     return cmsErrorResponse(error)
   }

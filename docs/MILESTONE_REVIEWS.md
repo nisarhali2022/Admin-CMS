@@ -1577,3 +1577,340 @@ Use this structure for every completed milestone:
 - Follow-up items:
   - Run the corrective migration `202607060001_template_content_author_focus.sql` in Supabase for existing databases.
 - Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Actions And Editor Controls
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Finish the WordPress-style Pages table and make the edit toolbar controls functional enough for v1 editing.
+- What was implemented:
+  - Added a Pages table `Actions` column with Edit, Trash/Restore, and View actions.
+  - Added working editor toolbar insertion behavior for bold, italic, lists, quotes, and alignment wrappers.
+  - Made Add Media insert the first uploaded media URL into the page content, with a message if no media exists.
+  - Made Visual and Code tabs switch active state instead of remaining static.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No database, API, RLS, storage, or public website contract changes were made in this correction.
+- Security and architecture checks:
+  - Actions still call existing website-scoped template content admin routes.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Add Media inserts the first uploaded media item for now; a full picker can be added later.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Slug, Feature Image, And Add Safety
+
+- Status: Complete
+- Date completed: 2026-07-06
+- Milestone goal: Align the Pages editor labels with the requested UI and prevent Add Page from editing/replacing existing content.
+- What was implemented:
+  - Renamed the visible page URL field from Path to Slug.
+  - Replaced the visible Open Graph image selector with a Feature Image selector backed by the existing image reference payload.
+  - Changed Add Page so it opens only a missing fixed-template page as a new unsaved record.
+  - Added a message when all fixed pages already exist instead of falling back to an existing page.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No database, API, RLS, storage, or public website contract changes were made.
+  - The save payload remains backend-compatible while the UI now uses Feature Image wording.
+- Security and architecture checks:
+  - Add Page no longer opens an existing row, reducing accidental overwrite risk.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Pages remain fixed-template records in v1, not unlimited arbitrary custom pages.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Trash Flow, Blank Add, And Feature Picker
+
+- Status: Complete
+- Date completed: 2026-07-07
+- Milestone goal: Make the Pages editor behave closer to WordPress for trashing, adding, and feature image selection.
+- What was implemented:
+  - Existing page trash actions now reload the Pages list, switch to the Trash filter, and stay out of the edit screen.
+  - Bulk Move to Trash now switches the table to the Trash filter after success.
+  - Add Page no longer appears inside the edit/add editor header.
+  - Add Page now opens with empty visible fields while keeping the fixed template key internally for schema compatibility.
+  - Feature Image now uses a button-driven in-page media picker with selected image preview and remove support.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No database, API, RLS, storage, or public website contract changes were made.
+- Security and architecture checks:
+  - Unsaved fixed-template rows no longer open the editor from a Trash action.
+  - Fixed-template schema constraints remain respected because `templateKey` stays internal on Add Page.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Feature Image selection uses already loaded website media; direct upload from the picker is not included.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Setup Project Split
+
+- Status: Complete
+- Date completed: 2026-07-07
+- Milestone goal: Split website provisioning, migrations, and WordPress import out of the main Admin CMS.
+- What was implemented:
+  - Created `setup-provisioning/` as the setup/provisioning project boundary.
+  - Moved Supabase migrations into `setup-provisioning/supabase/migrations`.
+  - Moved Add Website UI, setup website workspace, and WordPress import UI into `setup-provisioning/`.
+  - Moved WordPress import API routes into `setup-provisioning/`.
+  - Removed `/admin/add-website` and WordPress import API routes from the main Admin CMS.
+  - Kept read-only website listing/detail API in the main CMS for header dropdown and website-scoped content selection.
+- Files/modules changed:
+  - `setup-provisioning/`
+  - `features/admin-shell/AdminShell.jsx`
+  - `app/api/cms/websites/route.js`
+  - `app/api/cms/websites/[id]/route.js`
+  - `docs/API_CONTRACTS.md`
+  - `docs/CHANGE_LOG.md`
+  - `docs/IMPLEMENTATION_DETAILS.md`
+  - `test/milestone13-final-hardening.test.js`
+- Inputs/outputs added or changed:
+  - Main CMS `/api/cms/websites` is read-only.
+  - Main CMS no longer exposes `/api/cms/import`.
+  - Setup project owns schema migrations and onboarding/import routes.
+- Security and architecture checks:
+  - Service-role database writes for website setup are isolated to setup/provisioning.
+  - Main CMS still requires selected `websiteId` for website-scoped content.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- app features lib docs test setup-provisioning supabase`
+- Known caveats:
+  - `setup-provisioning/` remains inside this workspace for review, but shared server/runtime utilities now live in `packages/cms-core`.
+- Follow-up items:
+  - If this is later split into separate repositories, keep `packages/cms-core` with the apps as a monorepo package or publish/copy an equivalent private package.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Shared CMS Core Package
+
+- Status: Complete
+- Date completed: 2026-07-07
+- Milestone goal: Convert the earlier partial setup split into option 2: a shared local package used by both apps.
+- What was implemented:
+  - Moved shared runtime/server code from root `lib/` into `packages/cms-core/`.
+  - Added the local `cms-core` package and workspace/file dependency wiring.
+  - Updated the main CMS and setup/provisioning imports to use `cms-core/...`.
+  - Configured the main Next app to transpile the local package.
+  - Updated setup/provisioning docs to state that `cms-core` is bundled into the app and not deployed separately.
+- Files/modules changed:
+  - `packages/cms-core/`
+  - `package.json`
+  - `package-lock.json`
+  - `next.config.js`
+  - `setup-provisioning/package.json`
+  - `setup-provisioning/README.md`
+  - main app API/page imports
+  - setup/provisioning API/page imports
+  - tests and current implementation docs
+- Inputs/outputs added or changed:
+  - No database, API payload, RLS, storage, or public website contract changes were made.
+  - Source-level imports now use `cms-core/...` instead of root `lib/...`.
+- Security and architecture checks:
+  - Shared service-role helpers remain server-side code.
+  - `cms-core` is not a deployed app and has no public URL.
+  - Both deployed apps bundle their own copy of the shared package at build time.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `npm.cmd --workspace cms-setup-provisioning run build`
+  - `git diff --check -- app features components packages setup-provisioning docs test package.json package-lock.json next.config.js supabase`
+- Known caveats:
+  - If setup/provisioning is physically extracted into a different repository, the `cms-core` package must come with it or be published/copied as a private shared package.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Publish/Delete Simplification
+
+- Status: Complete
+- Date completed: 2026-07-07
+- Milestone goal: Simplify the Pages screen so website pages only support editing, saving as published, publishing legacy unpublished rows, and permanent delete.
+- What was implemented:
+  - Removed Pages UI filters for All, Published, and Trash.
+  - Removed bulk actions, Move to Trash, Restore, View, Unpublish, and the Status dropdown from Pages.
+  - Changed page saves to always send `status: 'published'`.
+  - Kept title-click editing, Add Page, search, Feature Image, SEO fields, author selection, and Add Media/editor controls.
+  - Added permanent delete confirmation from the Pages list and editor.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - Pages now load without `includeTrashed=true`, so legacy trashed rows stay hidden from the main CMS UI.
+  - New and edited pages save through existing POST/PATCH routes as published content.
+  - Delete uses the existing hard delete route: `DELETE /api/cms/template-content/:id?websiteId=...`.
+- Security and architecture checks:
+  - No database schema, RLS, storage, public website, or setup/provisioning changes were made.
+  - Trash/restore API routes may remain for backward compatibility, but the Pages UI no longer calls them.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features/template-content test docs`
+- Known caveats:
+  - Legacy trashed pages are hidden in the main CMS UI; recovery would require a separate admin/tooling flow if ever needed.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Add Duplicate Guard
+
+- Status: Complete
+- Date completed: 2026-07-08
+- Milestone goal: Prevent Add Page from creating duplicate fixed-template rows when hidden legacy rows still exist.
+- What was implemented:
+  - Pages now load template rows with `includeTrashed=true` for internal fixed-template existence checks.
+  - The visible Pages table still hides rows with `deletedAt`.
+  - Add Page only chooses fixed templates with no existing row at all, including hidden legacy rows.
+  - New page saves check active slug/path collisions before calling the API.
+  - Duplicate API errors are mapped to a clearer Pages-specific message.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No database, API route, RLS, storage, setup/provisioning, or public website contract changes were made.
+  - The Pages UI still supports only publish/delete actions.
+- Security and architecture checks:
+  - Hidden legacy rows are only used for client-side existence checks and are not shown or restored in the UI.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features/template-content test docs`
+- Known caveats:
+  - A hidden legacy fixed-template row still blocks creating that same fixed page; this is intentional because the database enforces one row per fixed template key.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: True Custom Pages
+
+- Status: Complete
+- Date completed: 2026-07-08
+- Milestone goal: Fix Add Page so it creates independent WordPress-style custom pages instead of consuming or replacing fixed template rows.
+- What was implemented:
+  - Added `cms_pages` as the website-scoped custom page model in setup/provisioning migrations.
+  - Added main CMS admin routes for listing, creating, updating, and permanently deleting custom pages.
+  - Split Pages UI behavior so fixed templates use template-content APIs and custom pages use pages APIs.
+  - Changed Add Page to always open a blank custom page form.
+  - Removed missing fixed-template placeholder rows from the Pages table.
+  - Added public `get_public_page(domain, page_path)` support and custom page sitemap support.
+  - Updated WordPress import so unmatched pages import into `cms_pages` instead of fixed template slots.
+  - Updated import reset so inactive website reset deletes custom pages as scoped website data.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `app/api/cms/pages/route.js`
+  - `app/api/cms/pages/[id]/route.js`
+  - `packages/cms-core/cms/repositories/pages.js`
+  - `packages/cms-core/cms/serializers/pages.js`
+  - `packages/cms-core/cms/services/pages.js`
+  - `packages/cms-core/cms/validators/pages.js`
+  - `packages/cms-core/cms/services/import.js`
+  - `packages/cms-core/public-cms/client.js`
+  - `packages/cms-core/public-cms/sitemap.js`
+  - `setup-provisioning/supabase/migrations/202607080001_custom_pages.sql`
+  - tests and docs
+- Inputs/outputs added or changed:
+  - New admin API: `/api/cms/pages`.
+  - New database table: `cms_pages`.
+  - New public RPC: `get_public_page(domain, page_path)`.
+  - Add Page now inserts a custom page row and never changes Home/About/Contact fixed template rows.
+- Security and architecture checks:
+  - `cms_pages` is website-scoped and RLS-enabled.
+  - Admin writes stay server-side through service-role route handlers.
+  - Public custom page reads return only active-website, published, non-deleted custom pages.
+  - Same-website author and feature-image references are enforced.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `npm.cmd --workspace cms-setup-provisioning run build`
+  - `git diff --check -- app features packages setup-provisioning test docs`
+- Known caveats:
+  - Custom pages are published-only in the current admin UI. Draft/trash/restore UI remains intentionally out of scope.
+  - Fixed template content still remains separate because public websites consume those records by `templateKey`.
+- Follow-up items:
+  - Public website apps must call `get_public_page` for non-fixed page routes.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Global Publish-Only Delete Cleanup
+
+- Status: Complete
+- Date completed: 2026-07-08
+- Milestone goal: Remove Draft, Trash, Restore, Move to Trash, and Unpublish from the active CMS so all saved content is published and all deletes are permanent after confirmation.
+- What was implemented:
+  - Removed main CMS trash, restore, unpublish, and publish route handlers for template content, posts, media, categories, authors, and redirects.
+  - Converted Categories, Authors, Redirects, Posts, Pages/Template Content, and Media UI actions to direct delete-only behavior.
+  - Removed content `status` handling from validators, serializers, repositories, services, and UI save payloads.
+  - Changed create/update services for posts, custom pages, and template content to set `published_at` automatically.
+  - Kept redirect `is_active`, author `is_active`, website `is_active`, import job `status`, HTTP status codes, and quiz publish state because they are separate concepts.
+  - Updated WordPress import to skip non-published WordPress posts/pages and report them instead of importing drafts.
+  - Added setup/provisioning migration `202607080002_remove_draft_trash_restore.sql`.
+- Files/modules changed:
+  - `app/api/cms/**`
+  - `features/authors/AuthorsManager.jsx`
+  - `features/categories/CategoriesManager.jsx`
+  - `features/media/MediaLibrary.jsx`
+  - `features/posts/PostsManager.jsx`
+  - `features/redirects/RedirectsManager.jsx`
+  - `features/template-content/TemplateContentManager.jsx`
+  - `packages/cms-core/cms/repositories/*`
+  - `packages/cms-core/cms/services/*`
+  - `packages/cms-core/cms/serializers/*`
+  - `packages/cms-core/cms/validators/*`
+  - `setup-provisioning/supabase/migrations/202607080002_remove_draft_trash_restore.sql`
+  - docs and tests
+- Inputs/outputs added or changed:
+  - Admin save payloads no longer include `status`.
+  - Admin list responses no longer expose `deletedAt` or content `status`.
+  - Delete routes permanently delete rows after reference checks and confirmation.
+  - Public RPCs no longer depend on dropped `status` or `deleted_at` columns.
+- Security and architecture checks:
+  - Media delete still checks usage before deleting storage objects/metadata.
+  - Same-website ownership validation remains in services.
+  - Public reads still resolve active websites and expose only public-safe fields.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `npm.cmd --workspace setup-provisioning run build`
+  - `git diff --check -- app features packages setup-provisioning docs test eslint.config.mjs`
+- Known caveats:
+  - The corrective migration deletes legacy non-published/hidden content rows. Back up production data before running it.
+  - Old historical milestone review entries may mention the previous trash/draft implementation; this correction supersedes them.
+- Follow-up items:
+  - Run the corrective migration in Supabase before deploying code that expects removed columns.
+- Readiness for next milestone: Ready.

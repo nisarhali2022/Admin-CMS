@@ -1,0 +1,12 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/admin/session/route": "/api/admin/session",
+  "/api/cms/import/[jobId]/route": "/api/cms/import/[jobId]",
+  "/api/cms/import/reset/route": "/api/cms/import/reset",
+  "/api/cms/websites/[id]/deactivate/route": "/api/cms/websites/[id]/deactivate",
+  "/api/cms/import/route": "/api/cms/import",
+  "/api/cms/websites/[id]/route": "/api/cms/websites/[id]",
+  "/api/cms/websites/route": "/api/cms/websites",
+  "/page": "/",
+  "/(admin)/admin/add-website/page": "/admin/add-website"
+}

@@ -11,7 +11,6 @@ import {
   LogOut,
   Newspaper,
   PlayCircle,
-  Plus,
   Settings,
   Shuffle,
   Tag,
@@ -94,8 +93,7 @@ export default function AdminShell({ authenticated, children }) {
   }
 
   const isQuizRoute = pathname === '/admin/quiz'
-  const isAddWebsiteRoute = pathname === '/admin/add-website'
-  const hideSidebar = isQuizRoute || isAddWebsiteRoute
+  const hideSidebar = isQuizRoute
   const activeItem = navItems.find((item) => isActive(item))
   const selectedWebsite = useMemo(
     () => websites.find((website) => website.id === websiteId) || null,
@@ -103,9 +101,7 @@ export default function AdminShell({ authenticated, children }) {
   )
   const pageTitle = isQuizRoute
     ? 'Quiz Update'
-    : isAddWebsiteRoute
-      ? 'Add Website'
-      : activeItem?.label || 'Dashboard'
+    : activeItem?.label || 'Dashboard'
   const activeTitle = isQuizRoute
     ? pageTitle
     : selectedWebsite
@@ -236,21 +232,6 @@ export default function AdminShell({ authenticated, children }) {
                 <Link href="/admin/quiz">
                   <PlayCircle />
                   Quiz
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className={`rounded-full border-[#d8dae0] px-3.5 ${
-                  isAddWebsiteRoute
-                    ? 'bg-[#673de6] text-white hover:bg-[#5025d1]'
-                    : 'bg-white text-[#1f2330] hover:bg-[#f5f3ff]'
-                }`}
-              >
-                <Link href="/admin/add-website">
-                  <Plus />
-                  Add Website
                 </Link>
               </Button>
               <Button

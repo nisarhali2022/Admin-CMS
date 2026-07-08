@@ -44,9 +44,7 @@ export default function CategoriesManager({ websiteId }) {
   const [countsFailed, setCountsFailed] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [editing, setEditing] = useState({})
-  const [selectedIds, setSelectedIds] = useState([])
-  const [bulkAction, setBulkAction] = useState('trash')
-  const [searchDraft, setSearchDraft] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -57,10 +55,6 @@ export default function CategoriesManager({ websiteId }) {
     [categories, searchQuery]
   )
 
-  const allVisibleSelected =
-    filteredCategories.length > 0 &&
-    filteredCategories.every((category) => selectedIds.includes(category.id))
-
   async function loadCategories() {
     if (!websiteId) return
     setLoading(true)
@@ -68,10 +62,9 @@ export default function CategoriesManager({ websiteId }) {
     setCountsFailed(false)
 
     try {
-      const response = await fetch(
-        `/api/cms/categories?websiteId=${websiteId}&includeTrashed=true`,
-        { cache: 'no-store' }
-      )
+      const response = await fetch(`/api/cms/categories?websiteId=${websiteId}`, {
+        cache: 'no-store',
+      })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -80,9 +73,6 @@ export default function CategoriesManager({ websiteId }) {
       }
 
       setCategories(result.categories || [])
-      setSelectedIds((current) =>
-        current.filter((id) => (result.categories || []).some((category) => category.id === id))
-      )
 
       try {
         const postsResponse = await fetch(`/api/cms/posts?websiteId=${websiteId}`, {
@@ -168,65 +158,26 @@ export default function CategoriesManager({ websiteId }) {
     }
   }
 
-  async function categoryAction(categoryId, action, method = 'POST', reload = true) {
-    if (reload) {
-      setSaving(true)
-      setMessage('')
-    }
-
-    try {
-      const response = await fetch(
-        `/api/cms/categories/${categoryId}${action ? `/${action}` : ''}?websiteId=${websiteId}`,
-        { method }
-      )
-      const result = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        setMessage(getApiMessage(result, 'Unable to update category.'))
-        return false
-      }
-
-      if (reload) await loadCategories()
-      return true
-    } finally {
-      if (reload) setSaving(false)
-    }
-  }
-
-  async function runBulkAction() {
-    if (selectedIds.length === 0) return
+  async function deleteCategory(categoryId) {
+    if (!window.confirm('Delete this category permanently?')) return
     setSaving(true)
     setMessage('')
 
     try {
-      for (const categoryId of selectedIds) {
-        const ok = await categoryAction(categoryId, bulkAction, 'POST', false)
-        if (!ok) return
+      const response = await fetch(`/api/cms/categories/${categoryId}?websiteId=${websiteId}`, {
+        method: 'DELETE',
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setMessage(getApiMessage(result, 'Unable to delete category.'))
+        return
       }
-      setSelectedIds([])
+
       await loadCategories()
     } finally {
       setSaving(false)
     }
-  }
-
-  function toggleVisibleSelection(checked) {
-    const visibleIds = filteredCategories.map((category) => category.id)
-
-    setSelectedIds((current) => {
-      if (checked) {
-        return Array.from(new Set([...current, ...visibleIds]))
-      }
-
-      return current.filter((id) => !visibleIds.includes(id))
-    })
-  }
-
-  function toggleCategorySelection(categoryId, checked) {
-    setSelectedIds((current) => {
-      if (checked) return Array.from(new Set([...current, categoryId]))
-      return current.filter((id) => id !== categoryId)
-    })
   }
 
   function startEditing(category) {
@@ -250,7 +201,7 @@ export default function CategoriesManager({ websiteId }) {
 
   function submitSearch(event) {
     event.preventDefault()
-    setSearchQuery(searchDraft.trim())
+    setSearchQuery(searchInput.trim())
   }
 
   return (
@@ -353,8 +304,8 @@ export default function CategoriesManager({ websiteId }) {
           >
             <input
               type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               className="w-full max-w-xs rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               aria-label="Search categories"
             />
@@ -368,25 +319,7 @@ export default function CategoriesManager({ websiteId }) {
           </form>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={bulkAction}
-                onChange={(event) => setBulkAction(event.target.value)}
-                className="rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                aria-label="Bulk action"
-              >
-                <option value="trash">Trash selected</option>
-                <option value="restore">Restore selected</option>
-              </select>
-              <button
-                type="button"
-                onClick={runBulkAction}
-                disabled={saving || selectedIds.length === 0}
-                className="rounded-[3px] border border-[#3858e9] bg-white px-4 py-2 font-semibold text-[#3858e9] hover:bg-[#f0f3ff] disabled:cursor-not-allowed disabled:border-[#b8bfd6] disabled:text-[#8a93a7]"
-              >
-                Apply
-              </button>
-            </div>
+            <div />
             <p className="text-[0.85rem] text-[#1f2330]">
               {filteredCategories.length} {filteredCategories.length === 1 ? 'item' : 'items'}
             </p>
@@ -396,14 +329,6 @@ export default function CategoriesManager({ websiteId }) {
             <table className="w-full min-w-[54rem] text-left text-[#1f2330]">
               <thead>
                 <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
-                  <th className="w-10 px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={(event) => toggleVisibleSelection(event.target.checked)}
-                      aria-label="Select all visible categories"
-                    />
-                  </th>
                   <th className="px-3 py-2 font-medium">Name</th>
                   <th className="px-3 py-2 font-medium">Description</th>
                   <th className="px-3 py-2 font-medium">Slug</th>
@@ -415,29 +340,14 @@ export default function CategoriesManager({ websiteId }) {
                 {filteredCategories.map((category) => {
                   const draft = editing[category.id]
                   const isEditing = Boolean(draft)
-                  const isSelected = selectedIds.includes(category.id)
                   const description = category.description || '-'
                   const count = countsFailed ? '-' : postCounts[category.id] || 0
 
                   return (
                     <tr
                       key={category.id}
-                      className={
-                        category.deletedAt
-                          ? 'border-b border-[#c3c4c7] bg-amber-50 align-top'
-                          : 'border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]'
-                      }
+                      className="border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]"
                     >
-                      <td className="px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(event) =>
-                            toggleCategorySelection(category.id, event.target.checked)
-                          }
-                          aria-label={`Select ${category.name}`}
-                        />
-                      </td>
                       <td className="px-3 py-3">
                         {isEditing ? (
                           <div className="space-y-2">
@@ -456,11 +366,6 @@ export default function CategoriesManager({ websiteId }) {
                         ) : (
                           <div className="space-y-1">
                             <p className="font-normal text-[#1f2330]">{category.name}</p>
-                            {category.deletedAt ? (
-                              <p className="text-[0.78rem] font-semibold uppercase text-amber-700">
-                                Trashed
-                              </p>
-                            ) : null}
                           </div>
                         )}
                       </td>
@@ -532,33 +437,13 @@ export default function CategoriesManager({ websiteId }) {
                               Edit
                             </button>
                             <span className="text-[#8c8f94]">|</span>
-                            {category.deletedAt ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => categoryAction(category.id, 'restore')}
-                                  className="font-medium text-[#3858e9] hover:underline"
-                                >
-                                  Restore
-                                </button>
-                                <span className="text-[#8c8f94]">|</span>
-                                <button
-                                  type="button"
-                                  onClick={() => categoryAction(category.id, '', 'DELETE')}
-                                  className="font-medium text-red-700 hover:underline"
-                                >
-                                  Delete Permanently
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => categoryAction(category.id, 'trash')}
-                                className="font-medium text-red-700 hover:underline"
-                              >
-                                Trash
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => deleteCategory(category.id)}
+                              className="font-medium text-red-700 hover:underline"
+                            >
+                              Delete
+                            </button>
                           </div>
                         )}
                       </td>
@@ -567,7 +452,7 @@ export default function CategoriesManager({ websiteId }) {
                 })}
                 {filteredCategories.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-[#596171]">
+                    <td colSpan={5} className="px-3 py-8 text-center text-[#596171]">
                       No categories found.
                     </td>
                   </tr>

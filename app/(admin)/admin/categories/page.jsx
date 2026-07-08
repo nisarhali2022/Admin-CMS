@@ -1,7 +1,7 @@
 import AdminShell from '@/features/admin-shell/AdminShell'
 import CategoriesWorkspace from '@/features/categories/CategoriesWorkspace'
-import { hasAdminSession } from '@/lib/adminAuth'
-import { validateAdminEnv } from '@/lib/env/adminEnv'
+import { hasAdminSession } from 'cms-core/adminAuth'
+import { validateAdminEnv } from 'cms-core/env/adminEnv'
 
 export const metadata = {
   title: 'Categories - Admin CMS',

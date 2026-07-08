@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
 
-import { importWordPressForWebsite, resetWordPressImportForWebsite } from '../lib/cms/services/import.js'
-import { validateWordPressImportPayload } from '../lib/cms/validators/import.js'
+import { importWordPressForWebsite, resetWordPressImportForWebsite } from 'cms-core/cms/services/import'
+import { validateWordPressImportPayload } from 'cms-core/cms/validators/import'
 
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }
@@ -12,6 +12,7 @@ const jobId = '22222222-2222-4222-8222-222222222222'
 const authorId = '33333333-3333-4333-8333-333333333333'
 const postId = '44444444-4444-4444-8444-444444444444'
 const mediaId = '55555555-5555-4555-8555-555555555555'
+const pageId = '77777777-7777-4777-8777-777777777777'
 
 function setValidEnv() {
   process.env.ADMIN_SECRET = 'test-admin-secret'
@@ -91,6 +92,29 @@ function postRow(body) {
   }
 }
 
+function pageRow(body) {
+  return {
+    id: pageId,
+    website_id: websiteId,
+    title: body.title,
+    path: body.path,
+    body_text: body.body_text,
+    focus_keyphrase: body.focus_keyphrase,
+    seo_title: body.seo_title,
+    meta_description: body.meta_description,
+    author_id: body.author_id,
+    canonical_url: body.canonical_url,
+    robots_meta: body.robots_meta,
+    featured_image_id: body.featured_image_id,
+    sitemap_include: body.sitemap_include,
+    status: body.status,
+    published_at: body.published_at,
+    deleted_at: null,
+    created_at: '2026-07-04T00:00:00.000Z',
+    updated_at: '2026-07-04T00:00:00.000Z',
+  }
+}
+
 afterEach(() => {
   global.fetch = originalFetch
   process.env = { ...originalEnv }
@@ -146,6 +170,21 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
           },
         ])
       }
+      if (stringUrl.includes('/pages?')) {
+        return Response.json([
+          {
+            id: 20,
+            slug: 'custom-page',
+            status: 'publish',
+            date: '2026-07-01T00:00:00',
+            title: { rendered: 'Custom Page' },
+            excerpt: { rendered: '<p>Page intro</p>' },
+            content: { rendered: '<p>Page body</p>' },
+            author: 99,
+            featured_media: 0,
+          },
+        ])
+      }
       return Response.json([])
     }
 
@@ -185,6 +224,11 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
       return Response.json([postRow(body)])
     }
 
+    if (stringUrl.endsWith('/rest/v1/cms_pages')) {
+      const body = JSON.parse(options.body)
+      return Response.json([pageRow(body)])
+    }
+
     return Response.json([])
   }
 
@@ -198,10 +242,13 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
     })
   )
   const postInsert = calls.find((call) => call.url.endsWith('/rest/v1/cms_posts'))
+  const pageInsert = calls.find((call) => call.url.endsWith('/rest/v1/cms_pages'))
   const postBody = JSON.parse(postInsert.options.body)
+  const pageBody = JSON.parse(pageInsert.options.body)
 
   assert.equal(job.status, 'succeeded')
   assert.equal(report.counts.posts, 1)
+  assert.equal(report.counts.pages, 1)
   assert.equal(report.counts.authors, 1)
   assert.equal(report.progress.phase, 'succeeded')
   assert.equal(report.progress.percent, 100)
@@ -213,6 +260,9 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
   )
   assert.equal(postBody.author_id, authorId)
   assert.ok(postBody.body_blocks.length > 0)
+  assert.equal(pageBody.path, '/custom-page')
+  assert.equal(pageBody.body_text, 'Page body')
+  assert.equal(pageBody.author_id, authorId)
   assert.ok(wordpressAuthHeaders.every((header) => header?.startsWith('Basic ')))
   assert.ok(importJobBodies[0].temporary_credentials_encrypted)
   assert.equal(importJobBodies.at(-1).temporary_credentials_encrypted, null)

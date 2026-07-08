@@ -36,6 +36,7 @@ Enable RLS on all CMS tables:
 - `cms_websites`
 - `cms_website_domains`
 - `cms_template_content`
+- `cms_pages`
 - `cms_categories`
 - `cms_authors`
 - `cms_posts`
@@ -71,10 +72,9 @@ Every public read must enforce:
 
 Resource-specific public visibility:
 
-- Template content and posts require `status = 'published'` and `deleted_at is null`.
-- Authors require `is_active = true` and `deleted_at is null`.
-- Categories require `deleted_at is null`.
-- Redirects require `is_active = true` and `deleted_at is null`.
+- Template content, custom pages, posts, categories, and media are publish-only resources in v1 and no longer have draft/trash columns.
+- Authors require `is_active = true`.
+- Redirects require `is_active = true`.
 - Site settings expose only safe public fields, including public AdSense fields.
 - Media rows are returned only when referenced by public-safe content, authors, or settings for the same website.
 - Import jobs are admin-only and never public.
@@ -88,25 +88,16 @@ Safe public AdSense fields are:
 
 Public settings functions must return AdSense as inactive when the saved publisher ID is missing or invalid. They must never expose revalidation secrets or service-only settings.
 
-Recommended visibility condition for template content and post rows:
-
-```sql
-status = 'published'
-and deleted_at is null
-```
-
 Recommended visibility condition for author rows:
 
 ```sql
 is_active = true
-and deleted_at is null
 ```
 
 Recommended visibility condition for redirect rows:
 
 ```sql
 is_active = true
-and deleted_at is null
 ```
 
 For websites:
@@ -129,7 +120,7 @@ Public reads should be exposed through:
 - `list_public_redirects(domain text)`
 - `cms_public_get_current_quiz()`
 
-Functions should be `security definer` only when needed and must set a safe `search_path`. They must not expose drafts, inactive websites, trashed rows, service-only fields, or revalidation secrets.
+Functions should be `security definer` only when needed and must set a safe `search_path`. They must not expose inactive websites, service-only fields, or revalidation secrets.
 
 `cms_public_get_current_quiz()` is global and does not accept a domain or `website_id`. It returns only the latest published quiz from `cms_global_quiz`.
 
@@ -160,11 +151,7 @@ Admin route handlers must reject:
 Test that anon reads cannot access:
 
 - inactive websites
-- draft template content
-- draft posts
 - unpublished global quiz
-- unpublished content
-- trashed content
 - another website's content
 - admin-only settings
 - revalidation secrets

@@ -28,7 +28,7 @@ Read the docs in this order:
 
 `ARCHITECTURE.md` owns system boundaries, data flow, app/module separation, and how the admin CMS, public websites, Supabase, Supabase Storage, WordPress import, revalidation, and quiz fit together.
 
-`DATA_MODEL.md` owns Supabase table contracts, fields, relationships, indexes, constraints, status rules, trash behavior, and Supabase Storage metadata.
+`DATA_MODEL.md` owns Supabase table contracts, fields, relationships, indexes, constraints, publish-only content rules, permanent-delete behavior, and Supabase Storage metadata.
 
 `RLS_POLICIES.md` owns Supabase access rules, Data API settings, RLS expectations, public read safety, and service-role boundaries.
 
@@ -68,7 +68,7 @@ Read the docs in this order:
 - Admin writes happen through server route handlers only.
 - Supabase service-role key must never reach public websites or browser code.
 - Media uses one Supabase Storage bucket with `websites/{website_id}/...` storage path prefixes.
-- Tags, audit events, shared media, generic pages, page builder, public draft preview tokens, and revisions are not included in v1.
+- Tags, audit events, shared media, page builder, public draft preview tokens, draft/unpublish/trash/restore workflows, and revisions are not included in v1.
 
 ## Update Rule
 

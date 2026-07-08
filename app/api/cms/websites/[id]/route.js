@@ -1,12 +1,6 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import {
-  getWebsite,
-  updateWebsite,
-} from '@/lib/cms/repositories/websites'
-import {
-  assertWebsiteId,
-  validateUpdateWebsitePayload,
-} from '@/lib/cms/validators/websites'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { getWebsite } from 'cms-core/cms/repositories/websites'
+import { assertWebsiteId } from 'cms-core/cms/validators/websites'
 
 async function getWebsiteId(context) {
   const params = await context.params
@@ -30,21 +24,6 @@ export async function GET(_request, context) {
         { status: 404 }
       )
     }
-
-    return cmsJson({ website })
-  } catch (error) {
-    return cmsErrorResponse(error)
-  }
-}
-
-export async function PATCH(request, context) {
-  const unauthorized = await requireAdminSessionResponse()
-  if (unauthorized) return unauthorized
-
-  try {
-    const websiteId = await getWebsiteId(context)
-    const payload = validateUpdateWebsitePayload(await request.json())
-    const website = await updateWebsite(websiteId, payload)
 
     return cmsJson({ website })
   } catch (error) {

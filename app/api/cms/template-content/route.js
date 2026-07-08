@@ -1,8 +1,8 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { listTemplateContent } from '@/lib/cms/repositories/templateContent'
-import { createTemplateContentForWebsite } from '@/lib/cms/services/templateContent'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
-import { validateTemplateContentPayload } from '@/lib/cms/validators/templateContent'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { listTemplateContent } from 'cms-core/cms/repositories/templateContent'
+import { createTemplateContentForWebsite } from 'cms-core/cms/services/templateContent'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
+import { validateTemplateContentPayload } from 'cms-core/cms/validators/templateContent'
 
 export async function GET(request) {
   const unauthorized = await requireAdminSessionResponse()
@@ -11,10 +11,9 @@ export async function GET(request) {
   try {
     const url = new URL(request.url)
     const websiteId = getRequiredWebsiteId(url.searchParams)
-    const includeTrashed = url.searchParams.get('includeTrashed') === 'true'
 
     return cmsJson({
-      templates: await listTemplateContent(websiteId, { includeTrashed }),
+      templates: await listTemplateContent(websiteId),
     })
   } catch (error) {
     return cmsErrorResponse(error)

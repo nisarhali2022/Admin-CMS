@@ -6,8 +6,8 @@ import {
   getAdminLoginLimitStatus,
   recordFailedAdminLogin,
   resetAdminLoginRateLimitForTests,
-} from '../lib/auth/adminLoginRateLimit.js'
-import { validateAdminEnv } from '../lib/env/adminEnv.js'
+} from 'cms-core/auth/adminLoginRateLimit'
+import { validateAdminEnv } from 'cms-core/env/adminEnv'
 
 const validEnv = {
   ADMIN_SECRET: 'test-admin-secret',

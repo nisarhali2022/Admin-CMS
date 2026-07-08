@@ -3,15 +3,15 @@ import { readFile, readdir } from 'node:fs/promises'
 import { afterEach, test } from 'node:test'
 import sharp from 'sharp'
 
-import { MAX_IMAGE_WIDTH, optimizeImageToWebp } from '../lib/storage/imageOptimizer.js'
+import { MAX_IMAGE_WIDTH, optimizeImageToWebp } from 'cms-core/storage/imageOptimizer'
 import {
   MEDIA_CACHE_CONTROL_SECONDS,
   getPublicMediaUrl,
   uploadPublicMediaObject,
-} from '../lib/storage/supabaseStorage.js'
-import { uploadMedia } from '../lib/cms/services/media.js'
+} from 'cms-core/storage/supabaseStorage'
+import { uploadMedia } from 'cms-core/cms/services/media'
 
-const migrationDir = 'supabase/migrations'
+const migrationDir = 'setup-provisioning/supabase/migrations'
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }
 
@@ -81,7 +81,7 @@ test('sharp optimizer converts accepted uploads to WebP with dimensions', async 
 })
 
 test('sharp optimizer converts JPG uploads to compressed WebP', async () => {
-  const optimizer = await readFile('lib/storage/imageOptimizer.js', 'utf8')
+  const optimizer = await readFile('packages/cms-core/storage/imageOptimizer.js', 'utf8')
   const result = await optimizeImageToWebp(await createJpgFile())
 
   assert.equal(result.mimeType, 'image/webp')
@@ -93,7 +93,7 @@ test('sharp optimizer converts JPG uploads to compressed WebP', async () => {
 })
 
 test('sharp optimizer resizes only images wider than 1200px', async () => {
-  const optimizer = await readFile('lib/storage/imageOptimizer.js', 'utf8')
+  const optimizer = await readFile('packages/cms-core/storage/imageOptimizer.js', 'utf8')
   const small = await optimizeImageToWebp(await createPngFileWithDimensions(600, 300))
   const medium = await optimizeImageToWebp(await createPngFileWithDimensions(900, 450))
   const exact = await optimizeImageToWebp(await createPngFileWithDimensions(1200, 600))

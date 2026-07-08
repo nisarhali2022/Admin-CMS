@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
+import { cn } from 'cms-core/utils'
 
 export function PageHeader({
   eyebrow,

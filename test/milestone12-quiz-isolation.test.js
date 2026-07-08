@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test, afterEach } from 'node:test'
-import { getGlobalQuiz, updateGlobalQuiz } from '../lib/quiz/state.js'
-import { normalizeQuizQuestions, validateQuizPayload } from '../lib/quiz/validators.js'
+import { getGlobalQuiz, updateGlobalQuiz } from 'cms-core/quiz/state'
+import { normalizeQuizQuestions, validateQuizPayload } from 'cms-core/quiz/validators'
 
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }
@@ -173,15 +173,15 @@ test('quiz state falls back to legacy id column before corrective migration is a
 
 test('global quiz migrations create and simplify current-only quiz storage', async () => {
   const createSql = await readFile(
-    'supabase/migrations/202607050007_global_quiz.sql',
+    'setup-provisioning/supabase/migrations/202607050007_global_quiz.sql',
     'utf8',
   )
   const simplifySql = await readFile(
-    'supabase/migrations/202607050008_simplify_global_quiz.sql',
+    'setup-provisioning/supabase/migrations/202607050008_simplify_global_quiz.sql',
     'utf8',
   )
   const permissionsSql = await readFile(
-    'supabase/migrations/202607050009_fix_quiz_function_permissions.sql',
+    'setup-provisioning/supabase/migrations/202607050009_fix_quiz_function_permissions.sql',
     'utf8',
   )
 

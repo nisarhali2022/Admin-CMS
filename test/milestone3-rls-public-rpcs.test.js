@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import { test } from 'node:test'
 
-const migrationDir = 'supabase/migrations'
+const migrationDir = 'setup-provisioning/supabase/migrations'
 
 async function readMigration(namePart) {
   const files = await readdir(migrationDir)
@@ -31,6 +31,10 @@ test('rls migration enables RLS and closes direct anon table access', async () =
     assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`))
   }
 
+  const customPagesSql = await readMigration('custom_pages')
+  assert.match(customPagesSql, /alter table public\.cms_pages enable row level security/)
+  assert.match(customPagesSql, /revoke all privileges on table public\.cms_pages from anon, authenticated/)
+
   assert.match(sql, /revoke all privileges on table/)
   assert.match(sql, /from anon, authenticated/)
   assert.doesNotMatch(sql, /grant\s+(select|insert|update|delete)\s+on\s+table[\s\S]+to\s+anon/i)
@@ -53,6 +57,10 @@ test('rls migration exposes only documented public RPCs to anon', async () => {
     assert.match(sql, new RegExp(`grant execute on function public\\.${fn}`))
   }
 
+  const customPagesSql = await readMigration('custom_pages')
+  assert.match(customPagesSql, /create or replace function public\.get_public_page\b/)
+  assert.match(customPagesSql, /grant execute on function public\.get_public_page/)
+
   assert.match(sql, /security definer/)
   assert.match(sql, /set search_path = public, pg_temp/)
   assert.match(sql, /revoke all on function public\.cms_public_website_id\(text\) from PUBLIC, anon, authenticated/)
@@ -65,6 +73,9 @@ test('public RPC SQL enforces public-safe visibility by resource type', async ()
   assert.match(sql, /w\.is_active = true/)
   assert.match(sql, /t\.status = 'published'/)
   assert.match(sql, /p\.status = 'published'/)
+  const customPagesSql = await readMigration('custom_pages')
+  assert.match(customPagesSql, /p\.status = 'published'/)
+  assert.match(customPagesSql, /p\.deleted_at is null/)
   assert.match(sql, /a\.is_active = true/)
   assert.match(sql, /r\.is_active = true/)
   assert.match(sql, /deleted_at is null/)

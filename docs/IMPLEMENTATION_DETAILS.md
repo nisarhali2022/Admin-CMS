@@ -11,19 +11,19 @@ Implemented:
 - Single-admin login with signed admin session cookie.
 - Server-side env validation.
 - Basic admin login rate limiting.
-- Supabase schema migrations for website-scoped CMS data.
+- Supabase schema migrations are owned by `setup-provisioning/`.
 - Supabase RLS and public-safe RPC contracts.
-- Website create, select, edit, activate, and deactivate.
+- Website selection from existing provisioned websites.
 - Separate admin pages for each CMS resource.
 - Website-scoped media upload to Supabase Storage.
 - WebP image optimization through `sharp`.
-- Media metadata, usage checks, trash/restore, and permanent delete behavior.
+- Media metadata, usage checks, and permanent delete behavior.
 - Website-scoped template content for fixed public page templates.
 - Website-scoped blog posts with structured body blocks.
 - Website-scoped categories and authors.
 - Website-scoped redirects.
 - Website-scoped settings, SEO defaults, robots, sitemap config, AdSense config, and revalidation config.
-- Inactive-website WordPress import with authors, fallback author, posts, categories, known template pages, media copy, and reset.
+- WordPress import is owned by `setup-provisioning/`.
 - Public website helper modules for later public repo integration.
 - Global quiz admin page and API, separate from website-scoped CMS data.
 - Milestone review documentation flow.
@@ -33,19 +33,22 @@ Deferred or caveated:
 
 - Public website repo integration is prepared but not wired yet.
 - Quiz persistence is Supabase-backed in `cms_global_quiz`.
-- WordPress import is synchronous and currently limited to the first 100 records per source resource.
+- Setup/provisioning workflows, including WordPress import, are outside the main CMS app.
 - Production release still needs manual browser QA against real Supabase data.
 
 ## Runtime Architecture
 
 ```mermaid
 flowchart TD
+  Setup["Setup/provisioning app"] --> SetupRoutes["Setup API routes"]
+  SetupRoutes --> SupabaseDB["Supabase Postgres"]
+  SetupRoutes --> Storage["Supabase Storage cms-media bucket"]
   Admin["Single admin user"] --> AdminUI["Next.js admin UI"]
   AdminUI --> AdminRoutes["Admin API routes"]
   AdminRoutes --> Services["CMS services"]
   Services --> Repos["CMS repositories"]
-  Repos --> SupabaseDB["Supabase Postgres"]
-  Services --> Storage["Supabase Storage cms-media bucket"]
+  Repos --> SupabaseDB
+  Services --> Storage
   Services --> Revalidation["Public website revalidation webhook"]
   PublicSite["Public website app"] --> PublicHelpers["public-cms helpers"]
   PublicHelpers --> PublicRPC["Supabase public RPCs"]
@@ -57,6 +60,8 @@ flowchart TD
   QuizTable --> SupabaseDB
 ```
 
+`setup-provisioning/` is the schema/onboarding owner. The main CMS is a schema consumer for daily content editing.
+
 ## Admin Pages
 
 All admin pages use `AdminShell` and require the admin session before showing the workspace.
@@ -64,7 +69,6 @@ All admin pages use `AdminShell` and require the admin session before showing th
 | Route | Purpose | Main UI module |
 | --- | --- | --- |
 | `/admin` | Empty dashboard landing page | `features/dashboard/DashboardWorkspace.jsx` |
-| `/admin/add-website` | Website creation, selection, editing, activation, deactivation, and WordPress import | `features/websites/WebsitesWorkspace.jsx` |
 | `/admin/media` | Website-scoped media library | `features/media/MediaWorkspace.jsx` |
 | `/admin/content` | Fixed template/page content | `features/template-content/TemplateContentWorkspace.jsx` |
 | `/admin/posts` | Blog posts | `features/posts/PostsWorkspace.jsx` |
@@ -74,7 +78,7 @@ All admin pages use `AdminShell` and require the admin session before showing th
 | `/admin/settings` | SEO, robots, sitemap, AdSense, revalidation settings | `features/settings/SettingsWorkspace.jsx` |
 | `/admin/quiz` | Global quiz management | `features/quiz/QuizManager.jsx` |
 
-Website-scoped pages preserve `websiteId` in the query string when navigating between sections. Quiz and Add Website intentionally do not show the left sidebar. Website creation/editing/import UI belongs only to `/admin/add-website`; normal CMS pages should not render the website list, Add Website card, Selected Website edit card, or WordPress import form.
+Website-scoped pages preserve `websiteId` in the query string when navigating between sections. Quiz intentionally does not show the left sidebar. Website creation/editing/import UI belongs to `setup-provisioning/`; normal CMS pages should not render the website list, Add Website card, Selected Website edit card, or WordPress import form.
 
 ## App Route Layout
 
@@ -96,7 +100,7 @@ Admin API routes:
 
 ```text
 app/api/admin/session/route.js
-app/api/cms/websites/
+app/api/cms/websites/   read-only website listing/detail for CMS selection
 app/api/cms/media/
 app/api/cms/template-content/
 app/api/cms/posts/
@@ -104,7 +108,6 @@ app/api/cms/categories/
 app/api/cms/authors/
 app/api/cms/redirects/
 app/api/cms/settings/
-app/api/cms/import/
 app/api/quiz/route.js
 ```
 
@@ -116,7 +119,6 @@ Feature modules own browser UI and local screen state only.
 
 ```text
 features/admin-shell/
-features/websites/
 features/media/
 features/template-content/
 features/posts/
@@ -124,44 +126,45 @@ features/categories/
 features/authors/
 features/redirects/
 features/settings/
-features/import/
 features/quiz/
 ```
 
 Important UI patterns:
 
 - Website-scoped resource sections use `WebsiteContextShell`.
-- Website management and WordPress import use `WebsiteSectionShell` only on `/admin/add-website`.
+- Website management and WordPress import live in `setup-provisioning/`.
 - Resource UI components receive `websiteId` from the selected website shell.
 - Quiz UI is separate and does not receive `websiteId`.
 - UI components call app API routes; they do not call Supabase directly.
 
 ## Library Modules
 
-CMS modules are separated by responsibility:
+Shared CMS modules live in the local `cms-core` workspace package and are separated by responsibility:
 
 ```text
-lib/cms/repositories/  database reads and writes
-lib/cms/services/      multi-step workflows
-lib/cms/validators/    payload and ownership validation
-lib/cms/serializers/   response shaping
-lib/cms/schemas/       structured content schemas
-lib/cms/http/          shared API response/error helpers
-lib/cms/crypto/        encryption helpers
+packages/cms-core/cms/repositories/  database reads and writes
+packages/cms-core/cms/services/      multi-step workflows
+packages/cms-core/cms/validators/    payload and ownership validation
+packages/cms-core/cms/serializers/   response shaping
+packages/cms-core/cms/schemas/       structured content schemas
+packages/cms-core/cms/http/          shared API response/error helpers
+packages/cms-core/cms/crypto/        encryption helpers
 ```
 
 Platform/support modules:
 
 ```text
-lib/adminAuth.js
-lib/auth/adminLoginRateLimit.js
-lib/env/adminEnv.js
-lib/supabase/adminRest.js
-lib/storage/imageOptimizer.js
-lib/storage/supabaseStorage.js
-lib/public-cms/
-lib/quiz/
+packages/cms-core/adminAuth.js
+packages/cms-core/auth/adminLoginRateLimit.js
+packages/cms-core/env/adminEnv.js
+packages/cms-core/supabase/adminRest.js
+packages/cms-core/storage/imageOptimizer.js
+packages/cms-core/storage/supabaseStorage.js
+packages/cms-core/public-cms/
+packages/cms-core/quiz/
 ```
+
+Both the main Admin CMS and `setup-provisioning/` import these helpers through `cms-core/...`. The package is bundled into each app at build time and is not deployed separately.
 
 ## Website Scoping Rules
 
@@ -221,7 +224,7 @@ Important constraints:
 - Existing public image objects are treated as immutable.
 - Replacing an image creates a new UUID storage path.
 - Permanent delete checks references first.
-- If storage delete fails, the trashed media row is kept and an admin error is shown.
+- If storage delete fails, the media metadata row is kept and an admin error is shown.
 
 ## Content Model
 
@@ -232,6 +235,16 @@ Template content:
 - Uses structured `content_data`.
 - Images are referenced by `mediaId`.
 - Public RPCs resolve image IDs to image objects.
+
+Custom pages:
+
+- Stored in `cms_pages`.
+- Website-scoped WordPress-style page records.
+- Created by the Pages admin `Add Page` action.
+- Do not use `template_key` and must not replace fixed template rows.
+- Use `body_text` for the current simple page editor content.
+- Public reads use `get_public_page(domain, page_path)`.
+- Sitemap includes published rows with `sitemap_include = true`.
 
 Blog posts:
 
@@ -281,11 +294,11 @@ Redirect behavior:
 - Supports 301 and 302.
 - Duplicate source paths are blocked per website.
 - Loops are rejected.
-- Public reads return only active, non-trashed redirects.
+- Public reads return only active redirects.
 
 ## WordPress Import
 
-Import is an inactive-website setup workflow.
+Import is an inactive-website setup workflow owned by `setup-provisioning/`, not the main Admin CMS.
 
 Input:
 
@@ -326,11 +339,11 @@ The admin CMS repo includes helper modules, but the real public website repo is 
 Helper modules:
 
 ```text
-lib/public-cms/client.js
-lib/public-cms/adsense.js
-lib/public-cms/revalidation.js
-lib/public-cms/sitemap.js
-lib/public-cms/index.js
+packages/cms-core/public-cms/client.js
+packages/cms-core/public-cms/adsense.js
+packages/cms-core/public-cms/revalidation.js
+packages/cms-core/public-cms/sitemap.js
+packages/cms-core/public-cms/index.js
 ```
 
 Public website rules:
@@ -398,10 +411,10 @@ No Cloudflare R2 variables are used. Media uses Supabase Storage.
 
 ## Supabase Files
 
-Migrations live under:
+Migrations live under the setup/provisioning project:
 
 ```text
-supabase/migrations/
+setup-provisioning/supabase/migrations/
 ```
 
 Expected migration concerns:
@@ -421,6 +434,7 @@ When adding future migrations:
 - Preserve website scoping.
 - Add service-role grants where needed.
 - Add tests for SQL contract changes.
+- Add the migration in `setup-provisioning/`; the main Admin CMS consumes the resulting schema but does not own migrations.
 
 ## Test Coverage
 
@@ -453,7 +467,7 @@ Standard validation commands:
 npm.cmd test
 npm.cmd run lint
 npm.cmd run build
-git diff --check -- docs app lib features test supabase package.json package-lock.json .env.example tailwind.config.js
+git diff --check -- docs app lib features test setup-provisioning supabase package.json package-lock.json .env.example tailwind.config.js
 ```
 
 ## Manual QA Checklist
@@ -461,18 +475,19 @@ git diff --check -- docs app lib features test supabase package.json package-loc
 Before production use, manually verify:
 
 - Login with valid and invalid `ADMIN_SECRET`.
-- Website create/select/edit/activate/deactivate.
+- Website create/edit/activate/deactivate in `setup-provisioning/`.
+- Website selection in the main Admin CMS header.
 - Navigation between admin sections keeps selected website.
 - Media upload creates WebP image and public URL.
-- Media trash/restore/permanent delete behavior.
-- Template content save/publish/unpublish/trash/restore/delete.
-- Post create/save/publish/unpublish/trash/restore/delete.
-- Author/category create/edit/trash/restore/delete behavior.
+- Media permanent delete behavior.
+- Template content save/delete behavior.
+- Post create/save/delete behavior.
+- Author/category create/edit/delete behavior.
 - Cross-website media/author/category references are rejected.
 - Redirect duplicate/loop validation.
 - Settings save, especially AdSense validation and revalidation config.
-- WordPress import on an inactive website.
-- WordPress import reset on an inactive website.
+- WordPress import on an inactive website in `setup-provisioning/`.
+- WordPress import reset on an inactive website in `setup-provisioning/`.
 - Quiz updates without selecting a website.
 - Public RPCs return only public-safe data.
 - Public website integration once the public repo is wired.

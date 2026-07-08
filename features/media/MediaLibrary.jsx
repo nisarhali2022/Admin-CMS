@@ -97,10 +97,7 @@ export default function MediaLibrary({ websiteId }) {
   const [caption, setCaption] = useState('')
   const [editing, setEditing] = useState({})
   const [usage, setUsage] = useState({})
-  const [selectedIds, setSelectedIds] = useState([])
-  const [bulkAction, setBulkAction] = useState('')
-  const [mediaStatus, setMediaStatus] = useState('live')
-  const [searchDraft, setSearchDraft] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -109,32 +106,16 @@ export default function MediaLibrary({ websiteId }) {
     [media, searchQuery]
   )
 
-  const filteredMedia = useMemo(() => {
-    if (mediaStatus === 'trash') {
-      return searchFilteredMedia.filter((item) => item.deletedAt)
-    }
-
-    if (mediaStatus === 'all') {
-      return searchFilteredMedia
-    }
-
-    return searchFilteredMedia.filter((item) => !item.deletedAt)
-  }, [mediaStatus, searchFilteredMedia])
+  const filteredMedia = searchFilteredMedia
 
   const pageCount = Math.max(1, Math.ceil(filteredMedia.length / PAGE_SIZE))
   const visibleMedia = filteredMedia.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   )
-  const visibleLiveMedia = visibleMedia.filter((item) => !item.deletedAt)
-  const visibleTrashedMedia = visibleMedia.filter((item) => item.deletedAt)
-  const visibleIds = visibleMedia.map((item) => item.id)
-  const allVisibleSelected =
-    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id))
-
   useEffect(() => {
     setCurrentPage(1)
-  }, [mediaStatus, searchQuery, websiteId])
+  }, [searchQuery, websiteId])
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, pageCount))
@@ -146,10 +127,9 @@ export default function MediaLibrary({ websiteId }) {
     setMessage('')
 
     try {
-      const response = await fetch(
-        `/api/cms/media?websiteId=${websiteId}&includeTrashed=true`,
-        { cache: 'no-store' }
-      )
+      const response = await fetch(`/api/cms/media?websiteId=${websiteId}`, {
+        cache: 'no-store',
+      })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -157,11 +137,7 @@ export default function MediaLibrary({ websiteId }) {
         return
       }
 
-      const nextMedia = result.media || []
-      setMedia(nextMedia)
-      setSelectedIds((current) =>
-        current.filter((id) => nextMedia.some((item) => item.id === id))
-      )
+      setMedia(result.media || [])
     } finally {
       setLoading(false)
     }
@@ -238,32 +214,8 @@ export default function MediaLibrary({ websiteId }) {
     }
   }
 
-  async function postMediaAction(mediaId, action, { reload = true } = {}) {
-    setSaving(true)
-    setMessage('')
-
-    try {
-      const response = await fetch(
-        `/api/cms/media/${mediaId}/${action}?websiteId=${websiteId}`,
-        { method: 'POST' }
-      )
-      const result = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        setMessage(getApiMessage(result, `Unable to ${action} media.`))
-        return false
-      }
-
-      if (reload) {
-        await loadMedia()
-      }
-      return true
-    } finally {
-      setSaving(false)
-    }
-  }
-
   async function deleteMedia(mediaId) {
+    if (!window.confirm('Delete this media item permanently?')) return
     setSaving(true)
     setMessage('')
 
@@ -278,7 +230,6 @@ export default function MediaLibrary({ websiteId }) {
         return
       }
 
-      setSelectedIds((current) => current.filter((id) => id !== mediaId))
       await loadMedia()
     } finally {
       setSaving(false)
@@ -333,71 +284,9 @@ export default function MediaLibrary({ websiteId }) {
     }))
   }
 
-  function toggleVisibleSelection() {
-    setSelectedIds((current) => {
-      if (allVisibleSelected) {
-        return current.filter((id) => !visibleIds.includes(id))
-      }
-
-      return Array.from(new Set([...current, ...visibleIds]))
-    })
-  }
-
-  function toggleMediaSelection(mediaId) {
-    setSelectedIds((current) =>
-      current.includes(mediaId)
-        ? current.filter((id) => id !== mediaId)
-        : [...current, mediaId]
-    )
-  }
-
   function submitSearch(event) {
     event.preventDefault()
-    setSearchQuery(searchDraft.trim())
-  }
-
-  async function applyBulkAction() {
-    if (!bulkAction || selectedIds.length === 0) {
-      setMessage('Select media and choose a bulk action first.')
-      return
-    }
-
-    const selectedItems = media.filter((item) => selectedIds.includes(item.id))
-    const actionItems =
-      bulkAction === 'trash'
-        ? selectedItems.filter((item) => !item.deletedAt)
-        : selectedItems.filter((item) => item.deletedAt)
-
-    if (actionItems.length === 0) {
-      setMessage('No selected media items can use that bulk action.')
-      return
-    }
-
-    setSaving(true)
-    setMessage('')
-
-    try {
-      for (const item of actionItems) {
-        const response = await fetch(
-          `/api/cms/media/${item.id}/${bulkAction}?websiteId=${websiteId}`,
-          { method: 'POST' }
-        )
-        const result = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-          setMessage(
-            getApiMessage(result, `Unable to ${bulkAction} ${item.originalFilename}.`)
-          )
-          return
-        }
-      }
-
-      setSelectedIds([])
-      setBulkAction('')
-      await loadMedia()
-    } finally {
-      setSaving(false)
-    }
+    setSearchQuery(searchInput.trim())
   }
 
   async function copyPublicUrl(url) {
@@ -441,18 +330,8 @@ export default function MediaLibrary({ websiteId }) {
       return (
         <Fragment key={item.id}>
           <tr
-            className={`border-b border-[#f0f0f1] align-top ${
-              item.deletedAt ? 'bg-amber-50' : 'odd:bg-white even:bg-[#f6f7f7]'
-            }`}
+            className="border-b border-[#f0f0f1] align-top odd:bg-white even:bg-[#f6f7f7]"
           >
-            <td className="px-3 py-3">
-              <input
-                type="checkbox"
-                checked={selectedIds.includes(item.id)}
-                onChange={() => toggleMediaSelection(item.id)}
-                aria-label={`Select ${getMediaTitle(item)}`}
-              />
-            </td>
             <td className="px-3 py-3">
               <div className="flex gap-3">
                 <img
@@ -480,9 +359,6 @@ export default function MediaLibrary({ websiteId }) {
                       Uploaded as: {item.originalFilename}
                     </p>
                   ) : null}
-                  {item.deletedAt ? (
-                    <p className="mt-1 font-semibold text-amber-700">Trashed</p>
-                  ) : null}
                 </div>
               </div>
             </td>
@@ -505,35 +381,14 @@ export default function MediaLibrary({ websiteId }) {
                     Edit
                   </button>
                 ) : null}
-                {item.deletedAt ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => postMediaAction(item.id, 'restore')}
-                      disabled={saving}
-                      className="hover:text-[#003f85] disabled:opacity-60"
-                    >
-                      Restore
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteMedia(item.id)}
-                      disabled={saving}
-                      className="text-red-700 hover:text-red-900 disabled:opacity-60"
-                    >
-                      Delete Permanently
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => postMediaAction(item.id, 'trash')}
-                    disabled={saving}
-                    className="text-red-700 hover:text-red-900 disabled:opacity-60"
-                  >
-                    Trash
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => deleteMedia(item.id)}
+                  disabled={saving}
+                  className="text-red-700 hover:text-red-900 disabled:opacity-60"
+                >
+                  Delete
+                </button>
                 <a
                   href={item.publicUrl}
                   target="_blank"
@@ -578,8 +433,7 @@ export default function MediaLibrary({ websiteId }) {
               key={`${item.id}-edit`}
               className="border-b border-[#dcdcde] bg-white"
             >
-              <td />
-              <td colSpan={5} className="px-3 py-4">
+              <td colSpan={6} className="px-3 py-4">
                 <div className="grid gap-4 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-4 md:grid-cols-2">
                   <label className="block text-[13px] font-medium text-[#1f2330]">
                     Alternative Text
@@ -642,14 +496,6 @@ export default function MediaLibrary({ websiteId }) {
         <table className="w-full min-w-[60rem] border-collapse text-left text-[13px] text-[#1f2330]">
           <thead>
             <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
-              <th className="w-10 px-3 py-2 font-medium">
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  onChange={toggleVisibleSelection}
-                  aria-label="Select visible media"
-                />
-              </th>
               <th className="px-3 py-2 font-medium">File</th>
               <th className="w-56 px-3 py-2 font-medium">Alt text</th>
               <th className="w-32 px-3 py-2 font-medium">File size</th>
@@ -669,7 +515,7 @@ export default function MediaLibrary({ websiteId }) {
       <PageHeader
         eyebrow="Media"
         title="Media library"
-        description="Upload optimized WebP images and manage alt text, captions, usage, trash, and permanent delete checks."
+        description="Upload optimized WebP images and manage alt text, captions, usage, and permanent delete checks."
         action={
           <Button
             type="button"
@@ -737,13 +583,11 @@ export default function MediaLibrary({ websiteId }) {
           </button>
           <select
             className="h-8 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
-            value={mediaStatus}
-            onChange={(event) => setMediaStatus(event.target.value)}
+            value="all"
+            onChange={() => {}}
             aria-label="Media status filter"
           >
             <option value="all">All media items</option>
-            <option value="trash">Trash</option>
-            <option value="live">Live media</option>
           </select>
           <button
             type="button"
@@ -758,8 +602,8 @@ export default function MediaLibrary({ websiteId }) {
             <input
               aria-label="Search media"
               type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
             />
             <button
@@ -771,26 +615,7 @@ export default function MediaLibrary({ websiteId }) {
           </form>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#dcdcde] bg-[#f6f7f7] p-3">
-          <select
-            aria-label="Bulk action"
-            value={bulkAction}
-            onChange={(event) => setBulkAction(event.target.value)}
-            className="h-8 min-w-40 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
-          >
-            <option value="">Bulk actions</option>
-            <option value="trash">Trash selected</option>
-            <option value="restore">Restore selected</option>
-          </select>
-          <button
-            type="button"
-            onClick={applyBulkAction}
-            disabled={saving}
-            className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff] disabled:opacity-60"
-          >
-            Apply
-          </button>
-          <div className="ml-auto flex items-center gap-3 text-[13px] text-[#50575e]">
+        <div className="flex flex-wrap items-center justify-end gap-3 border-b border-[#dcdcde] bg-[#f6f7f7] p-3 text-[13px] text-[#50575e]">
             <span>{filteredMedia.length} items</span>
             <button
               type="button"
@@ -813,7 +638,6 @@ export default function MediaLibrary({ websiteId }) {
             >
               ›
             </button>
-          </div>
         </div>
 
         {media.length === 0 && !loading ? (
@@ -832,13 +656,7 @@ export default function MediaLibrary({ websiteId }) {
         ) : null}
 
         {filteredMedia.length > 0 ? (
-          <>
-            {renderMediaTable(visibleLiveMedia, mediaStatus === 'all' ? 'Live media' : '')}
-            {renderMediaTable(
-              visibleTrashedMedia,
-              mediaStatus === 'all' || mediaStatus === 'trash' ? 'Trashed media' : ''
-            )}
-          </>
+          renderMediaTable(visibleMedia, '')
         ) : null}
       </div>
     </section>

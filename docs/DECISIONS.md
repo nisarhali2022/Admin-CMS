@@ -15,8 +15,8 @@ This file records decisions that should not be re-decided during implementation 
 
 ## Content Decisions
 
-- Do not build generic `cms_pages` in v1.
-- Use `cms_template_content` for fixed page templates: `home`, `about`, `contact`, `privacy`, `terms`, and `packages`.
+- Use `cms_template_content` only for fixed page templates: `home`, `about`, `contact`, `privacy`, `terms`, and `packages`.
+- Use `cms_pages` for WordPress-style custom pages created from the Pages admin screen.
 - Public websites own fixed page layout and visual sections.
 - CMS stores editable template fields, links, image references, and SEO metadata.
 - Do not build a page builder or layout builder in v1.
@@ -55,10 +55,10 @@ This file records decisions that should not be re-decided during implementation 
 - No shared or global media library in v1.
 - Media picker only shows selected website media.
 - Cross-website media selection is blocked.
-- Trashing media does not delete the Supabase Storage object.
+- Media delete is permanent after confirmation.
 - Permanent media delete checks references before deleting the object.
-- Unused media permanent delete removes the Supabase Storage object, then hard deletes the metadata row.
-- If Supabase Storage deletion fails, media remains trashed and the admin sees an error.
+- Unused media delete removes the Supabase Storage object, then hard deletes the metadata row.
+- If Supabase Storage deletion fails, the media row stays in place and the admin sees an error.
 
 ## Access And Security Decisions
 
@@ -97,7 +97,7 @@ This file records decisions that should not be re-decided during implementation 
 ## Public Website Decisions
 
 - Public websites fetch only public-safe CMS data for their resolved `website_id`.
-- Public reads hide inactive websites, drafts, unpublished content, and trashed content.
+- Public reads hide inactive websites and service-only data.
 - Public websites can cache CMS reads.
 - Public websites expose a server-only revalidation webhook so public-facing content, SEO, redirect, settings, AdSense, media, and author changes can refresh cached pages.
 - Revalidation webhook secrets are per website and admin-only.

@@ -2,6 +2,10 @@
   "name": "admin-cms-rebuild",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "packages/cms-core",
+    "setup-provisioning"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,6 +21,7 @@
     "iOS >= 16.4"
   ],
   "dependencies": {
+    "cms-core": "file:packages/cms-core",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.23.0",

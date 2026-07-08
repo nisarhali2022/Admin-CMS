@@ -9,7 +9,7 @@ import {
   normalizeRevalidationPayload,
   shouldRenderAdsense,
   verifyRevalidationSecret,
-} from '../lib/public-cms/index.js'
+} from 'cms-core/public-cms/index'
 
 const originalFetch = global.fetch
 
@@ -31,6 +31,7 @@ test('public CMS client calls documented Supabase RPCs with anon credentials', a
 
   await client.getSiteByDomain('https://Example.com/path')
   await client.getTemplateContent('example.com', 'home')
+  await client.getPage('example.com', '/about-us')
   await client.getPost('example.com', 'hello')
   await client.listPosts('example.com', { categorySlug: 'news', search: 'sim' })
   await client.listCategories('example.com')
@@ -43,6 +44,7 @@ test('public CMS client calls documented Supabase RPCs with anon credentials', a
   assert.ok(calls.every((call) => call.options.headers.Authorization === 'Bearer anon-key'))
   assert.ok(calls.every((call) => !call.options.headers.Authorization.includes('service')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/get_public_site_by_domain')))
+  assert.ok(calls.some((call) => call.url.endsWith('/rpc/get_public_page')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/list_public_redirects')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/cms_public_get_current_quiz')))
   assert.deepEqual(JSON.parse(calls[0].options.body), { domain: 'example.com' })
@@ -108,12 +110,21 @@ test('sitemap helper returns published template and post URLs without duplicates
         { path: '/about', sitemapInclude: true },
         { path: '/draft', sitemapInclude: false },
       ],
+      pages: [
+        { path: '/about-us', sitemapInclude: true },
+        { path: '/hidden-page', sitemapInclude: false },
+      ],
       posts: [
         { slug: 'hello', sitemapInclude: true },
         { slug: 'hidden', sitemapInclude: false },
         { slug: 'hello', sitemapInclude: true },
       ],
     }),
-    ['https://example.com', 'https://example.com/about', 'https://example.com/blog/hello']
+    [
+      'https://example.com',
+      'https://example.com/about',
+      'https://example.com/about-us',
+      'https://example.com/blog/hello',
+    ]
   )
 })

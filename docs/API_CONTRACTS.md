@@ -46,30 +46,24 @@ Behavior:
 Routes:
 
 - `GET /api/cms/websites`
-- `POST /api/cms/websites`
 - `GET /api/cms/websites/:id`
-- `PATCH /api/cms/websites/:id`
-- `POST /api/cms/websites/:id/deactivate`
-
-Create payload:
-
-```json
-{
-  "name": "Example Site",
-  "primaryDomain": "example.com"
-}
-```
 
 Behavior:
 
-- generate unique slug
-- create website inactive
-- create primary domain row
-- create default `cms_site_settings` row
-- reject duplicate domain
-- allow `PATCH` to update name, primary domain, and active/inactive status
-- deactivate instead of deleting websites in v1
-- do not require admin CMS `.env` changes when adding a website
+- read existing provisioned websites for CMS selection
+- return website details for existing websites
+- do not create, update, deactivate, or import websites from the main CMS
+- website provisioning belongs to `setup-provisioning/`
+
+## Setup Project Websites
+
+`setup-provisioning/` owns website onboarding routes and shared-database setup behavior:
+
+- add website
+- edit website name/domain/status
+- deactivate website
+- create required default rows in `cms_websites`, `cms_website_domains`, and `cms_site_settings`
+- run WordPress import and import reset/retry
 
 ## Admin Template Content
 
@@ -79,10 +73,6 @@ Routes:
 - `POST /api/cms/template-content?websiteId=...`
 - `GET /api/cms/template-content/:id?websiteId=...`
 - `PATCH /api/cms/template-content/:id?websiteId=...`
-- `POST /api/cms/template-content/:id/publish?websiteId=...`
-- `POST /api/cms/template-content/:id/unpublish?websiteId=...`
-- `POST /api/cms/template-content/:id/trash?websiteId=...`
-- `POST /api/cms/template-content/:id/restore?websiteId=...`
 - `DELETE /api/cms/template-content/:id?websiteId=...`
 
 Save payload:
@@ -100,8 +90,7 @@ Save payload:
   "canonicalUrl": null,
   "robotsMeta": null,
   "ogImageId": null,
-  "sitemapInclude": true,
-  "status": "draft"
+  "sitemapInclude": true
 }
 ```
 
@@ -111,8 +100,47 @@ Behavior:
 - validate `contentData` against code-defined template schema
 - enforce unique `(website_id, template_key)`
 - block cross-website media references
-- validate `authorId` as an active/non-trashed author for the selected website when provided
+- validate `authorId` as an active author for the selected website when provided
 - template content does not support future scheduling in v1
+- save always publishes; draft, unpublish, trash, and restore routes are not part of the active CMS
+- `DELETE` permanently deletes after admin confirmation
+
+## Admin Custom Pages
+
+Routes:
+
+- `GET /api/cms/pages?websiteId=...`
+- `POST /api/cms/pages?websiteId=...`
+- `GET /api/cms/pages/:id?websiteId=...`
+- `PATCH /api/cms/pages/:id?websiteId=...`
+- `DELETE /api/cms/pages/:id?websiteId=...`
+
+Save payload:
+
+```json
+{
+  "title": "About Us",
+  "path": "/about-us",
+  "bodyText": "Page body",
+  "focusKeyphrase": "about company",
+  "seoTitle": "About Us",
+  "metaDescription": "About our company",
+  "authorId": "uuid",
+  "canonicalUrl": null,
+  "robotsMeta": null,
+  "featuredImageId": "uuid",
+  "sitemapInclude": true
+}
+```
+
+Behavior:
+
+- `Add Page` creates custom pages here, not fixed template content rows
+- accepts `about-us` or `/about-us` and stores `/about-us`
+- reserves `/` for fixed Home template content
+- enforces unique `path` per website
+- block cross-website author and feature-image references
+- save always publishes; `DELETE` permanently deletes after admin confirmation
 
 ## Admin Authors
 
@@ -122,8 +150,6 @@ Routes:
 - `POST /api/cms/authors?websiteId=...`
 - `GET /api/cms/authors/:id?websiteId=...`
 - `PATCH /api/cms/authors/:id?websiteId=...`
-- `POST /api/cms/authors/:id/trash?websiteId=...`
-- `POST /api/cms/authors/:id/restore?websiteId=...`
 - `DELETE /api/cms/authors/:id?websiteId=...`
 
 Save payload:
@@ -141,11 +167,11 @@ Save payload:
 Behavior:
 
 - authors are website-scoped content records, not login users
-- one admin user creates, edits, trashes, restores, and deletes authors
+- one admin user creates, edits, and permanently deletes authors
 - unique author slug within selected website
 - same author slug can exist on different websites
 - avatar image must belong to the selected website
-- inactive or trashed authors are not selectable for new posts
+- inactive authors are not selectable for new posts
 - permanent delete is blocked while posts reference the author, unless posts are reassigned first
 
 ## Admin Posts
@@ -156,10 +182,6 @@ Routes:
 - `POST /api/cms/posts?websiteId=...`
 - `GET /api/cms/posts/:id?websiteId=...`
 - `PATCH /api/cms/posts/:id?websiteId=...`
-- `POST /api/cms/posts/:id/publish?websiteId=...`
-- `POST /api/cms/posts/:id/unpublish?websiteId=...`
-- `POST /api/cms/posts/:id/trash?websiteId=...`
-- `POST /api/cms/posts/:id/restore?websiteId=...`
 - `DELETE /api/cms/posts/:id?websiteId=...`
 
 Save payload:
@@ -178,9 +200,7 @@ Save payload:
   "canonicalUrl": null,
   "robotsMeta": null,
   "ogImageId": null,
-  "sitemapInclude": true,
-  "status": "draft",
-  "publishedAt": null
+  "sitemapInclude": true
 }
 ```
 
@@ -194,6 +214,8 @@ Behavior:
 - block cross-website image/category/author references
 - image blocks store `mediaId` as the primary reference
 - posts do not support future scheduling in v1
+- save always publishes; draft, unpublish, trash, and restore routes are not part of the active CMS
+- `DELETE` permanently deletes after admin confirmation
 
 ## Admin Media
 
@@ -202,8 +224,6 @@ Routes:
 - `GET /api/cms/media?websiteId=...`
 - `POST /api/cms/media?websiteId=...`
 - `PATCH /api/cms/media/:id?websiteId=...`
-- `POST /api/cms/media/:id/trash?websiteId=...`
-- `POST /api/cms/media/:id/restore?websiteId=...`
 - `DELETE /api/cms/media/:id?websiteId=...`
 - `GET /api/cms/media/:id/usage?websiteId=...`
 
@@ -222,11 +242,10 @@ Behavior:
 - treat uploaded image objects as immutable; replacing image content creates a new UUID storage path and updates CMS references
 - save metadata row
 - media picker returns only selected website media
-- trash does not delete Supabase Storage object
-- permanent delete checks usage
-- referenced media cannot be permanently deleted
+- delete checks usage
+- referenced media cannot be deleted
 - unused media deletes Supabase Storage object first, then hard deletes the metadata row
-- if Supabase Storage deletion fails, keep the trashed media row and return an error
+- if Supabase Storage deletion fails, keep the metadata row and return an error
 
 ## Admin Categories
 
@@ -235,14 +254,12 @@ Routes:
 - `GET /api/cms/categories?websiteId=...`
 - `POST /api/cms/categories?websiteId=...`
 - `PATCH /api/cms/categories/:id?websiteId=...`
-- `POST /api/cms/categories/:id/trash?websiteId=...`
-- `POST /api/cms/categories/:id/restore?websiteId=...`
 - `DELETE /api/cms/categories/:id?websiteId=...`
 
 Behavior:
 
 - unique slug within website
-- block permanent delete or require reassignment when posts use the category
+- block delete or require reassignment when posts use the category
 
 ## Admin Redirects
 
@@ -251,8 +268,6 @@ Routes:
 - `GET /api/cms/redirects?websiteId=...`
 - `POST /api/cms/redirects?websiteId=...`
 - `PATCH /api/cms/redirects/:id?websiteId=...`
-- `POST /api/cms/redirects/:id/trash?websiteId=...`
-- `POST /api/cms/redirects/:id/restore?websiteId=...`
 - `DELETE /api/cms/redirects/:id?websiteId=...`
 
 Behavior:
@@ -301,7 +316,9 @@ Rules:
 - No AdSense value belongs in `.env`; it is website-level database configuration.
 - Changing AdSense settings triggers public website revalidation.
 
-## WordPress Import
+## Setup Project WordPress Import
+
+WordPress import is not exposed by the main Admin CMS. It belongs to `setup-provisioning/`, which uses the same Supabase database and server-side service-role credentials.
 
 Routes:
 
@@ -332,14 +349,15 @@ Behavior:
 - never store WordPress import credentials in `.env`
 - if a background import must persist credentials temporarily, encrypt them with `CMS_ENCRYPTION_KEY` and delete them after success or failure
 - never include WordPress credentials in import reports, logs, public responses, or error messages
-- import published posts, known page templates, categories, authors, and images
+- import published posts, known page templates, custom pages, categories, authors, and images
 - create/select website-scoped authors for posts
 - use fallback author `Imported Author` when WordPress author data is unavailable
 - never import a post without `author_id`
 - copy images to Supabase Storage
 - rewrite old image URLs
 - convert post content to supported body blocks where possible
-- record unmatched pages and skipped items in report
+- import WordPress pages that do not map to known fixed templates as custom pages
+- record unmatched/skipped pages and skipped items in report
 - failed reset clears only the inactive website's scoped rows and Supabase Storage objects
 
 ## Admin Global Quiz API
@@ -380,6 +398,7 @@ Required public functions/views:
 
 - `get_public_site_by_domain(domain)`
 - `get_public_template_content(domain, template_key)`
+- `get_public_page(domain, page_path)`
 - `get_public_post(domain, slug)`
 - `list_public_posts(domain, category_slug, search, limit_count, offset_count)`
 - `list_public_categories(domain)`
@@ -448,9 +467,7 @@ Do not return:
 
 - service-only IDs unless needed
 - revalidation secrets
-- drafts
 - inactive website data
-- trashed rows
 
 ## Public Revalidation Webhook
 

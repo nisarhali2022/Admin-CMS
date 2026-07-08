@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import { test } from 'node:test'
 
-const migrationDir = 'supabase/migrations'
+const migrationDir = 'setup-provisioning/supabase/migrations'
 
 async function readMigration(namePart) {
   const files = await readdir(migrationDir)
@@ -25,4 +25,8 @@ test('admin service-role migration grants CMS table access without opening anon'
   assert.match(sql, /to service_role/)
   assert.doesNotMatch(sql, /to anon/)
   assert.doesNotMatch(sql, /to authenticated/)
+
+  const customPagesSql = await readMigration('custom_pages')
+  assert.match(customPagesSql, /grant select, insert, update, delete on table public\.cms_pages to service_role/)
+  assert.doesNotMatch(customPagesSql, /grant\s+select[^;]+to anon/i)
 })

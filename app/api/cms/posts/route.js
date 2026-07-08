@@ -1,8 +1,8 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { listPosts } from '@/lib/cms/repositories/posts'
-import { createPostForWebsite } from '@/lib/cms/services/posts'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
-import { validatePostPayload } from '@/lib/cms/validators/posts'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { listPosts } from 'cms-core/cms/repositories/posts'
+import { createPostForWebsite } from 'cms-core/cms/services/posts'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
+import { validatePostPayload } from 'cms-core/cms/validators/posts'
 
 export async function GET(request) {
   const unauthorized = await requireAdminSessionResponse()
@@ -11,9 +11,8 @@ export async function GET(request) {
   try {
     const url = new URL(request.url)
     const websiteId = getRequiredWebsiteId(url.searchParams)
-    const includeTrashed = url.searchParams.get('includeTrashed') === 'true'
 
-    return cmsJson({ posts: await listPosts(websiteId, { includeTrashed }) })
+    return cmsJson({ posts: await listPosts(websiteId) })
   } catch (error) {
     return cmsErrorResponse(error)
   }

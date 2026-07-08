@@ -5,11 +5,11 @@ import {
   collectPostMediaIds,
   validateBodyBlocks,
   validatePostPayload,
-} from '../lib/cms/validators/posts.js'
+} from 'cms-core/cms/validators/posts'
 import {
   createPostForWebsite,
-  publishPostForWebsite,
-} from '../lib/cms/services/posts.js'
+  updatePostForWebsite,
+} from 'cms-core/cms/services/posts'
 
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }
@@ -94,9 +94,7 @@ function postRow(body) {
     robots_meta: body.robots_meta,
     og_image_id: body.og_image_id,
     sitemap_include: body.sitemap_include,
-    status: body.status,
     published_at: body.published_at,
-    deleted_at: null,
     created_at: '2026-07-04T00:00:00.000Z',
     updated_at: '2026-07-04T00:00:00.000Z',
   }
@@ -124,7 +122,6 @@ function validPayload(overrides = {}) {
     robotsMeta: 'index,follow',
     ogImageId: featuredImageId,
     sitemapInclude: true,
-    status: 'draft',
     ...overrides,
   })
 }
@@ -206,6 +203,8 @@ test('post service validates author, category, and media before creating a post'
   assert.equal(insertBody.website_id, websiteId)
   assert.equal(insertBody.category_id, categoryId)
   assert.equal(insertBody.featured_image_id, featuredImageId)
+  assert.equal(insertBody.status, undefined)
+  assert.ok(insertBody.published_at)
   assert.equal(revalidation.skipped, true)
   assert.ok(calls.some((call) => call.url.includes('/rest/v1/cms_authors')))
   assert.ok(calls.some((call) => call.url.includes('/rest/v1/cms_categories')))
@@ -246,22 +245,31 @@ test('post service rejects inactive authors and missing media references', async
   )
 })
 
-test('publishing a post sets published status through repository call', async () => {
+test('updating a post saves as published without status field', async () => {
   setValidEnv()
   const calls = []
 
   global.fetch = async (url, options = {}) => {
-    calls.push({ url: String(url), options })
+    const stringUrl = String(url)
+    calls.push({ url: stringUrl, options })
+
+    if (stringUrl.includes('/rest/v1/cms_authors')) {
+      return Response.json([authorRow()])
+    }
+
     const body = JSON.parse(options.body)
     return Response.json([postRow({ ...body, author_id: authorId, category_id: null })])
   }
 
-  const { result } = await publishPostForWebsite(websiteId, postId)
-  const patchCall = calls[0]
+  const { result } = await updatePostForWebsite(websiteId, postId, {
+    title: 'Summer Packages Updated',
+    authorId,
+  })
+  const patchCall = calls.find((call) => call.options.method === 'PATCH')
   const body = JSON.parse(patchCall.options.body)
 
-  assert.equal(result.status, 'published')
+  assert.equal(result.status, undefined)
   assert.equal(patchCall.options.method, 'PATCH')
-  assert.equal(body.status, 'published')
+  assert.equal(body.status, undefined)
   assert.ok(body.published_at)
 })

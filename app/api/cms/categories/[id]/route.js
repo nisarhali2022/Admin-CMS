@@ -1,7 +1,7 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { updateCategoryForWebsite, permanentlyDeleteCategory } from '@/lib/cms/services/categories'
-import { assertMediaId, getRequiredWebsiteId } from '@/lib/cms/validators/media'
-import { validateCategoryPatchPayload } from '@/lib/cms/validators/categories'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { updateCategoryForWebsite, permanentlyDeleteCategory } from 'cms-core/cms/services/categories'
+import { assertMediaId, getRequiredWebsiteId } from 'cms-core/cms/validators/media'
+import { validateCategoryPatchPayload } from 'cms-core/cms/validators/categories'
 
 async function getCategoryId(context) {
   const params = await context.params

@@ -18,10 +18,10 @@ CMS_REVALIDATION_SECRET=
 
 ## Public Data Client
 
-The reference helper lives in `lib/public-cms/`.
+The reference helper lives in the shared `cms-core` package.
 
 ```js
-import { createPublicCmsClient } from '@/lib/public-cms'
+import { createPublicCmsClient } from 'cms-core/public-cms'
 
 const cms = createPublicCmsClient({
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -35,7 +35,7 @@ const template = await cms.getTemplateContent('example.com', 'home')
 const redirects = await cms.listRedirects('example.com')
 ```
 
-All public reads resolve the active website by domain in Supabase. Drafts, inactive websites, trashed content, import jobs, and revalidation secrets are not returned.
+All public reads resolve the active website by domain in Supabase. Inactive websites, import jobs, and revalidation secrets are not returned.
 
 ## Images
 
@@ -58,7 +58,7 @@ The public website renders these URLs directly in `<img>` or framework image com
 Use the safe AdSense settings returned from `get_public_site_settings`.
 
 ```js
-import { getAdsenseScriptSrc, shouldRenderAdsense } from '@/lib/public-cms'
+import { getAdsenseScriptSrc, shouldRenderAdsense } from 'cms-core/public-cms'
 
 if (shouldRenderAdsense(settings)) {
   const src = getAdsenseScriptSrc(settings)
@@ -72,7 +72,7 @@ Render the AdSense script only when `enabled` is true and `publisherId` starts w
 Example App Router route for the public website:
 
 ```js
-import { createPublicCmsClient, getAdsTxtContent } from '@/lib/public-cms'
+import { createPublicCmsClient, getAdsTxtContent } from 'cms-core/public-cms'
 
 export async function GET(request) {
   const domain = request.headers.get('host')
@@ -102,7 +102,7 @@ Each public website should expose a server-only endpoint that the admin CMS can 
 import {
   normalizeRevalidationPayload,
   verifyRevalidationSecret,
-} from '@/lib/public-cms'
+} from 'cms-core/public-cms'
 import { revalidatePath } from 'next/cache'
 
 export async function POST(request) {
@@ -125,7 +125,7 @@ Webhook failure must be visible in the admin CMS response but must not roll back
 
 ## Redirects
 
-Public websites should call `listRedirects(domain)` or the equivalent helper early in request handling/middleware. Only active, non-trashed redirects are returned.
+Public websites should call `listRedirects(domain)` or the equivalent helper early in request handling/middleware. Only active redirects are returned.
 
 V1 public websites must not update `hit_count` or `last_hit_at` with anon credentials.
 

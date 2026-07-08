@@ -1,14 +1,14 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { getRedirect } from '@/lib/cms/repositories/redirects'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { getRedirect } from 'cms-core/cms/repositories/redirects'
 import {
   permanentlyDeleteRedirect,
   updateRedirectForWebsite,
-} from '@/lib/cms/services/redirects'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
+} from 'cms-core/cms/services/redirects'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
 import {
   assertRedirectId,
   validateRedirectPatchPayload,
-} from '@/lib/cms/validators/redirects'
+} from 'cms-core/cms/validators/redirects'
 
 export async function GET(request, { params }) {
   const unauthorized = await requireAdminSessionResponse()

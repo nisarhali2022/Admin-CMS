@@ -1,7 +1,7 @@
 import AdminShell from '@/features/admin-shell/AdminShell'
 import RedirectsWorkspace from '@/features/redirects/RedirectsWorkspace'
-import { hasAdminSession } from '@/lib/adminAuth'
-import { validateAdminEnv } from '@/lib/env/adminEnv'
+import { hasAdminSession } from 'cms-core/adminAuth'
+import { validateAdminEnv } from 'cms-core/env/adminEnv'
 
 export const metadata = {
   title: 'Redirects - Admin CMS',

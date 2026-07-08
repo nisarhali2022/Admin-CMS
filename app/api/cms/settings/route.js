@@ -1,10 +1,10 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
 import {
   getSettingsForWebsite,
   updateSettingsForWebsite,
-} from '@/lib/cms/services/settings'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
-import { validateSettingsPatchPayload } from '@/lib/cms/validators/settings'
+} from 'cms-core/cms/services/settings'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
+import { validateSettingsPatchPayload } from 'cms-core/cms/validators/settings'
 
 export async function GET(request) {
   const unauthorized = await requireAdminSessionResponse()

@@ -6,7 +6,7 @@ Build this project as a separate admin CMS deployed on its own Vercel domain. Th
 
 There is one admin user using the existing `ADMIN_SECRET` session. After login, the admin selects a website to manage. Normal CMS resources are scoped by `website_id`. Quiz is global: no website selection is required, and one quiz update applies to all websites.
 
-The CMS manages website data only: text, links, images, fixed-template page content, blog posts, blog authors, categories, redirects, SEO fields, robots, sitemap settings, AdSense settings, and website settings. Public websites own their layouts, frontend themes, visual components, and visitor-facing rendering.
+The main CMS manages daily website content only: text, links, images, fixed-template page content, blog posts, blog authors, categories, redirects, SEO fields, robots, sitemap settings, AdSense settings, and website settings for websites that already exist. Website provisioning, schema migrations, and WordPress import live in the separate `setup-provisioning/` project that uses the same Supabase database. Public websites own their layouts, frontend themes, visual components, and visitor-facing rendering.
 
 ## Locked Decisions
 
@@ -34,6 +34,7 @@ The CMS manages website data only: text, links, images, fixed-template page cont
 - Quiz is global current data and separate from CMS page/post scheduling.
 - Template content schemas are code-defined.
 - AdSense control is website-scoped, stored in site settings, and not configured through `.env`.
+- Website creation/edit/deactivation, default setup rows, migrations, and WordPress import are owned by `setup-provisioning/`, not the main daily CMS.
 - No page builder or layout builder in v1.
 - Separation of concerns is required in code and docs.
 
@@ -42,23 +43,23 @@ The CMS manages website data only: text, links, images, fixed-template page cont
 The current project is a cleaned Next.js App Router rebuild workspace. It currently has:
 
 - A minimal CMS rebuild placeholder in `app/page.jsx`.
-- Admin-secret cookie auth in `lib/adminAuth.js`.
+- Admin-secret cookie auth in `packages/cms-core/adminAuth.js`.
 - Admin session API route in `app/api/admin/session/route.js`.
 - Legacy WordPress quiz publishing code removed from this rebuild copy.
 - No Supabase integration yet.
 
 The CMS implementation should keep the useful auth/session pattern, but split the current single-page style into feature modules before adding CMS functionality.
 
-## Website Management
+## Website Provisioning
 
-The admin can manage websites from the CMS.
+The admin manages website setup from the separate `setup-provisioning/` project.
 
-Website Management supports:
+Website provisioning supports:
 
 - Add website.
 - Edit website name/domain/status/settings.
 - Deactivate website.
-- Select website to manage website-scoped content.
+- Select website to continue setup/import.
 
 Website creation requires:
 
@@ -72,7 +73,7 @@ Website creation behavior:
 - V1 admin UI shows one primary domain field.
 - Schema keeps a `cms_website_domains` table so aliases can be supported later.
 - Public websites resolve `website_id` by matching their domain in `cms_website_domains`.
-- Adding a website is managed through admin/database records, not by editing the admin CMS `.env`.
+- Adding a website is managed through setup/database records, not by editing the admin CMS `.env`.
 - Website data is stored in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables.
 - Website media uses the shared Supabase Storage bucket with `websites/{website_id}/media/...` storage path prefixes.
 - Creating a website should also create or initialize its default `cms_site_settings` row.
@@ -127,8 +128,7 @@ V1 UI uses one primary domain, but this table allows aliases later.
 - robots/index setting
 - Open Graph image
 - sitemap include flag
-- status
-- trash fields
+- publish timestamp
 
 Supported v1 template keys:
 
@@ -141,8 +141,9 @@ Supported v1 template keys:
 
 Rules:
 
-- Template content replaces generic `cms_pages`.
-- Template Content Management replaces generic Pages CRUD.
+- Template content is only for fixed public website templates.
+- Custom WordPress-style pages are stored in `cms_pages`.
+- Add Page creates a custom page row, not a fixed template row.
 - Template schemas are code-defined.
 - Each `template_key` has expected fields.
 - Website code owns layout/design/components.
@@ -170,8 +171,7 @@ Rules:
 - robots/index setting
 - Open Graph image
 - sitemap include flag
-- status
-- trash fields
+- publish timestamp
 
 Supported v1 `body_blocks`:
 
@@ -217,7 +217,6 @@ Rules:
 - MIME type
 - file size
 - source: upload or WordPress import
-- trash fields
 
 `cms_categories`
 
@@ -225,7 +224,6 @@ Rules:
 - name
 - slug
 - description
-- trash fields
 
 `cms_authors`
 
@@ -235,7 +233,6 @@ Rules:
 - bio
 - avatar image ID
 - active flag
-- trash fields
 
 `cms_redirects`
 
@@ -246,7 +243,6 @@ Rules:
 - active flag
 - hit count
 - last hit time
-- trash fields
 
 `cms_site_settings`
 
@@ -259,7 +255,6 @@ Rules:
 
 Removed from v1:
 
-- `cms_pages`
 - `cms_tags`
 - `cms_post_tags`
 - `cms_audit_events`
@@ -284,7 +279,7 @@ CMS owns:
 - template content fields
 - blog article body blocks
 - SEO fields
-- status/trash state
+- sitemap include flags
 
 For fixed pages such as home/about/contact/privacy/terms/packages:
 
@@ -321,7 +316,7 @@ Admin routes must:
 - Reject cross-website edit/delete attempts.
 - Allow the same slug on different websites.
 - Block duplicate slugs within the same website.
-- Use strict validation for slugs, status, ownership, redirect loops, image type/size, content schemas, body blocks, and required fields.
+- Use strict validation for slugs, ownership, redirect loops, image type/size, content schemas, body blocks, and required fields.
 
 Admin mutations use route handlers under `/api/cms/...`.
 
@@ -334,11 +329,10 @@ Public reads should:
 - Resolve the website by domain from `cms_website_domains`.
 - Return only data for the resolved `website_id`.
 - Return only active websites.
-- Return published template/post content, active authors, active redirects, safe public settings, and referenced media only.
+- Return template/post/page content for active websites, active authors, active redirects, safe public settings, and referenced media only.
 - Return safe AdSense settings from `get_public_site_settings(domain)`.
-- Hide trashed content.
 
-Public reads rely on Supabase RLS so draft, unpublished, trashed, and inactive website records cannot leak to public sites.
+Public reads rely on Supabase RLS and public RPCs so inactive website records and service-only fields cannot leak to public sites.
 
 Recommended public interfaces:
 
@@ -355,7 +349,7 @@ Public websites should prefer one RPC/view per page or screen to avoid many smal
 
 ## WordPress Import
 
-The CMS should support an initial one-time import from existing WordPress websites.
+The setup/provisioning project should support an initial one-time import from existing WordPress websites. The main CMS should not expose WordPress import UI or API routes.
 
 Import source:
 
@@ -524,8 +518,6 @@ V1 admin features:
 
 - Login.
 - Website selector.
-- Website Management: add, edit, deactivate.
-- WordPress import for inactive websites.
 - Dashboard for selected website.
 - Template Content Management for fixed pages.
 - Posts CRUD with structured block editor.
@@ -538,33 +530,40 @@ V1 admin features:
 - Robots settings.
 - Sitemap include controls.
 - Global quiz page.
-- Search, status filters, and pagination.
-- Trash, restore, and permanent delete for deletable content resources.
+- Search and pagination.
+- Permanent delete for deletable content resources after confirmation.
 - Admin-only preview panel.
 - Manual export for website data.
 - Scheduled backup guidance in docs.
 
-## Trash And Delete Behavior
+V1 setup/provisioning features:
+
+- Add website.
+- Edit website name/domain/status.
+- Deactivate website.
+- Create default `cms_website_domains` and `cms_site_settings` rows.
+- Run WordPress import for inactive websites.
+- Reset/retry WordPress import for inactive websites.
+
+## Delete Behavior
 
 For template content, posts, media, categories, authors, redirects, and other deletable content:
 
-- Delete first moves item to trash.
-- Trashed items are hidden from public websites.
-- Admin can restore trashed items.
-- Admin can permanently delete trashed items.
+- Draft, unpublish, trash, and restore are not part of v1.
+- Saves publish immediately.
+- Delete permanently removes the row after admin confirmation.
 
-Media permanent delete rules:
+Media delete rules:
 
-- Trashing media does not delete the Supabase Storage object.
-- Permanent media delete must first check references in posts, template content, featured images, Open Graph images, and body block image references.
-- If media is still referenced, permanent delete is blocked and the admin sees where it is used.
+- Media delete must first check references in posts, template content, featured images, Open Graph images, and body block image references.
+- If media is still referenced, delete is blocked and the admin sees where it is used.
 - If media is unused, delete the Supabase Storage object first, then hard delete the `cms_media` row.
-- If Supabase Storage deletion fails, keep the media row trashed and show an error.
+- If Supabase Storage deletion fails, keep the media row and show an error.
 
 Author permanent delete rules:
 
 - Authors are content records, not login users.
-- Trashed or inactive authors are not selectable for new posts.
+- Inactive authors are not selectable for new posts.
 - Permanent author delete is blocked while posts reference the author, unless posts are reassigned first.
 
 Website deletion is different:
@@ -623,9 +622,6 @@ app/
   (admin)/
     admin/
       page.jsx
-      select-website/
-      websites/
-      import/
       template-content/
       posts/
       authors/
@@ -637,7 +633,6 @@ app/
     admin/
     cms/
       websites/
-      import/
       template-content/
       posts/
       authors/
@@ -647,8 +642,6 @@ app/
 
 features/
   admin-shell/
-  websites/
-  import/
   template-content/
   posts/
   authors/
@@ -657,22 +650,33 @@ features/
   settings/
   quiz/
 
-lib/
-  auth/
-  supabase/
-  storage/
-  cms/
-    repositories/
-    validators/
-    serializers/
-    schemas/
-    slug.js
-    website-context.js
-    public-read-model.js
+packages/
+  cms-core/
+    auth/
+    supabase/
+    storage/
+    cms/
+      repositories/
+      validators/
+      serializers/
+      schemas/
+      slug.js
+      website-context.js
+      public-read-model.js
 
 supabase/
-  migrations/
-  seed.sql
+  # migrations are owned by setup-provisioning/
+
+setup-provisioning/
+  app/
+    (admin)/admin/add-website/
+    api/cms/websites/
+    api/cms/import/
+  features/
+    websites/
+    import/
+  supabase/
+    migrations/
 
 docs/
 ```
@@ -684,10 +688,11 @@ Rules:
 - Route handlers call services/repositories.
 - Validation lives in validators.
 - Database access lives in repositories.
-- Code-defined template schemas and post block schemas live under `lib/cms/schemas/`.
-- Supabase Storage upload/delete helpers live in `lib/storage/`.
+- Code-defined template schemas and post block schemas live under `packages/cms-core/cms/schemas/`.
+- Supabase Storage upload/delete helpers live in `packages/cms-core/storage/`.
+- Shared logic is imported as `cms-core/...` by both apps and bundled into each app at deployment time.
 - Public read logic is separate from admin write logic.
-- Import logic is separate from normal CRUD logic.
+- Import logic is separate from normal CRUD logic and lives in `setup-provisioning/`.
 - Quiz logic stays isolated from CMS website-scoped logic.
 - Large screens should be composed from smaller feature widgets.
 - Shared helpers should stay focused and not become catch-all utility files.
@@ -695,10 +700,9 @@ Rules:
 ## Admin Flow
 
 - Admin logs in with `ADMIN_SECRET`.
-- Admin sees website selection page.
-- Admin can create or deactivate websites from Website Management.
+- Admin creates/deactivates/imports websites in `setup-provisioning/`.
 - New websites start inactive.
-- Admin can import WordPress content for inactive websites.
+- Admin opens the main CMS after the website exists.
 - Selected website appears in the URL, for example:
 
 ```text
@@ -706,7 +710,7 @@ Rules:
 /admin/posts?websiteId=...
 ```
 
-- Admin can switch website from the admin shell.
+- Admin can switch existing websites from the main CMS admin shell.
 - CMS screens reload based on selected `website_id`.
 - Quiz page remains global:
 
@@ -833,7 +837,7 @@ Recommended next documentation phase:
 Required tests:
 
 - Admin login/session.
-- Website creation with required name/domain.
+- Website creation with required name/domain in `setup-provisioning/`.
 - Auto-generated website slug.
 - New websites start inactive.
 - Website deactivation hides public content.
@@ -851,8 +855,8 @@ Required tests:
 - Duplicate slug rejection within the same website.
 - Unique `(website_id, template_key)` enforcement.
 - Public read queries only return public-safe CMS data.
-- RLS hides draft/unpublished/trash content.
-- Trash, restore, and permanent delete.
+- Publish-only content saves.
+- Permanent delete after confirmation.
 - Redirect duplicate prevention.
 - Redirect loop prevention.
 - Template content schema validation.
@@ -872,14 +876,14 @@ Required tests:
 - Cross-website media assignment is rejected.
 - Permanent media delete is blocked when media is still referenced.
 - Permanent media delete removes unused Supabase Storage object.
-- WordPress REST import for inactive websites.
+- WordPress REST import for inactive websites in `setup-provisioning/`.
 - Import blocks active websites.
 - Failed import reset clears inactive website-scoped data only.
 - Failed import reset deletes only that inactive website's Supabase Storage objects.
 - WordPress image copy to Supabase Storage.
 - Inline WordPress image URL rewriting.
 - WordPress known page path to template mapping.
-- WordPress unmatched page review list.
+- WordPress unmatched pages import into `cms_pages` as custom pages or are reported with a clear skipped reason.
 - SEO canonical/sitemap/robots/OG/schema behavior.
 - AdSense defaults inactive for new websites.
 - AdSense cannot be enabled without a valid `ca-pub-...` publisher ID.

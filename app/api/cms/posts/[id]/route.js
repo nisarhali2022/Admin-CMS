@@ -1,8 +1,8 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { getPost } from '@/lib/cms/repositories/posts'
-import { permanentlyDeletePost, updatePostForWebsite } from '@/lib/cms/services/posts'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
-import { assertPostId, validatePostPatchPayload } from '@/lib/cms/validators/posts'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { getPost } from 'cms-core/cms/repositories/posts'
+import { permanentlyDeletePost, updatePostForWebsite } from 'cms-core/cms/services/posts'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
+import { assertPostId, validatePostPatchPayload } from 'cms-core/cms/validators/posts'
 
 async function getPostId(context) {
   const params = await context.params

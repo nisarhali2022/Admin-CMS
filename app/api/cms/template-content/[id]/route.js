@@ -1,14 +1,14 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { getTemplateContent } from '@/lib/cms/repositories/templateContent'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { getTemplateContent } from 'cms-core/cms/repositories/templateContent'
 import {
   permanentlyDeleteTemplateContent,
   updateTemplateContentForWebsite,
-} from '@/lib/cms/services/templateContent'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
+} from 'cms-core/cms/services/templateContent'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
 import {
   assertTemplateContentId,
   validateTemplateContentPatchPayload,
-} from '@/lib/cms/validators/templateContent'
+} from 'cms-core/cms/validators/templateContent'
 
 async function getTemplateId(context) {
   const params = await context.params

@@ -1,8 +1,8 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { listRedirects } from '@/lib/cms/repositories/redirects'
-import { createRedirectForWebsite } from '@/lib/cms/services/redirects'
-import { getRequiredWebsiteId } from '@/lib/cms/validators/media'
-import { validateRedirectPayload } from '@/lib/cms/validators/redirects'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { listRedirects } from 'cms-core/cms/repositories/redirects'
+import { createRedirectForWebsite } from 'cms-core/cms/services/redirects'
+import { getRequiredWebsiteId } from 'cms-core/cms/validators/media'
+import { validateRedirectPayload } from 'cms-core/cms/validators/redirects'
 
 export async function GET(request) {
   const unauthorized = await requireAdminSessionResponse()
@@ -11,10 +11,9 @@ export async function GET(request) {
   try {
     const url = new URL(request.url)
     const websiteId = getRequiredWebsiteId(url.searchParams)
-    const includeTrashed = url.searchParams.get('includeTrashed') === 'true'
 
     return cmsJson({
-      redirects: await listRedirects(websiteId, { includeTrashed }),
+      redirects: await listRedirects(websiteId),
     })
   } catch (error) {
     return cmsErrorResponse(error)

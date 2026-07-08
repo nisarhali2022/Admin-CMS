@@ -1,6 +1,6 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { getGlobalQuiz, updateGlobalQuiz } from '@/lib/quiz/state'
-import { validateQuizPayload } from '@/lib/quiz/validators'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { getGlobalQuiz, updateGlobalQuiz } from 'cms-core/quiz/state'
+import { validateQuizPayload } from 'cms-core/quiz/validators'
 
 export async function GET() {
   const unauthorized = await requireAdminSessionResponse()

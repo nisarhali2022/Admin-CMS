@@ -14,8 +14,6 @@ app/
     cms/
 features/
   admin-shell/
-  websites/
-  import/
   template-content/
   posts/
   authors/
@@ -23,29 +21,36 @@ features/
   redirects/
   settings/
   quiz/
-lib/
-  auth/
-  supabase/
-  storage/
-  cms/
-    repositories/
-    services/
-    validators/
-    serializers/
-    schemas/
+packages/
+  cms-core/
+    auth/
+    supabase/
+    storage/
+    cms/
+      repositories/
+      services/
+      validators/
+      serializers/
+      schemas/
 supabase/
-  migrations/
+  # migrations are owned by setup-provisioning/
+setup-provisioning/
+  app/
+  features/
+  supabase/
+    migrations/
 ```
 
 Rules:
 
 - `features/*` owns UI, screen state, and feature-specific components.
 - `app/api/*` route handlers own HTTP concerns only: session check, payload parsing, status codes, and response shape.
-- `lib/cms/repositories/*` owns database reads/writes.
-- `lib/cms/services/*` owns multi-step workflows such as publish, import, permanent delete, revalidation, and storage cleanup.
-- `lib/cms/validators/*` owns request validation, ownership checks, slug checks, schema checks, and cross-website reference checks.
-- `lib/cms/serializers/*` owns admin/public response shaping.
-- `lib/storage/*` owns Supabase Storage upload/delete/public URL helpers.
+- `packages/cms-core/cms/repositories/*` owns database reads/writes.
+- `packages/cms-core/cms/services/*` owns multi-step workflows such as publish, import, permanent delete, revalidation, and storage cleanup.
+- `packages/cms-core/cms/validators/*` owns request validation, ownership checks, slug checks, schema checks, and cross-website reference checks.
+- `packages/cms-core/cms/serializers/*` owns admin/public response shaping.
+- `packages/cms-core/storage/*` owns Supabase Storage upload/delete/public URL helpers.
+- Apps import shared code from `cms-core/...`; the shared package is bundled into each app and is not deployed separately.
 - Shared helpers must stay narrow. Do not create broad catch-all utility files.
 
 ## Naming
@@ -133,7 +138,7 @@ Delete helper behavior:
 - return a structured success/error result
 - never allow public websites or browser code to upload, delete, or list Supabase Storage objects
 
-Admin media permanent delete must check references first. If unused, delete the Supabase Storage object first, then hard-delete the `cms_media` row. If object deletion fails, keep the media row trashed and surface the error.
+Admin media permanent delete must check references first. If unused, delete the Supabase Storage object first, then hard-delete the `cms_media` row. If object deletion fails, keep the media row and surface the error.
 
 ## Revalidation Pattern
 
@@ -141,8 +146,8 @@ Services that change public rendering should return affected paths or events to 
 
 Trigger revalidation after:
 
-- template publish, unpublish, trash, restore, permanent delete, SEO change, or media reference change
-- post publish, unpublish, trash, restore, permanent delete, SEO change, author change, category change, or media reference change
+- template save, permanent delete, SEO change, or media reference change
+- post save, permanent delete, SEO change, author change, category change, or media reference change
 - redirect changes
 - settings, robots, sitemap, AdSense, or SEO default changes
 - media metadata changes used by public content
@@ -161,7 +166,7 @@ Public read flow:
 3. Resolve `mediaId` references through `cms_media`.
 4. Return image objects with `url`, `alt`, `caption`, `width`, and `height`.
 5. Return safe website settings, including AdSense only as `enabled`, `publisherId`, `autoAdsEnabled`, and `adsTxt`.
-6. Return no drafts, unpublished rows, trashed rows, import jobs, service-only fields, or revalidation secrets.
+6. Return no import jobs, service-only fields, or revalidation secrets.
 
 AdSense public reads must defensively return `enabled: false` when AdSense is inactive or the publisher ID is missing/invalid. Public website code must render the AdSense script only from the safe settings response and must not rely on `.env` for website-level AdSense state.
 

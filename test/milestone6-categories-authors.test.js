@@ -4,13 +4,13 @@ import { afterEach, test } from 'node:test'
 import {
   validateCategoryPayload,
   validateCategoryPatchPayload,
-} from '../lib/cms/validators/categories.js'
+} from 'cms-core/cms/validators/categories'
 import {
   validateAuthorPayload,
   validateAuthorPatchPayload,
-} from '../lib/cms/validators/authors.js'
-import { createAuthorForWebsite, permanentlyDeleteAuthor } from '../lib/cms/services/authors.js'
-import { permanentlyDeleteCategory } from '../lib/cms/services/categories.js'
+} from 'cms-core/cms/validators/authors'
+import { createAuthorForWebsite, permanentlyDeleteAuthor } from 'cms-core/cms/services/authors'
+import { permanentlyDeleteCategory } from 'cms-core/cms/services/categories'
 
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }

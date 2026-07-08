@@ -2,6 +2,7 @@
 const nextConfig = {
   poweredByHeader: false,
   trailingSlash: false,
+  transpilePackages: ['cms-core'],
   async headers() {
     return [
       {

@@ -7,6 +7,9 @@ This file records the major product, architecture, schema, UI, and documentation
 - The project is a single-admin, multi-website CMS.
 - One admin user signs in with the configured admin secret.
 - After login, normal CMS resources are managed per selected website.
+- Website setup/provisioning now lives in `setup-provisioning/`.
+- `setup-provisioning/` owns migrations, website creation/edit/deactivation, default setup rows, and WordPress import.
+- The main Admin CMS consumes existing website records and no longer exposes add-website or WordPress import screens.
 - Website-scoped resources use `website_id` as the foreign key.
 - Quiz remains global and is not scoped by website.
 - Public websites are separate apps and read public-safe data from Supabase.
@@ -16,7 +19,7 @@ This file records the major product, architecture, schema, UI, and documentation
 ## Website And Resource Scoping
 
 - Added website/account management as a core CMS concept.
-- Admin can add websites.
+- Websites are provisioned in the setup project.
 - Admin can select a website after login.
 - Website selection controls website-scoped resources only.
 - Website-scoped resources include:
@@ -28,6 +31,14 @@ This file records the major product, architecture, schema, UI, and documentation
   - redirects
   - settings
   - SEO
+
+## Setup Project Split
+
+- Created `setup-provisioning/` as the setup/provisioning project boundary.
+- Moved Supabase migrations into `setup-provisioning/supabase/migrations`.
+- Moved website add/edit/deactivate UI and WordPress import UI/API into `setup-provisioning/`.
+- Main CMS keeps read-only website listing for the header dropdown.
+- Main CMS keeps daily content editing for media, pages, posts, categories, authors, redirects, settings, and quiz.
   - AdSense
   - WordPress import jobs
 - Quiz is intentionally excluded from website scoping.
@@ -133,8 +144,9 @@ This file records the major product, architecture, schema, UI, and documentation
 - Blog body content uses structured blocks.
 - Supported body blocks include FAQ blocks.
 - Images can be placed inside blog body blocks, such as after paragraph 1 or 2.
-- Template/page content uses fixed code-defined templates.
-- No generic page builder is included in v1.
+- Fixed template content uses code-defined templates in `cms_template_content`.
+- WordPress-style custom pages use `cms_pages`, so Add Page creates a new page row instead of consuming or replacing Home/About/Contact template slots.
+- No visual page builder is included in v1.
 - No revisions are included in v1.
 - No public draft preview tokens are included in v1.
 - Internal admin preview is included for template content.
@@ -237,6 +249,18 @@ This file records the major product, architecture, schema, UI, and documentation
 - Categories, Authors, and Redirects no longer render duplicate table footer headers, and their table body text now uses normal black styling.
 - Template Content is now presented as a WordPress-style Pages screen: a table of fixed pages first, then an Edit Page view after clicking a title.
 - Template pages now support `focus_keyphrase` and optional same-website `author_id`; the editor shows Focus keyphrase, SEO title, Meta description, and Author below the content box.
+- Pages table now includes an `Actions` column with Edit, Trash/Restore, and View.
+- Page editor toolbar buttons, Add Media, and Visual/Code tabs now perform visible editor actions instead of acting as static controls.
+- Page editor now labels the URL field as `Slug`, shows `Feature Image` instead of `Open Graph image`, and prevents `Add Page` from opening an existing page when all fixed pages already exist.
+- Pages trash actions now return to the Trash list, Add Page opens with blank visible fields, editor screens no longer show another Add Page button, and Feature Image uses an in-page media picker button.
+- Pages UI has been simplified to publish/delete only: no Draft, View, Trash, Restore, Move to Trash, Unpublish, status dropdown, or bulk trash controls. Saves now publish pages, and Delete uses the permanent delete route after confirmation.
+- Pages now load hidden legacy rows only for fixed-template existence checks, preventing Add Page from creating duplicate template keys while keeping hidden rows out of the visible table. Slug collisions also show a clearer message before save.
+- Global publish-only cleanup removed Draft, Trash, Restore, Move to Trash, and Unpublish behavior from all active CMS resources.
+- Categories, Authors, Redirects, Posts, Pages, Template Content, and Media now use direct permanent delete actions after confirmation.
+- Removed trash/restore/unpublish/publish API route handlers from the main CMS.
+- Added setup/provisioning migration `202607080002_remove_draft_trash_restore.sql` to delete legacy hidden/non-published rows, drop content `status` and `deleted_at` columns, replace partial unique indexes, and update public/admin SQL functions.
+- WordPress import now skips non-published WordPress pages/posts and reports them instead of importing them as drafts.
+- Media delete keeps the safe reference check and deletes the Supabase Storage object before deleting metadata when unused.
 
 ## Validation Completed
 

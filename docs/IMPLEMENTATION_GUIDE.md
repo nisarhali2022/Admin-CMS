@@ -6,15 +6,15 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 
 1. Review `PROJECT_PLAN.md`, `DECISIONS.md`, and `ARCHITECTURE.md`.
 2. Review `IMPLEMENTATION_CONTEXT.md` and `IMPLEMENTATION_MILESTONES.md`.
-3. Create Supabase migrations from `DATA_MODEL.md`.
+3. Create Supabase migrations from `DATA_MODEL.md` in `setup-provisioning/`.
 4. Implement RLS, public RPCs/views, and grants from `RLS_POLICIES.md`.
 5. Add Supabase server/client helpers.
 6. Add Supabase Storage helpers.
 7. Add CMS schemas and validators.
 8. Add repositories.
 9. Add admin route handlers.
-10. Build admin shell and website selection.
-11. Build website management.
+10. Build admin shell and read-only website selection in the main CMS.
+11. Build website management in `setup-provisioning/`.
 12. Build media library.
 13. Build categories.
 14. Build authors.
@@ -22,7 +22,7 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 16. Build posts and block editor.
 17. Build redirects.
 18. Build settings, SEO, robots, sitemap, and AdSense controls.
-19. Build WordPress import.
+19. Build WordPress import in `setup-provisioning/`.
 20. Add public revalidation calls.
 21. Keep global quiz isolated.
 22. Run tests and manual verification from `TESTING.md`.
@@ -35,11 +35,12 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 - Route handlers call services/repositories.
 - Repositories own database access.
 - Validators own payload, slug, ownership, content schema, and body block validation.
-- Supabase Storage helpers live under `lib/storage/`.
-- CMS schemas live under `lib/cms/schemas/`.
-- Multi-step workflows live in `lib/cms/services/`.
+- Supabase Storage helpers live under `packages/cms-core/storage/`.
+- CMS schemas live under `packages/cms-core/cms/schemas/`.
+- Multi-step workflows live under `packages/cms-core/cms/services/`.
+- Apps import shared logic from `cms-core/...`; `cms-core` is bundled into each app and is not deployed separately.
 - Public read logic is separate from admin write logic.
-- Import logic is separate from normal CRUD logic.
+- Import logic is separate from normal CRUD logic and lives in `setup-provisioning/`.
 - Quiz logic is separate from website-scoped CMS logic.
 - Avoid catch-all utility files.
 - Keep large screens composed from smaller feature widgets.
@@ -51,9 +52,6 @@ app/
   (admin)/
     admin/
       page.jsx
-      select-website/
-      websites/
-      import/
       template-content/
       posts/
       authors/
@@ -64,7 +62,6 @@ app/
   api/
     cms/
       websites/
-      import/
       template-content/
       posts/
       authors/
@@ -73,8 +70,6 @@ app/
       settings/
 features/
   admin-shell/
-  websites/
-  import/
   template-content/
   posts/
   authors/
@@ -96,7 +91,17 @@ lib/
     website-context.js
     public-read-model.js
 supabase/
-  migrations/
+  # migrations are owned by setup-provisioning/
+setup-provisioning/
+  app/
+    (admin)/admin/add-website/
+    api/cms/websites/
+    api/cms/import/
+  features/
+    websites/
+    import/
+  supabase/
+    migrations/
 ```
 
 ## Implementation Notes
@@ -121,15 +126,16 @@ Website scoping:
 - Every repository method for website-scoped resources takes `websiteId`.
 - Every edit/delete verifies the row belongs to `websiteId`.
 - Cross-website media/category/author references are rejected.
-- Adding a website is a database/admin action, not an admin CMS `.env` change.
+- Adding a website is a setup/provisioning database action, not an admin CMS `.env` change.
 - Website records live in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables.
+- Main CMS website APIs are read-only and only support selection of existing websites.
 
 Authors:
 
 - Authors are website-scoped profile records, not login users.
-- One admin user creates, edits, trashes, restores, and deletes authors.
+- One admin user creates, edits, and permanently deletes authors.
 - Author avatars must use media from the same website.
-- Posts select one active, non-trashed author from the same website.
+- Posts select one active author from the same website.
 - Permanent author delete is blocked while posts reference the author, unless posts are reassigned first.
 
 Media:
@@ -142,19 +148,18 @@ Media:
 - Use `cms-media` as the single public Supabase Storage bucket.
 - Upload through server-only helpers with `cacheControl: '31536000'`.
 - Public websites never upload, delete, or list Supabase Storage objects.
-- Trash does not delete Supabase Storage objects.
 - Permanent delete checks usage before deleting the Supabase Storage object.
-- If Supabase Storage deletion fails during permanent delete, keep the row trashed and show an error.
+- If Supabase Storage deletion fails during permanent delete, keep the metadata row and show an error.
 
 Scheduling:
 
 - Template content and posts do not support future scheduling in v1.
-- Use only `draft`, `published`, and `unpublished` for template content and posts.
+- Template content, custom pages, and posts are publish-only in v1.
 - Quiz is global current data and must not be implemented as generic CMS scheduling.
 
 Revalidation:
 
-- Trigger after publish, unpublish, trash, permanent delete, redirect changes, SEO changes, settings changes, AdSense changes, author changes that affect public posts, and media changes used by public content.
+- Trigger after save, permanent delete, redirect changes, SEO changes, settings changes, AdSense changes, author changes that affect public posts, and media changes used by public content.
 - Webhook failure should be visible to admin but should not roll back the saved content.
 
 AdSense:
@@ -170,6 +175,7 @@ AdSense:
 
 Import:
 
+- Import belongs to `setup-provisioning/`, not the main CMS.
 - Only inactive websites can import.
 - Track import progress and reports in `cms_import_jobs`.
 - Use public WordPress REST data without credentials when available.

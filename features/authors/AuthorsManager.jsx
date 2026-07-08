@@ -64,9 +64,7 @@ export default function AuthorsManager({ websiteId }) {
   const [countsFailed, setCountsFailed] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [editing, setEditing] = useState({})
-  const [selectedIds, setSelectedIds] = useState([])
-  const [bulkAction, setBulkAction] = useState('trash')
-  const [searchDraft, setSearchDraft] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -77,10 +75,6 @@ export default function AuthorsManager({ websiteId }) {
     [authors, searchQuery]
   )
 
-  const allVisibleSelected =
-    filteredAuthors.length > 0 &&
-    filteredAuthors.every((author) => selectedIds.includes(author.id))
-
   async function loadAuthors() {
     if (!websiteId) return
     setLoading(true)
@@ -88,10 +82,9 @@ export default function AuthorsManager({ websiteId }) {
     setCountsFailed(false)
 
     try {
-      const response = await fetch(
-        `/api/cms/authors?websiteId=${websiteId}&includeTrashed=true`,
-        { cache: 'no-store' }
-      )
+      const response = await fetch(`/api/cms/authors?websiteId=${websiteId}`, {
+        cache: 'no-store',
+      })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -100,9 +93,6 @@ export default function AuthorsManager({ websiteId }) {
       }
 
       setAuthors(result.authors || [])
-      setSelectedIds((current) =>
-        current.filter((id) => (result.authors || []).some((author) => author.id === id))
-      )
 
       try {
         const postsResponse = await fetch(`/api/cms/posts?websiteId=${websiteId}`, {
@@ -203,42 +193,22 @@ export default function AuthorsManager({ websiteId }) {
     }
   }
 
-  async function authorAction(authorId, action, method = 'POST', reload = true) {
-    if (reload) {
-      setSaving(true)
-      setMessage('')
-    }
-
-    try {
-      const response = await fetch(
-        `/api/cms/authors/${authorId}${action ? `/${action}` : ''}?websiteId=${websiteId}`,
-        { method }
-      )
-      const result = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        setMessage(getApiMessage(result, 'Unable to update author.'))
-        return false
-      }
-
-      if (reload) await loadAuthors()
-      return true
-    } finally {
-      if (reload) setSaving(false)
-    }
-  }
-
-  async function runBulkAction() {
-    if (selectedIds.length === 0) return
+  async function deleteAuthor(authorId) {
+    if (!window.confirm('Delete this author permanently?')) return
     setSaving(true)
     setMessage('')
 
     try {
-      for (const authorId of selectedIds) {
-        const ok = await authorAction(authorId, bulkAction, 'POST', false)
-        if (!ok) return
+      const response = await fetch(`/api/cms/authors/${authorId}?websiteId=${websiteId}`, {
+        method: 'DELETE',
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setMessage(getApiMessage(result, 'Unable to delete author.'))
+        return
       }
-      setSelectedIds([])
+
       await loadAuthors()
     } finally {
       setSaving(false)
@@ -266,22 +236,6 @@ export default function AuthorsManager({ websiteId }) {
     return media.find((item) => item.id === mediaId)
   }
 
-  function toggleVisibleSelection(checked) {
-    const visibleIds = filteredAuthors.map((author) => author.id)
-
-    setSelectedIds((current) => {
-      if (checked) return Array.from(new Set([...current, ...visibleIds]))
-      return current.filter((id) => !visibleIds.includes(id))
-    })
-  }
-
-  function toggleAuthorSelection(authorId, checked) {
-    setSelectedIds((current) => {
-      if (checked) return Array.from(new Set([...current, authorId]))
-      return current.filter((id) => id !== authorId)
-    })
-  }
-
   function startEditing(author) {
     setEditing((current) => ({
       ...current,
@@ -305,7 +259,7 @@ export default function AuthorsManager({ websiteId }) {
 
   function submitSearch(event) {
     event.preventDefault()
-    setSearchQuery(searchDraft.trim())
+    setSearchQuery(searchInput.trim())
   }
 
   const formAvatarImage = getMediaById(form.avatarImageId)
@@ -457,8 +411,8 @@ export default function AuthorsManager({ websiteId }) {
           >
             <input
               type="search"
-              value={searchDraft}
-              onChange={(event) => setSearchDraft(event.target.value)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               className="w-full max-w-xs rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               aria-label="Search authors"
             />
@@ -472,25 +426,7 @@ export default function AuthorsManager({ websiteId }) {
           </form>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={bulkAction}
-                onChange={(event) => setBulkAction(event.target.value)}
-                className="rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                aria-label="Bulk action"
-              >
-                <option value="trash">Trash selected</option>
-                <option value="restore">Restore selected</option>
-              </select>
-              <button
-                type="button"
-                onClick={runBulkAction}
-                disabled={saving || selectedIds.length === 0}
-                className="rounded-[3px] border border-[#3858e9] bg-white px-4 py-2 font-semibold text-[#3858e9] hover:bg-[#f0f3ff] disabled:cursor-not-allowed disabled:border-[#b8bfd6] disabled:text-[#8a93a7]"
-              >
-                Apply
-              </button>
-            </div>
+            <div />
             <p className="text-[0.85rem] text-[#1f2330]">
               {filteredAuthors.length} {filteredAuthors.length === 1 ? 'item' : 'items'}
             </p>
@@ -500,14 +436,6 @@ export default function AuthorsManager({ websiteId }) {
             <table className="w-full min-w-[58rem] text-left text-[#1f2330]">
               <thead>
                 <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
-                  <th className="w-10 px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={(event) => toggleVisibleSelection(event.target.checked)}
-                      aria-label="Select all visible authors"
-                    />
-                  </th>
                   <th className="px-3 py-2 font-medium">Author</th>
                   <th className="px-3 py-2 font-medium">Bio</th>
                   <th className="px-3 py-2 font-medium">Slug</th>
@@ -520,7 +448,6 @@ export default function AuthorsManager({ websiteId }) {
                 {filteredAuthors.map((author) => {
                   const draft = editing[author.id]
                   const isEditing = Boolean(draft)
-                  const isSelected = selectedIds.includes(author.id)
                   const avatarImage = getAvatarImage(author)
                   const draftAvatarImage = isEditing ? getMediaById(draft.avatarImageId) : null
                   const bio = author.bio || '-'
@@ -529,22 +456,8 @@ export default function AuthorsManager({ websiteId }) {
                   return (
                     <tr
                       key={author.id}
-                      className={
-                        author.deletedAt
-                          ? 'border-b border-[#c3c4c7] bg-amber-50 align-top'
-                          : 'border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]'
-                      }
+                      className="border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]"
                     >
-                      <td className="px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(event) =>
-                            toggleAuthorSelection(author.id, event.target.checked)
-                          }
-                          aria-label={`Select ${author.name}`}
-                        />
-                      </td>
                       <td className="px-3 py-3">
                         {isEditing ? (
                           <div className="space-y-2">
@@ -606,11 +519,6 @@ export default function AuthorsManager({ websiteId }) {
                             />
                             <div className="min-w-0 space-y-1">
                               <p className="font-normal text-[#1f2330]">{author.name}</p>
-                              {author.deletedAt ? (
-                                <p className="text-[0.78rem] font-semibold uppercase text-amber-700">
-                                  Trashed
-                                </p>
-                              ) : null}
                             </div>
                           </div>
                         )}
@@ -691,33 +599,13 @@ export default function AuthorsManager({ websiteId }) {
                               Edit
                             </button>
                             <span className="text-[#8c8f94]">|</span>
-                            {author.deletedAt ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => authorAction(author.id, 'restore')}
-                                  className="font-medium text-[#3858e9] hover:underline"
-                                >
-                                  Restore
-                                </button>
-                                <span className="text-[#8c8f94]">|</span>
-                                <button
-                                  type="button"
-                                  onClick={() => authorAction(author.id, '', 'DELETE')}
-                                  className="font-medium text-red-700 hover:underline"
-                                >
-                                  Delete Permanently
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => authorAction(author.id, 'trash')}
-                                className="font-medium text-red-700 hover:underline"
-                              >
-                                Trash
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => deleteAuthor(author.id)}
+                              className="font-medium text-red-700 hover:underline"
+                            >
+                              Delete
+                            </button>
                           </div>
                         )}
                       </td>
@@ -726,7 +614,7 @@ export default function AuthorsManager({ websiteId }) {
                 })}
                 {filteredAuthors.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-[#596171]">
+                    <td colSpan={6} className="px-3 py-8 text-center text-[#596171]">
                       No authors found.
                     </td>
                   </tr>

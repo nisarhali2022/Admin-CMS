@@ -24,11 +24,11 @@ Test:
 - admin API routes require session
 - service-role operations are only called from server route handlers
 
-## Website Management
+## Setup Project Website Management
 
 Test:
 
-- website creation requires name and primary domain
+- website creation in `setup-provisioning/` requires name and primary domain
 - website slug is generated automatically
 - duplicate domain is rejected
 - new websites start inactive
@@ -37,6 +37,12 @@ Test:
 - website deactivation hides public content
 - deactivation keeps associated resources
 - permanent website delete is not available in v1
+
+Main CMS test:
+
+- website listing/detail endpoints are read-only
+- website dropdown loads existing setup-created websites
+- main CMS does not expose add/edit/deactivate website UI or API routes
 
 ## Website Scoping
 
@@ -63,10 +69,8 @@ Test:
 - unsupported template keys are rejected
 - `content_data` schema is validated
 - image references must belong to the selected website
-- draft content is hidden from public reads
-- published content appears in public reads
+- saved template content appears in public reads for active websites
 - scheduled status/payloads are rejected for template content in v1
-- trashed template content is hidden
 - sitemap include flag is respected
 
 ## Blog Posts
@@ -77,7 +81,7 @@ Test:
 - one author per post
 - multiple category payloads are rejected if attempted
 - post author must belong to selected website
-- inactive/trashed authors are not selectable for new posts
+- inactive authors are not selectable for new posts
 - post `body_blocks` schema is validated
 - supported blocks save and render in public read output
 - TOC placeholder generates entries from heading blocks
@@ -85,17 +89,17 @@ Test:
 - featured image must belong to selected website
 - OG image must belong to selected website
 - scheduled status/payloads are rejected for posts in v1
-- draft/unpublished/trashed posts are hidden from public reads
+- saved posts appear in public reads for active websites
 
 ## Authors
 
 Test:
 
-- author can be created, edited, trashed, restored, and permanently deleted
+- author can be created, edited, and permanently deleted
 - author slug is unique within website
 - same author slug can exist on different websites
 - avatar image must belong to selected website
-- author picker only shows active, non-trashed authors for selected website
+- author picker only shows active authors for selected website
 - cross-website author assignment is rejected
 - referenced author permanent delete is blocked unless posts are reassigned first
 - authors are not login users
@@ -113,11 +117,10 @@ Test:
 - media metadata row stores website ID, storage path, public URL, alt text, dimensions, MIME type, file size, and source
 - media picker only shows selected website media
 - cross-website media assignment is rejected
-- trashing media does not delete Supabase Storage object
-- permanent media delete checks usage
-- referenced media cannot be permanently deleted
-- unused media permanent delete removes Supabase Storage object
-- Supabase Storage deletion failure keeps media row trashed and returns an error
+- media delete checks usage
+- referenced media cannot be deleted
+- unused media delete removes Supabase Storage object before metadata
+- Supabase Storage deletion failure keeps the media row and returns an error
 - public websites receive media URLs from Supabase data and never upload, delete, or list Supabase Storage objects
 - public template/post reads return resolved image objects, not unresolved `mediaId` values
 - public image objects include URL, alt text, caption, width, and height when available
@@ -129,7 +132,7 @@ Test:
 - category slug is unique within website
 - same category slug can exist on different websites
 - category delete behavior is safe when posts reference it
-- trashed categories are hidden where appropriate
+- referenced categories cannot be deleted unless reassignment or explicit handling is implemented
 
 ## Redirects
 
@@ -140,7 +143,7 @@ Test:
 - duplicate source path is rejected within website
 - same source path can exist on different websites
 - redirect loops are rejected
-- inactive/trashed redirects are hidden from public redirect reads
+- inactive redirects are hidden from public redirect reads
 - public anon clients cannot update redirect hit tracking fields
 
 ## SEO, Robots, Sitemap
@@ -152,8 +155,8 @@ Test:
 - default canonical is generated from domain and path/slug
 - robots meta saves
 - OG image belongs to selected website
-- sitemap includes published rows with include flag enabled
-- sitemap excludes drafts, trashed content, and disabled include flag rows
+- sitemap includes rows with include flag enabled
+- sitemap excludes inactive websites and disabled include flag rows
 - robots.txt is loaded per website
 
 ## AdSense Settings
@@ -183,18 +186,15 @@ Test with anon credentials:
 - public authors filter by website
 - public settings expose only safe fields
 - public settings expose only safe AdSense fields
-- drafts are hidden
-- unpublished content is hidden
-- trashed content is hidden
 - another website's content is inaccessible
 - anon cannot insert/update/delete CMS rows
 - revalidation secrets are never returned
 
-## WordPress Import
+## Setup Project WordPress Import
 
 Test:
 
-- import is blocked for active websites
+- import in `setup-provisioning/` is blocked for active websites
 - import is allowed for inactive websites
 - import creates/updates an import job row
 - import works without WordPress credentials when public REST data is available
@@ -202,8 +202,8 @@ Test:
 - WordPress import credentials are never stored in `.env`
 - temporary encrypted WordPress credentials are cleared after success, failure, or reset
 - import reports, errors, public responses, and logs never include WordPress credentials
-- known pages map to template keys
-- unmatched pages go to review list
+- known fixed pages map to template keys
+- unmatched WordPress pages import into `cms_pages` or are reported with a skipped reason
 - posts import into `cms_posts`
 - WordPress content converts to supported `body_blocks` where possible
 - categories import per website
@@ -220,14 +220,14 @@ Test:
 - import report includes imported, skipped, unmatched, failed media, and errors
 - failed import reset clears only inactive website scoped rows
 - failed import reset deletes only that inactive website's Supabase Storage objects
+- main CMS does not expose WordPress import UI or API routes
 
 ## Revalidation
 
 Test:
 
-- publish triggers public website revalidation
-- unpublish triggers revalidation
-- trash/permanent delete triggers revalidation
+- save triggers public website revalidation
+- permanent delete triggers revalidation
 - redirect changes trigger revalidation
 - SEO/settings changes trigger revalidation
 - AdSense changes trigger revalidation
@@ -256,8 +256,8 @@ Test:
 
 Before considering v1 ready:
 
-- create two websites
-- import or create content for both
+- create two websites in `setup-provisioning/`
+- import content in `setup-provisioning/` or create content in the main CMS
 - verify Website A never sees Website B content/media
 - verify Website A never sees Website B authors
 - publish posts and templates

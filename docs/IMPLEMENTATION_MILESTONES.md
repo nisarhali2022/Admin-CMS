@@ -75,11 +75,11 @@ Exit tests:
 - App boots locally.
 - `npm.cmd test`, `npm.cmd run lint`, and `npm.cmd run build` pass.
 
-## Milestone 2: Supabase Schema And Migration Order
+## Milestone 2: Setup Project Supabase Schema And Migration Order
 
 Purpose:
 
-- Create the database foundation with correct website scoping, relationships, constraints, and delete semantics.
+- Create the database foundation with correct website scoping, relationships, constraints, and delete semantics in the setup/provisioning project.
 
 Dependencies:
 
@@ -89,15 +89,15 @@ Dependencies:
 
 Build:
 
-- Create migrations for all v1 CMS tables.
-- Add indexes, unique constraints, status rules, trash fields, and timestamps.
+- Create migrations for all v1 CMS tables in `setup-provisioning/`.
+- Add indexes, unique constraints, publish-only content rules, permanent-delete behavior, and timestamps.
 - Ensure every normal CMS resource has `website_id`.
 - Handle `cms_authors.avatar_image_id` safely by creating `cms_media` before adding the FK, or adding the FK after both tables exist.
 - Create the public Supabase Storage bucket `cms-media` in the Supabase project setup, not as a per-website bucket.
 
 Files/modules:
 
-- `supabase/migrations/`
+- `setup-provisioning/supabase/migrations/`
 - optional `supabase/seed.sql`
 - `docs/DATA_MODEL.md` if implementation discovers a contract mismatch
 
@@ -117,7 +117,8 @@ Constraints:
 - Do not build admin UI.
 - Do not shape public RPC responses yet.
 - Do not implement WordPress import logic yet.
-- Do not add removed v1 tables: `cms_pages`, `cms_tags`, `cms_post_tags`, or `cms_audit_events`.
+- Do not add removed v1 tables: `cms_tags`, `cms_post_tags`, or `cms_audit_events`.
+- `cms_template_content` is for fixed templates only; `cms_pages` is for custom Pages rows.
 
 Exit tests:
 
@@ -128,11 +129,11 @@ Exit tests:
 - `cms_import_jobs` exists and is website-scoped.
 - `cms_media.storage_path` is unique.
 
-## Milestone 3: RLS And Public RPCs
+## Milestone 3: Setup Project RLS And Public RPCs
 
 Purpose:
 
-- Make public reads safe before admin CRUD starts creating real website content.
+- Make public reads safe before admin CRUD starts creating real website content. SQL ownership remains in `setup-provisioning/`.
 
 Dependencies:
 
@@ -151,7 +152,7 @@ Build:
 
 Files/modules:
 
-- `supabase/migrations/`
+- `setup-provisioning/supabase/migrations/`
 - `lib/cms/public-read-model.js`
 - `lib/cms/serializers/`
 - optional SQL test fixtures
@@ -160,7 +161,7 @@ Inputs/outputs:
 
 - Input: public website domain.
 - Output: active website context or no content.
-- Output: public-safe rows for published content only.
+- Output: public-safe rows for active website content only.
 - Output: resolved image objects with `url`, `alt`, `caption`, `width`, and `height`.
 
 Interactions:
@@ -173,20 +174,20 @@ Constraints:
 - Do not build admin CRUD screens.
 - Do not change public website frontend code yet.
 - Do not allow redirect hit tracking writes from anon clients.
-- Do not expose import jobs, secrets, drafts, inactive website data, or service-only fields.
+- Do not expose import jobs, secrets, inactive website data, or service-only fields.
 
 Exit tests:
 
-- Anon can read published template/post content for the resolved active website only.
+- Anon can read template/post content for the resolved active website only.
 - Anon can read active authors, categories, active redirects, safe settings, and referenced media only.
-- Anon cannot read drafts, unpublished content, trashed rows, import jobs, or revalidation secrets.
+- Anon cannot read import jobs, inactive website data, or revalidation secrets.
 - Public image objects include `url`, `alt`, `caption`, `width`, and `height` when available.
 
-## Milestone 4: Website Management And Selection
+## Milestone 4: Website Provisioning And Main CMS Selection
 
 Purpose:
 
-- Let the single admin create/select the website context that scopes all normal CMS resources.
+- Let the single admin create website records in the setup/provisioning project and select existing websites in the main CMS.
 
 Dependencies:
 
@@ -196,7 +197,8 @@ Dependencies:
 
 Build:
 
-- Build website list, create, edit, deactivate, and select flows.
+- Build website list, create, edit, and deactivate flows in `setup-provisioning/`.
+- Keep the main CMS website list read-only for header selection.
 - Store website data in `cms_websites`, `cms_website_domains`, and `cms_site_settings`.
 - Create default settings rows for new websites.
 - Allow website active/inactive status to be changed after setup/import is ready.
@@ -205,10 +207,10 @@ Build:
 
 Files/modules:
 
-- `app/(admin)/admin/select-website/`
-- `app/(admin)/admin/websites/`
-- `app/api/cms/websites/`
-- `features/websites/`
+- `setup-provisioning/app/(admin)/admin/add-website/`
+- `setup-provisioning/app/api/cms/websites/`
+- `setup-provisioning/features/websites/`
+- `app/api/cms/websites/` for read-only website listing/detail in the main CMS
 - `lib/cms/repositories/websites*`
 - `lib/cms/validators/websites*`
 
@@ -220,7 +222,7 @@ Inputs/outputs:
 
 Interactions:
 
-- Later admin screens must require selected `websiteId`.
+- Later main CMS admin screens must require selected `websiteId`.
 - Public RPC domain resolution depends on website/domain rows.
 
 Constraints:
@@ -228,14 +230,15 @@ Constraints:
 - Do not implement permanent website delete.
 - Do not implement domain alias UI beyond one primary domain field.
 - Do not create website-specific Supabase Storage buckets.
+- Do not expose website create/edit/deactivate mutations from the main CMS.
 - Do not let global quiz depend on selected website context.
 
 Exit tests:
 
-- Website creation requires name and primary domain.
+- Setup project website creation requires name and primary domain.
 - Duplicate domains are rejected.
 - New websites start inactive.
-- Website selection reloads website-scoped screens by `websiteId`.
+- Main CMS website selection reloads website-scoped screens by `websiteId`.
 - Deactivation hides public data but keeps associated resources.
 - Activation makes the website resolvable by public RPCs once its domain is configured.
 - Adding a website requires no admin CMS `.env` change.
@@ -261,7 +264,7 @@ Build:
 - Upload public WebP images with Supabase Storage `cacheControl: '31536000'`.
 - Save metadata, public URL, alt text, caption, dimensions, MIME type, file size, source, and storage path in `cms_media`.
 - Build media picker filtered by selected website.
-- Implement trash, restore, usage lookup, and permanent delete checks.
+- Implement usage lookup and permanent delete checks.
 
 Files/modules:
 
@@ -303,7 +306,7 @@ Exit tests:
 - Cross-website media assignment is rejected.
 - Referenced media cannot be permanently deleted.
 - Unused permanent delete removes the Supabase Storage object first and then hard deletes metadata.
-- Storage delete failure keeps the media row trashed and surfaces an error.
+- Storage delete failure keeps the media metadata row and surfaces an error.
 
 ## Milestone 6: Categories And Authors
 
@@ -322,7 +325,7 @@ Build:
 - Build category CRUD for selected website.
 - Build author CRUD for selected website.
 - Support author avatar selection from same-website media.
-- Block inactive or trashed authors from new post selection.
+- Block inactive authors from new post selection.
 - Block permanent author delete while posts reference the author unless reassignment is implemented.
 
 Files/modules:
@@ -361,7 +364,7 @@ Exit tests:
 - Duplicate category/author slugs are rejected within one website.
 - Same slugs can exist across different websites.
 - Cross-website author avatar assignment is rejected.
-- Trashed or inactive authors do not appear in the post author picker.
+- Inactive authors do not appear in the post author picker.
 - Referenced author permanent delete is blocked unless reassignment is implemented.
 
 ## Milestone 7: Template Content
@@ -380,7 +383,7 @@ Build:
 
 - Build fixed template content editing for supported template keys.
 - Validate `content_data` against code-defined template schemas.
-- Support SEO fields, OG image, sitemap include flag, internal admin preview, status, trash, restore, and permanent delete.
+- Support SEO fields, feature image/OG-compatible image reference, sitemap include flag, internal admin preview, publish-only save, and permanent delete.
 - Store image references by `mediaId`.
 - Trigger revalidation after public-facing changes.
 
@@ -396,7 +399,7 @@ Files/modules:
 
 Inputs/outputs:
 
-- Input: template key, path, title, content data, SEO fields, OG image, status.
+- Input: template key, path, title, content data, SEO fields, and feature image/OG-compatible image reference.
 - Output: website-scoped template content row.
 - Output: public template response with resolved image objects.
 
@@ -404,7 +407,7 @@ Interactions:
 
 - Media picker supplies same-website images.
 - Public websites render fixed layouts using returned template content.
-- Sitemap and SEO use template status and sitemap include flag.
+- Sitemap and SEO use template content and sitemap include flag.
 
 Constraints:
 
@@ -416,10 +419,9 @@ Constraints:
 Exit tests:
 
 - Template content is unique by `(website_id, template_key)`.
-- Public reads return only published, non-trashed template content.
+- Public reads return only template content for active websites.
 - Public template responses return resolved image objects.
-- Draft/unpublished template content stays private.
-- Revalidation runs after publish, unpublish, trash, permanent delete, SEO changes, and media changes used by public content.
+- Revalidation runs after save, permanent delete, SEO changes, and media changes used by public content.
 
 ## Milestone 8: Blog Posts
 
@@ -437,7 +439,7 @@ Build:
 
 - Build post CRUD for selected website.
 - Require one same-website author and allow at most one same-website category.
-- Support featured image, SEO fields, OG image, sitemap include flag, status, trash, restore, and permanent delete.
+- Support featured image, SEO fields, OG-compatible image reference, sitemap include flag, publish-only save, and permanent delete.
 - Build structured body blocks: paragraph, heading, image, list, quote, link/button, TOC placeholder, FAQ, table, and callout.
 - Store body image references by `mediaId`.
 - Trigger revalidation after public-facing post, author, SEO, and media changes.
@@ -454,7 +456,7 @@ Files/modules:
 
 Inputs/outputs:
 
-- Input: title, slug, excerpt, author, category, featured image, body blocks, SEO fields, status.
+- Input: title, slug, excerpt, author, category, featured image, body blocks, and SEO fields.
 - Output: website-scoped post row.
 - Output: public post/list response with author data and resolved image objects.
 - Output: FAQ data suitable for FAQ schema.
@@ -537,19 +539,19 @@ Exit tests:
 
 - Duplicate redirect source paths are rejected per website.
 - Redirect loops are rejected.
-- Public reads return only active, non-trashed redirects.
+- Public reads return only active redirects.
 - Revalidation secrets never return to public clients.
-- Sitemap excludes drafts, unpublished content, trashed content, and disabled rows.
+- Sitemap excludes inactive websites and rows with sitemap inclusion disabled.
 - New websites default to inactive AdSense settings.
 - Enabling AdSense without a valid `ca-pub-...` publisher ID is rejected.
 - Disabling AdSense preserves saved values but public settings return inactive behavior.
 - AdSense changes trigger revalidation.
 
-## Milestone 10: WordPress Import
+## Milestone 10: Setup Project WordPress Import
 
 Purpose:
 
-- Provide one-time inactive-site migration from WordPress into the new website-scoped CMS model.
+- Provide one-time inactive-site migration from WordPress into the new website-scoped CMS model from the setup/provisioning project.
 
 Dependencies:
 
@@ -559,7 +561,7 @@ Dependencies:
 
 Build:
 
-- Build inactive-website-only import.
+- Build inactive-website-only import in `setup-provisioning/`.
 - Track progress and reports in `cms_import_jobs`.
 - Support public WordPress REST import without credentials.
 - Support optional WordPress username and application password for protected or incomplete REST data.
@@ -574,8 +576,8 @@ Build:
 
 Files/modules:
 
-- `app/api/cms/import/`
-- `features/import/`
+- `setup-provisioning/app/api/cms/import/`
+- `setup-provisioning/features/import/`
 - `lib/cms/services/import*`
 - `lib/cms/services/wordpress*`
 - `lib/cms/repositories/import-jobs*`
@@ -594,12 +596,14 @@ Interactions:
 - Uses media, authors, categories, template content, posts, settings, and storage helpers.
 - Reuses validation and ownership rules from normal CRUD modules.
 - Reset must only affect selected inactive website data.
+- Main CMS must not expose WordPress import routes or UI.
 
 Constraints:
 
 - Do not allow active website import.
 - Do not import into another website's resources.
-- Do not create generic pages for unmatched pages.
+- Do not put unmatched WordPress pages into fixed template slots.
+- Import unmatched WordPress pages into `cms_pages` as custom pages.
 - Do not store WordPress credentials in `.env`, reports, public responses, or logs.
 
 Exit tests:
@@ -609,6 +613,7 @@ Exit tests:
 - Optional WordPress application-password import works for protected REST data.
 - Temporary encrypted WordPress credentials are cleared after import success, failure, or reset.
 - Import job records progress, counts, skipped items, unmatched pages, failed media, and errors.
+- Unmatched WordPress pages import into `cms_pages` or are explicitly reported as skipped with a reason.
 - Imported posts never save without `author_id`.
 - Fallback author is created or reused when needed.
 - Imported images are copied to Supabase Storage under the selected website prefix.
@@ -780,5 +785,5 @@ Exit tests:
 - `npm.cmd run build` passes.
 - Public anon checks pass for all public RPCs/views.
 - Cross-website content, author, media, redirect, and settings access is blocked.
-- WordPress import, media, revalidation, public rendering, and quiz regression flows pass.
+- Setup project provisioning/import, media, revalidation, public rendering, and quiz regression flows pass.
 - Admin UI no longer depends on one long page for all website-scoped resources.

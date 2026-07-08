@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import {
   AdminPanel,
   EmptyState,
   MessageAlert,
   PageHeader,
-  StatusBadge,
 } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
 
@@ -33,7 +32,6 @@ const emptyForm = {
   robotsMeta: '',
   ogImageId: '',
   sitemapInclude: true,
-  status: 'draft',
 }
 
 function getApiMessage(result, fallback) {
@@ -55,7 +53,6 @@ function toForm(post) {
     robotsMeta: post.robotsMeta || '',
     ogImageId: post.ogImageId || '',
     sitemapInclude: Boolean(post.sitemapInclude),
-    status: post.status || 'draft',
   }
 }
 
@@ -86,10 +83,6 @@ export default function PostsManager({ websiteId }) {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const selectedPost = useMemo(
-    () => posts.find((post) => post.id === selectedId) || null,
-    [posts, selectedId]
-  )
   const parsedBlocks = parseBlocks(form.bodyBlocksText)
   const faqItems = parsedBlocks.parsed ? getFaqItems(parsedBlocks.parsed) : []
 
@@ -99,10 +92,9 @@ export default function PostsManager({ websiteId }) {
     setMessage('')
 
     try {
-      const response = await fetch(
-        `/api/cms/posts?websiteId=${websiteId}&includeTrashed=true`,
-        { cache: 'no-store' }
-      )
+      const response = await fetch(`/api/cms/posts?websiteId=${websiteId}`, {
+        cache: 'no-store',
+      })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -173,7 +165,6 @@ export default function PostsManager({ websiteId }) {
         robotsMeta: form.robotsMeta || null,
         ogImageId: form.ogImageId || null,
         sitemapInclude: form.sitemapInclude,
-        status: form.status,
       },
     }
   }
@@ -213,25 +204,25 @@ export default function PostsManager({ websiteId }) {
     }
   }
 
-  async function action(actionName, method = 'POST') {
+  async function deletePost() {
     if (!selectedId) return
+    if (!window.confirm('Delete this post permanently?')) return
     setSaving(true)
     setMessage('')
 
     try {
-      const response = await fetch(
-        `/api/cms/posts/${selectedId}${actionName ? `/${actionName}` : ''}?websiteId=${websiteId}`,
-        { method }
-      )
+      const response = await fetch(`/api/cms/posts/${selectedId}?websiteId=${websiteId}`, {
+        method: 'DELETE',
+      })
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        setMessage(getApiMessage(result, 'Unable to update post.'))
+        setMessage(getApiMessage(result, 'Unable to delete post.'))
         return
       }
 
       await loadPosts()
-      if (result.post) setForm(toForm(result.post))
+      newPost()
     } finally {
       setSaving(false)
     }
@@ -297,9 +288,6 @@ export default function PostsManager({ websiteId }) {
                     <span className="truncate text-sm font-semibold text-[#2271b1]">
                       {post.title || 'Untitled'}
                     </span>
-                    <StatusBadge active={post.status === 'published'}>
-                      {post.status}
-                    </StatusBadge>
                   </span>
                   <span className="truncate text-xs text-[#646970]">
                     /{post.slug || 'no-slug'}
@@ -368,15 +356,6 @@ export default function PostsManager({ websiteId }) {
                   {item.altText || item.originalFilename}
                 </option>
               ))}
-            </select>
-            <select
-              value={form.status}
-              onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
-              className="rounded-md border border-slate-300 px-3 py-2"
-            >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="unpublished">Unpublished</option>
             </select>
           </div>
 
@@ -487,28 +466,9 @@ export default function PostsManager({ websiteId }) {
               {saving ? 'Saving...' : 'Save'}
             </Button>
             {selectedId ? (
-              <>
-                <Button type="button" variant="outline" onClick={() => action('publish')}>
-                  Publish
-                </Button>
-                <Button type="button" variant="outline" onClick={() => action('unpublish')}>
-                  Unpublish
-                </Button>
-                {selectedPost?.deletedAt ? (
-                  <>
-                    <Button type="button" variant="outline" onClick={() => action('restore')}>
-                      Restore
-                    </Button>
-                    <Button type="button" variant="destructive" onClick={() => action('', 'DELETE')}>
-                      Delete
-                    </Button>
-                  </>
-                ) : (
-                  <Button type="button" variant="outline" onClick={() => action('trash')}>
-                    Trash
-                  </Button>
-                )}
-              </>
+              <Button type="button" variant="destructive" onClick={deletePost}>
+                Delete
+              </Button>
             ) : null}
           </div>
         </form>

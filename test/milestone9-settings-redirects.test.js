@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
 
-import { decryptSecret, encryptSecret } from '../lib/cms/crypto/secrets.js'
-import { createRedirectForWebsite } from '../lib/cms/services/redirects.js'
-import { updateSettingsForWebsite } from '../lib/cms/services/settings.js'
-import { triggerRevalidation } from '../lib/cms/services/revalidation.js'
+import { decryptSecret, encryptSecret } from 'cms-core/cms/crypto/secrets'
+import { createRedirectForWebsite } from 'cms-core/cms/services/redirects'
+import { updateSettingsForWebsite } from 'cms-core/cms/services/settings'
+import { triggerRevalidation } from 'cms-core/cms/services/revalidation'
 import {
   validateRedirectPayload,
   validateRedirectPatchPayload,
-} from '../lib/cms/validators/redirects.js'
+} from 'cms-core/cms/validators/redirects'
 import {
   validateAdsenseSettings,
   validateSettingsPatchPayload,
-} from '../lib/cms/validators/settings.js'
+} from 'cms-core/cms/validators/settings'
 
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }

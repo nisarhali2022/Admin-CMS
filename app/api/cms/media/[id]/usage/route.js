@@ -1,6 +1,6 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { getMediaUsage } from '@/lib/cms/repositories/media'
-import { assertMediaId, getRequiredWebsiteId } from '@/lib/cms/validators/media'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { getMediaUsage } from 'cms-core/cms/repositories/media'
+import { assertMediaId, getRequiredWebsiteId } from 'cms-core/cms/validators/media'
 
 async function getMediaId(context) {
   const params = await context.params

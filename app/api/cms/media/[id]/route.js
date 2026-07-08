@@ -1,11 +1,11 @@
-import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from '@/lib/cms/http/errors'
-import { updateMediaMetadata } from '@/lib/cms/repositories/media'
-import { permanentlyDeleteMedia } from '@/lib/cms/services/media'
+import { cmsErrorResponse, cmsJson, requireAdminSessionResponse } from 'cms-core/cms/http/errors'
+import { updateMediaMetadata } from 'cms-core/cms/repositories/media'
+import { permanentlyDeleteMedia } from 'cms-core/cms/services/media'
 import {
   assertMediaId,
   getRequiredWebsiteId,
   validateMediaPatchPayload,
-} from '@/lib/cms/validators/media'
+} from 'cms-core/cms/validators/media'
 
 async function getMediaId(context) {
   const params = await context.params

@@ -93,6 +93,14 @@ Admin CMS:
 - Deploy as its own Vercel project/domain.
 - Configure `ADMIN_SECRET`.
 - Configure Supabase service-role environment variables.
+- Use it for daily content management after websites are provisioned.
+
+Setup/provisioning app:
+
+- Lives in `setup-provisioning/`.
+- Deploy separately if website setup/import should be available outside local development.
+- Owns Supabase migrations, website creation/edit/deactivation, default setup rows, and WordPress import.
+- Uses the same Supabase service-role environment variables as the main CMS.
 - Create the `cms-media` Supabase Storage bucket before testing media uploads.
 
 Public websites:
@@ -121,7 +129,7 @@ CMS_REVALIDATION_SECRET=
 
 ## Adding Websites
 
-Adding a website is an admin/database action, not an admin CMS `.env` change.
+Adding a website is a setup/provisioning action, not an admin CMS `.env` change.
 
 Website-specific data belongs in:
 
@@ -136,13 +144,13 @@ Media for every website uses the same Supabase Storage bucket and is separated b
 websites/{website_id}/media/...
 ```
 
-The admin CMS `.env` keeps shared system values such as Supabase keys, `ADMIN_SECRET`, and `CMS_ENCRYPTION_KEY`. Public websites may still need their own deployment environment variables once, but adding a new website to the CMS should not require changing the admin CMS deployment environment.
+The admin CMS `.env` keeps shared system values such as Supabase keys, `ADMIN_SECRET`, and `CMS_ENCRYPTION_KEY`. The setup/provisioning app uses the same Supabase project and server-only service-role access. Public websites may still need their own deployment environment variables once, but adding a new website should not require changing the main CMS deployment environment.
 
 AdSense is also website-level database configuration. Do not add AdSense publisher IDs or Active/Inactive state to `.env`; store them in `cms_site_settings.adsense_settings` so admins can change them without redeploying code.
 
 ## WordPress Import Credentials
 
-WordPress import does not require credentials when the source site's public REST API exposes the needed posts, pages, authors, media, and SEO metadata.
+WordPress import lives in `setup-provisioning/`. It does not require credentials when the source site's public REST API exposes the needed posts, pages, authors, media, and SEO metadata.
 
 If public REST data is blocked or incomplete, the import form can ask for:
 

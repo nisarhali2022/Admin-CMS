@@ -1,0 +1,12 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/session/route": "app/api/admin/session/route.js",
+  "/api/cms/import/[jobId]/route": "app/api/cms/import/[jobId]/route.js",
+  "/api/cms/import/reset/route": "app/api/cms/import/reset/route.js",
+  "/api/cms/websites/[id]/deactivate/route": "app/api/cms/websites/[id]/deactivate/route.js",
+  "/api/cms/import/route": "app/api/cms/import/route.js",
+  "/api/cms/websites/[id]/route": "app/api/cms/websites/[id]/route.js",
+  "/api/cms/websites/route": "app/api/cms/websites/route.js",
+  "/page": "app/page.js",
+  "/(admin)/admin/add-website/page": "app/(admin)/admin/add-website/page.js"
+}

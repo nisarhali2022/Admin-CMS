@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import { test } from 'node:test'
 
-const migrationDir = 'supabase/migrations'
+const migrationDir = 'setup-provisioning/supabase/migrations'
 
 async function readMigration(namePart) {
   const files = await readdir(migrationDir)
@@ -31,8 +31,11 @@ test('cms schema migration creates all v1 tables and excludes removed tables', a
     assert.match(sql, new RegExp(`create table public\\.${table}\\b`))
   }
 
+  const customPagesSql = await readMigration('custom_pages')
+  assert.match(customPagesSql, /create table if not exists public\.cms_pages/)
+  assert.match(customPagesSql, /create unique index if not exists cms_pages_website_path_active_key/)
+
   for (const removedTable of [
-    'cms_pages',
     'cms_tags',
     'cms_post_tags',
     'cms_audit_events',
