@@ -32,6 +32,131 @@ import {
 const toolbarButtonClass =
   'inline-flex h-8 w-8 items-center justify-center rounded-[3px] text-[#3c434a] hover:bg-[#f0f0f1] disabled:cursor-not-allowed disabled:text-[#a7aaad]'
 
+const MIN_IMAGE_WIDTH = 120
+const MAX_IMAGE_WIDTH = 1200
+
+function sanitizeImageWidth(value, maxWidth = MAX_IMAGE_WIDTH) {
+  const number = Number.parseInt(value, 10)
+  if (!Number.isFinite(number) || number <= 0) return null
+  return Math.min(Math.max(number, MIN_IMAGE_WIDTH), maxWidth)
+}
+
+function getEditorImageMaxWidth(editor) {
+  const editorWidth = editor?.view?.dom?.clientWidth || MAX_IMAGE_WIDTH
+  return Math.max(MIN_IMAGE_WIDTH, Math.min(MAX_IMAGE_WIDTH, editorWidth - 16))
+}
+
+function createResizableImageNodeView({ node, editor, getPos }) {
+  let currentNode = node
+  let isResizing = false
+
+  const wrapper = document.createElement('div')
+  const image = document.createElement('img')
+  const handle = document.createElement('span')
+
+  wrapper.className = 'cms-editor-image-frame'
+  wrapper.contentEditable = 'false'
+  handle.className = 'cms-editor-image-resize-handle'
+  handle.title = 'Resize image'
+
+  wrapper.append(image, handle)
+
+  function renderImage() {
+    const { src, alt, mediaId, width } = currentNode.attrs
+    image.setAttribute('src', src || '')
+    image.setAttribute('alt', alt || '')
+    image.draggable = false
+
+    if (mediaId) {
+      image.setAttribute('data-media-id', mediaId)
+    } else {
+      image.removeAttribute('data-media-id')
+    }
+
+    const safeWidth = sanitizeImageWidth(width, getEditorImageMaxWidth(editor))
+    if (safeWidth) {
+      image.setAttribute('width', String(safeWidth))
+      image.style.width = `${safeWidth}px`
+    } else {
+      image.removeAttribute('width')
+      image.style.width = ''
+    }
+  }
+
+  function updateImageWidth(width) {
+    const safeWidth = sanitizeImageWidth(width, getEditorImageMaxWidth(editor))
+    const position = typeof getPos === 'function' ? getPos() : null
+    if (!safeWidth || typeof position !== 'number') return
+
+    editor.view.dispatch(
+      editor.view.state.tr.setNodeMarkup(position, undefined, {
+        ...currentNode.attrs,
+        width: safeWidth,
+      })
+    )
+  }
+
+  handle.addEventListener('mousedown', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    isResizing = true
+    wrapper.classList.add('is-resizing')
+
+    const startX = event.clientX
+    const startWidth =
+      image.getBoundingClientRect().width ||
+      sanitizeImageWidth(currentNode.attrs.width) ||
+      image.naturalWidth ||
+      MIN_IMAGE_WIDTH
+
+    function resize(moveEvent) {
+      if (!isResizing) return
+      const maxWidth = getEditorImageMaxWidth(editor)
+      const nextWidth = sanitizeImageWidth(startWidth + moveEvent.clientX - startX, maxWidth)
+      if (!nextWidth) return
+      image.style.width = `${nextWidth}px`
+      image.setAttribute('width', String(nextWidth))
+    }
+
+    function stopResize() {
+      if (!isResizing) return
+      isResizing = false
+      wrapper.classList.remove('is-resizing')
+      updateImageWidth(image.getAttribute('width'))
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResize)
+    }
+
+    window.addEventListener('mousemove', resize)
+    window.addEventListener('mouseup', stopResize)
+  })
+
+  renderImage()
+
+  return {
+    dom: wrapper,
+    update(updatedNode) {
+      if (updatedNode.type.name !== currentNode.type.name) return false
+      currentNode = updatedNode
+      renderImage()
+      return true
+    },
+    selectNode() {
+      wrapper.classList.add('is-selected')
+    },
+    deselectNode() {
+      wrapper.classList.remove('is-selected')
+    },
+    stopEvent(event) {
+      return event.target === handle || isResizing
+    },
+    destroy() {
+      wrapper.remove()
+    },
+  }
+}
+
 const CmsImage = TiptapImage.extend({
   addAttributes() {
     return {
@@ -42,7 +167,16 @@ const CmsImage = TiptapImage.extend({
         renderHTML: (attributes) =>
           attributes.mediaId ? { 'data-media-id': attributes.mediaId } : {},
       },
+      width: {
+        default: null,
+        parseHTML: (element) => sanitizeImageWidth(element.getAttribute('width')),
+        renderHTML: (attributes) =>
+          attributes.width ? { width: sanitizeImageWidth(attributes.width) } : {},
+      },
     }
+  },
+  addNodeView() {
+    return createResizableImageNodeView
   },
 })
 

@@ -231,6 +231,49 @@
   border-radius: 6px;
 }
 
+.wp-admin-interface .prose-content .cms-editor-image-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 1rem 0;
+  line-height: 0;
+}
+
+.wp-admin-interface .prose-content .cms-editor-image-frame img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 6px;
+}
+
+.wp-admin-interface .prose-content .cms-editor-image-frame.is-selected img,
+.wp-admin-interface .prose-content .cms-editor-image-frame.is-resizing img,
+.wp-admin-interface .prose-content .cms-editor-image-frame:hover img {
+  outline: 2px solid #3858e9;
+  outline-offset: 2px;
+}
+
+.wp-admin-interface .prose-content .cms-editor-image-resize-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #3858e9;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
+  cursor: nwse-resize;
+}
+
+.wp-admin-interface .prose-content .cms-editor-image-frame.is-selected .cms-editor-image-resize-handle,
+.wp-admin-interface .prose-content .cms-editor-image-frame.is-resizing .cms-editor-image-resize-handle,
+.wp-admin-interface .prose-content .cms-editor-image-frame:hover .cms-editor-image-resize-handle {
+  display: block;
+}
+
 .wp-admin-interface .prose-content table {
   margin: 1rem 0;
   width: 100%;

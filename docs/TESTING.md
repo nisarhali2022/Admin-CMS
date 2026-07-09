@@ -72,6 +72,10 @@ Test:
 - saved template content appears in public reads for active websites
 - scheduled status/payloads are rejected for template content in v1
 - sitemap include flag is respected
+- Pages list search filters automatically without a Search Pages submit button
+- Pages list supports checkbox selection and bulk permanent delete through existing page/template delete endpoints
+- Pages table displays Meta title before Author
+- Add Page creates a custom page row and does not replace fixed template content
 
 ## Blog Posts
 

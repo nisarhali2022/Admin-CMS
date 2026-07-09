@@ -51,7 +51,7 @@ const allowedEditorTags = new Set([
 
 const allowedEditorAttributes = {
   A: new Set(['href', 'target', 'rel']),
-  IMG: new Set(['src', 'alt', 'data-media-id']),
+  IMG: new Set(['src', 'alt', 'data-media-id', 'width']),
   IFRAME: new Set([
     'src',
     'width',
@@ -71,6 +71,9 @@ const allowedEditorAttributes = {
   H3: new Set(['style']),
   H4: new Set(['style']),
 }
+
+const MIN_EDITOR_IMAGE_WIDTH = 120
+const MAX_EDITOR_IMAGE_WIDTH = 1200
 
 function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
@@ -114,6 +117,12 @@ function sanitizeStyle(value) {
   const text = String(value || '').toLowerCase()
   const match = text.match(/text-align\s*:\s*(left|center|right)/)
   return match ? `text-align: ${match[1]};` : ''
+}
+
+function sanitizeImageWidth(value) {
+  const number = Number.parseInt(value, 10)
+  if (!Number.isFinite(number) || number <= 0) return ''
+  return String(Math.min(Math.max(number, MIN_EDITOR_IMAGE_WIDTH), MAX_EDITOR_IMAGE_WIDTH))
 }
 
 function sanitizeEditorHtml(html) {
@@ -170,6 +179,12 @@ function sanitizeEditorHtml(html) {
       node.setAttribute('alt', node.getAttribute('alt') || '')
       const mediaId = node.getAttribute('data-media-id')
       if (mediaId) node.setAttribute('data-media-id', mediaId)
+      const width = sanitizeImageWidth(node.getAttribute('width'))
+      if (width) {
+        node.setAttribute('width', width)
+      } else {
+        node.removeAttribute('width')
+      }
     }
 
     if (tagName === 'IFRAME') {

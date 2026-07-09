@@ -101,15 +101,16 @@ Failure behavior:
 ## Template Content Editing
 
 1. Admin selects website.
-2. Admin opens Template Content.
-3. Admin chooses a template: home, about, contact, privacy, terms, or packages.
-4. Admin edits code-defined fields, links, image references, and SEO fields.
-5. Admin saves published template content or permanently deletes it.
+2. Admin opens Pages / Template Content.
+3. Admin edits fixed template pages such as home, about, contact, privacy, terms, and packages, or uses Add Page to create a custom `cms_pages` row.
+4. Admin can search pages automatically while typing, review meta titles in the table, and bulk delete selected saved pages after confirmation.
+5. Admin edits content, links, image references, SEO fields, author, slug, and feature image.
+6. Admin saves published page content or permanently deletes it.
 
 Expected behavior:
 
 - no drag/drop layout editing
-- no arbitrary page creation
+- Add Page creates a custom page row and does not replace fixed template content
 - content schema validates before save
 - image picker shows selected website media only
 - future scheduling is not available for template content in v1

@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Grid2X2, List, RefreshCw, Upload } from 'lucide-react'
+import { RefreshCw, Upload } from 'lucide-react'
 import {
   AdminPanel,
   EmptyState,
@@ -664,44 +664,15 @@ export default function MediaLibrary({ websiteId }) {
       </AdminPanel>
 
       <div className="border border-[#c3c4c7] bg-white">
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#dcdcde] p-3">
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center text-[#3858e9]"
-            aria-label="List view"
-          >
-            <List className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center text-[#8c8f94]"
-            aria-label="Grid view"
-          >
-            <Grid2X2 className="h-5 w-5" />
-          </button>
-          <select
-            className="h-8 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
-            value="all"
-            onChange={() => {}}
-            aria-label="Media status filter"
-          >
-            <option value="all">All media items</option>
-          </select>
-          <button
-            type="button"
-            className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-          >
-            Filter
-          </button>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <input
-              aria-label="Search media"
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
-            />
-          </div>
+        <div className="flex justify-center border-b border-[#dcdcde] p-3">
+          <input
+            aria-label="Search media"
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search media"
+            className="h-8 w-full max-w-md rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-b border-[#dcdcde] bg-[#f6f7f7] p-3 text-[13px] text-[#50575e]">

@@ -4,10 +4,16 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Eye,
   RefreshCw,
-  Search,
 } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import TiptapPageEditor from './TiptapPageEditor'
 
 const templateOptions = {
@@ -119,7 +125,7 @@ const allowedEditorTags = new Set([
 
 const allowedEditorAttributes = {
   A: new Set(['href', 'target', 'rel']),
-  IMG: new Set(['src', 'alt', 'data-media-id']),
+  IMG: new Set(['src', 'alt', 'data-media-id', 'width']),
   IFRAME: new Set([
     'src',
     'width',
@@ -139,6 +145,9 @@ const allowedEditorAttributes = {
   H3: new Set(['style']),
   H4: new Set(['style']),
 }
+
+const MIN_EDITOR_IMAGE_WIDTH = 120
+const MAX_EDITOR_IMAGE_WIDTH = 1200
 
 function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
@@ -173,6 +182,12 @@ function sanitizeStyle(value) {
   const text = String(value || '').toLowerCase()
   const match = text.match(/text-align\s*:\s*(left|center|right)/)
   return match ? `text-align: ${match[1]};` : ''
+}
+
+function sanitizeImageWidth(value) {
+  const number = Number.parseInt(value, 10)
+  if (!Number.isFinite(number) || number <= 0) return ''
+  return String(Math.min(Math.max(number, MIN_EDITOR_IMAGE_WIDTH), MAX_EDITOR_IMAGE_WIDTH))
 }
 
 function sanitizeEditorHtml(html) {
@@ -229,6 +244,12 @@ function sanitizeEditorHtml(html) {
       node.setAttribute('alt', node.getAttribute('alt') || '')
       const mediaId = node.getAttribute('data-media-id')
       if (mediaId) node.setAttribute('data-media-id', mediaId)
+      const width = sanitizeImageWidth(node.getAttribute('width'))
+      if (width) {
+        node.setAttribute('width', width)
+      } else {
+        node.removeAttribute('width')
+      }
     }
 
     if (tagName === 'IFRAME') {
@@ -374,6 +395,7 @@ function pageMatchesSearch(page, query) {
   const haystack = [
     page.title,
     page.path,
+    page.seoTitle,
     page.templateKey,
     page.authorName,
   ]
@@ -426,8 +448,9 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
   const [screen, setScreen] = useState('list')
   const [editorMode, setEditorMode] = useState('visual')
   const [isFeatureImagePickerOpen, setIsFeatureImagePickerOpen] = useState(false)
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPageKeys, setSelectedPageKeys] = useState([])
+  const [bulkAction, setBulkAction] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -458,6 +481,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         templateKey: template.templateKey,
         title: template.title,
         path: template.path,
+        seoTitle: template.seoTitle || '',
         publishedAt: template.publishedAt || null,
         updatedAt: template.updatedAt || template.createdAt || null,
         authorName: author?.name || '-',
@@ -475,6 +499,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         templateKey: 'custom',
         title: page.title,
         path: page.path,
+        seoTitle: page.seoTitle || '',
         publishedAt: page.publishedAt || null,
         updatedAt: page.updatedAt || page.createdAt || null,
         authorName: author?.name || '-',
@@ -489,11 +514,30 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
     return pageRows.filter((page) => pageMatchesSearch(page, searchQuery))
   }, [pageRows, searchQuery])
 
+  const selectedSavedPages = useMemo(() => {
+    const selectedKeys = new Set(selectedPageKeys)
+    return pageRows.filter((page) => page.id && selectedKeys.has(page.key))
+  }, [pageRows, selectedPageKeys])
+
+  const visibleSavedPageKeys = useMemo(
+    () => filteredPages.filter((page) => page.id).map((page) => page.key),
+    [filteredPages]
+  )
+
+  const allVisiblePagesSelected =
+    visibleSavedPageKeys.length > 0 &&
+    visibleSavedPageKeys.every((key) => selectedPageKeys.includes(key))
+
   useEffect(() => {
     if (screen !== 'add' && !form.authorId && firstActiveAuthorId) {
       setForm((current) => ({ ...current, authorId: firstActiveAuthorId }))
     }
   }, [firstActiveAuthorId, form.authorId, screen])
+
+  useEffect(() => {
+    const availableKeys = new Set(pageRows.filter((page) => page.id).map((page) => page.key))
+    setSelectedPageKeys((current) => current.filter((key) => availableKeys.has(key)))
+  }, [pageRows])
 
   async function loadTemplates() {
     if (!websiteId) return
@@ -780,9 +824,80 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
     }
   }
 
-  function submitSearch(event) {
-    event.preventDefault()
-    setSearchQuery(searchInput.trim())
+  function togglePageSelection(pageKey) {
+    setSelectedPageKeys((current) =>
+      current.includes(pageKey)
+        ? current.filter((key) => key !== pageKey)
+        : [...current, pageKey]
+    )
+  }
+
+  function toggleVisiblePageSelection() {
+    setSelectedPageKeys((current) => {
+      if (allVisiblePagesSelected) {
+        return current.filter((key) => !visibleSavedPageKeys.includes(key))
+      }
+
+      return Array.from(new Set([...current, ...visibleSavedPageKeys]))
+    })
+  }
+
+  async function bulkDeletePages() {
+    if (bulkAction !== 'delete') {
+      setMessage('Choose a bulk action first.')
+      return
+    }
+
+    if (selectedSavedPages.length === 0) {
+      setMessage('Select at least one page.')
+      return
+    }
+
+    if (
+      !window.confirm(
+        `Delete ${selectedSavedPages.length} selected page(s) permanently? This cannot be undone.`
+      )
+    ) {
+      return
+    }
+
+    setSaving(true)
+    setMessage('')
+
+    let deletedCount = 0
+    const failures = []
+
+    try {
+      for (const page of selectedSavedPages) {
+        const endpoint =
+          page.kind === 'custom'
+            ? `/api/cms/pages/${page.id}?websiteId=${websiteId}`
+            : `/api/cms/template-content/${page.id}?websiteId=${websiteId}`
+        const response = await fetch(endpoint, { method: 'DELETE' })
+        const result = await response.json().catch(() => ({}))
+
+        if (response.ok) {
+          deletedCount += 1
+        } else {
+          failures.push(getApiMessage(result, 'Unable to delete page.'))
+        }
+      }
+
+      setSelectedPageKeys([])
+      setBulkAction('')
+      await loadTemplates()
+      await loadPages()
+
+      if (failures.length > 0) {
+        setMessage(
+          `${deletedCount} deleted. ${failures.length} could not be deleted. ${failures[0]}`
+        )
+      } else {
+        setMessage(`${deletedCount} page(s) deleted.`)
+      }
+    } finally {
+      setSaving(false)
+    }
   }
 
   function pageList() {
@@ -792,13 +907,6 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
           <h2 className="text-[1.55rem] font-normal leading-tight text-[#1f2330]">
             Pages
           </h2>
-          <button
-            type="button"
-            onClick={addPage}
-            className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-          >
-            Add Page
-          </button>
           <Button
             type="button"
             variant="outline"
@@ -818,32 +926,60 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[13px] text-[#1f2330]">
+          <button
+            type="button"
+            onClick={addPage}
+            className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+          >
+            Add Page
+          </button>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
+            aria-label="Search pages"
+            placeholder="Search pages"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#50575e]">
+          <select
+            value={bulkAction}
+            onChange={(event) => setBulkAction(event.target.value)}
+            aria-label="Bulk actions"
+            className="h-8 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
+          >
+            <option value="">Bulk actions</option>
+            <option value="delete">Delete selected</option>
+          </select>
+          <button
+            type="button"
+            onClick={bulkDeletePages}
+            disabled={saving}
+            className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff] disabled:opacity-60"
+          >
+            Apply
+          </button>
+          <span className="ml-auto text-[#1f2330]">
             {filteredPages.length} {filteredPages.length === 1 ? 'item' : 'items'}
-          </p>
-          <form onSubmit={submitSearch} className="flex flex-wrap items-center gap-2">
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
-              aria-label="Search pages"
-            />
-            <button
-              type="submit"
-              className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-            >
-              <Search className="mr-1 inline h-3.5 w-3.5" />
-              Search Pages
-            </button>
-          </form>
+          </span>
         </div>
 
         <div className="overflow-x-auto border border-[#c3c4c7] bg-white">
           <table className="w-full min-w-[60rem] text-left text-[13px] text-[#1f2330]">
             <thead>
               <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
+                <th className="w-10 px-3 py-2 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={allVisiblePagesSelected}
+                    onChange={toggleVisiblePageSelection}
+                    aria-label="Select all visible pages"
+                  />
+                </th>
                 <th className="px-3 py-2 font-medium">Title</th>
+                <th className="w-56 px-3 py-2 font-medium">Meta title</th>
                 <th className="w-48 px-3 py-2 font-medium">Author</th>
                 <th className="w-52 px-3 py-2 font-medium">Date</th>
                 <th className="w-44 px-3 py-2 font-medium">Actions</th>
@@ -858,6 +994,16 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                   }
                 >
                   <td className="px-3 py-4">
+                    {page.id ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedPageKeys.includes(page.key)}
+                        onChange={() => togglePageSelection(page.key)}
+                        aria-label={`Select ${page.title}`}
+                      />
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-4">
                     <button
                       type="button"
                       onClick={() => openPage(page)}
@@ -870,6 +1016,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                     ) : null}
                     <p className="mt-1 text-[#50575e]">{page.path}</p>
                   </td>
+                  <td className="px-3 py-4 text-[#1f2330]">{page.seoTitle || '-'}</td>
                   <td className="px-3 py-4 text-[#005cbb]">{page.authorName}</td>
                   <td className="px-3 py-4">
                     <p className="text-[#50575e]">{formatDate(page.publishedAt || page.updatedAt)}</p>
@@ -905,7 +1052,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
               ))}
               {filteredPages.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-8 text-center text-[#596171]">
+                  <td colSpan={6} className="px-3 py-8 text-center text-[#596171]">
                     No pages found.
                   </td>
                 </tr>
@@ -1106,88 +1253,99 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
             <div className="block text-[13px] font-medium text-[#1f2330]">
               Feature Image
               <div className="mt-2 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-3">
-              {selectedFeatureImage ? (
-                <div className="mb-3 flex items-center gap-3">
-                  <img
-                    src={selectedFeatureImage.publicUrl}
-                    alt={selectedFeatureImage.altText || selectedFeatureImage.originalFilename}
-                    className="h-16 w-16 rounded-[3px] border border-[#c3c4c7] object-cover"
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-[#1f2330]">
-                      {selectedFeatureImage.altText || selectedFeatureImage.originalFilename}
-                    </p>
-                    <p className="truncate text-[12px] font-normal text-[#50575e]">
-                      {selectedFeatureImage.originalFilename}
-                    </p>
+                {selectedFeatureImage ? (
+                  <div className="mb-3 flex items-center gap-3">
+                    <img
+                      src={selectedFeatureImage.publicUrl}
+                      alt={selectedFeatureImage.altText || selectedFeatureImage.originalFilename}
+                      className="h-16 w-16 rounded-[3px] border border-[#c3c4c7] object-cover"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-[#1f2330]">
+                        {selectedFeatureImage.altText || selectedFeatureImage.originalFilename}
+                      </p>
+                      <p className="truncate text-[12px] font-normal text-[#50575e]">
+                        {selectedFeatureImage.originalFilename}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p className="mb-3 text-[13px] font-normal text-[#50575e]">
-                  No feature image selected.
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsFeatureImagePickerOpen((current) => !current)}
-                  className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-                >
-                  {selectedFeatureImage ? 'Change feature image' : 'Set feature image'}
-                </button>
-                {form.featuredImageId ? (
+                ) : (
+                  <p className="mb-3 text-[13px] font-normal text-[#50575e]">
+                    No feature image selected.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => updateFeaturedImage('')}
-                    className="rounded-[3px] border border-[#8c8f94] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2330] hover:border-[#1f2330]"
+                    onClick={() => setIsFeatureImagePickerOpen(true)}
+                    className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
                   >
-                    Remove feature image
+                    {selectedFeatureImage ? 'Change feature image' : 'Set feature image'}
                   </button>
-                ) : null}
-              </div>
-              {isFeatureImagePickerOpen ? (
-                <div className="mt-3 max-h-72 overflow-y-auto border border-[#c3c4c7] bg-white p-3">
-                  {media.length > 0 ? (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {media.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            updateFeaturedImage(item.id)
-                            setIsFeatureImagePickerOpen(false)
-                          }}
-                          className={`flex items-center gap-3 rounded-[3px] border p-2 text-left hover:border-[#3858e9] ${
-                            form.featuredImageId === item.id
-                              ? 'border-[#3858e9] bg-[#f0f3ff]'
-                              : 'border-[#dcdcde] bg-white'
-                          }`}
-                        >
-                          <img
-                            src={item.publicUrl}
-                            alt={item.altText || item.originalFilename}
-                            className="h-14 w-14 rounded-[3px] object-cover"
-                          />
-                          <span className="min-w-0">
-                            <span className="block truncate text-[13px] font-medium text-[#1f2330]">
-                              {item.altText || item.originalFilename}
-                            </span>
-                            <span className="block text-[12px] font-normal text-[#3858e9]">
-                              Select
-                            </span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[13px] font-normal text-[#50575e]">
-                      Upload media first, then choose a feature image.
-                    </p>
-                  )}
+                  {form.featuredImageId ? (
+                    <button
+                      type="button"
+                      onClick={() => updateFeaturedImage('')}
+                      className="rounded-[3px] border border-[#8c8f94] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2330] hover:border-[#1f2330]"
+                    >
+                      Remove feature image
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
+              <Dialog
+                open={isFeatureImagePickerOpen}
+                onOpenChange={setIsFeatureImagePickerOpen}
+              >
+                <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Select feature image</DialogTitle>
+                    <DialogDescription>
+                      Choose an image from this website&apos;s media library.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="max-h-[500px] overflow-y-auto pr-1">
+                    {media.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {media.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              updateFeaturedImage(item.id)
+                              setIsFeatureImagePickerOpen(false)
+                            }}
+                            className={`flex items-center gap-3 rounded-[3px] border p-2 text-left hover:border-[#3858e9] ${
+                              form.featuredImageId === item.id
+                                ? 'border-[#3858e9] bg-[#f0f3ff]'
+                                : 'border-[#dcdcde] bg-white'
+                            }`}
+                          >
+                            <img
+                              src={item.publicUrl}
+                              alt={item.altText || item.originalFilename}
+                              className="h-14 w-14 rounded-[3px] object-cover"
+                            />
+                            <span className="min-w-0">
+                              <span className="block truncate text-[13px] font-medium text-[#1f2330]">
+                                {item.altText || item.originalFilename}
+                              </span>
+                              <span className="block text-[12px] font-normal text-[#3858e9]">
+                                Select
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[13px] font-normal text-[#50575e]">
+                        Upload media first, then choose a feature image.
+                      </p>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
-          </div>
             <label className="flex items-center gap-3 pt-7 text-[13px] font-medium text-[#1f2330]">
               <input
                 type="checkbox"

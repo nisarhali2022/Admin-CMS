@@ -2200,3 +2200,122 @@ Use this structure for every completed milestone:
 - Follow-up items:
   - Add a batch delete API only if media libraries become large enough that sequential deletes feel slow.
 - Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Header Filter Cleanup
+
+- Status: Complete
+- Date completed: 2026-07-09
+- Milestone goal: Remove unused Media Library header filter controls and center the search field above the bulk-action row.
+- What was implemented:
+  - Removed list/grid placeholder buttons, `All media items` dropdown, and `Filter` button from the Media page.
+  - Moved the automatic search input into a centered row above the bulk-action toolbar.
+  - Kept bulk delete, pagination, Usage, table actions, upload, and media API behavior unchanged.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Bulk Delete Meta Title And Auto Search
+
+- Status: Complete
+- Date completed: 2026-07-10
+- Milestone goal: Improve the Pages list table with automatic search, bulk permanent delete, and visible meta title data.
+- What was implemented:
+  - Removed the submit-based `Search Pages` button and made search update while typing.
+  - Moved `Add Page` into the list toolbar opposite search.
+  - Added checkbox selection, select-all for visible pages, and `Delete selected` bulk permanent delete.
+  - Added `Meta title` before `Author` in the Pages table and included meta title in client-side search.
+  - Kept row View/Delete actions and existing page/template delete API behavior.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+  - `docs/TESTING.md`
+  - `docs/USER_FLOWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, or public website contract changed.
+  - Bulk delete returns a UI summary of deleted and failed page deletes after reload.
+- Security and architecture checks:
+  - Bulk delete is still permanent delete after confirmation.
+  - Fixed template pages and custom pages keep their existing separate delete endpoints.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Focus keyphrase remains one plain text value up to 180 characters; multiple comma-separated keywords are stored as text only.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Feature Image Popup Picker
+
+- Status: Complete
+- Date completed: 2026-07-10
+- Milestone goal: Move Pages Feature Image selection from an inline expanding picker to a modal popup while keeping the existing feature image save behavior.
+- What was implemented:
+  - Replaced the inline Feature Image media picker panel with the shared dialog component.
+  - Kept the selected feature image preview, `Set feature image`, `Change feature image`, and `Remove feature image` controls in the settings card.
+  - Added a `Select feature image` popup that lists current website media, highlights the selected image, and closes after selection.
+  - Kept media loading, `featuredImageId`, template image mapping, API payloads, and schema behavior unchanged.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, or public website contract changed.
+  - Selecting media still updates the existing feature image ID used by page/template saves.
+- Security and architecture checks:
+  - The picker uses already loaded website-scoped media and does not add upload/delete behavior inside the popup.
+  - The dialog is UI-only and does not bypass existing media ownership validation.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Uploading new media still happens from the Media page, not inside the feature image popup.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Feature Image Popup Height And Resizable Editor Images
+
+- Status: Complete
+- Date completed: 2026-07-10
+- Milestone goal: Make the Pages Feature Image popup easier to browse and allow inserted Tiptap editor images to be resized without changing storage or API behavior.
+- What was implemented:
+  - Increased the Pages Feature Image dialog width and set the media list to scroll after about 500px.
+  - Added a local resizable image node view to the shared Tiptap editor used by Pages and Posts.
+  - Resized editor images save a sanitized numeric `width` attribute while preserving `src`, `alt`, and `data-media-id`.
+  - Updated Pages and Posts HTML sanitizers to allow and clamp image widths between 120px and 1200px.
+  - Added CSS for selected/hovered editor images and the resize handle.
+- Files/modules changed:
+  - `components/admin/RichTextEditor.jsx`
+  - `features/template-content/TemplateContentManager.jsx`
+  - `features/posts/PostsManager.jsx`
+  - `styles/globals.css`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - Editor HTML may now include safe image width output such as `<img src="..." alt="..." data-media-id="..." width="640">`.
+  - No API, database, Supabase Storage, media upload, or public website contract changed.
+- Security and architecture checks:
+  - Width is stored as a numeric HTML attribute, not arbitrary inline style.
+  - Sanitizers clamp widths and continue to remove unsafe image URLs.
+  - Media usage tracking still relies on `data-media-id`.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- components features styles docs test`
+- Known caveats:
+  - Resize is horizontal only; height remains automatic to preserve aspect ratio.
+- Readiness for next milestone: Ready.

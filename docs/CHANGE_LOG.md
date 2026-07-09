@@ -258,10 +258,11 @@ Note: older entries below record the path taken during implementation. Any older
 - Media Library no longer shows the placeholder `Author` column; it now shows optimized WebP `File size` and `Dimensions` columns from stored media metadata.
 - Media uploads keep using server-side `sharp` conversion/compression so PNG/JPG inputs are stored as optimized WebP files; images wider than 1200px are resized down to 1200px without upscaling smaller images.
 - The Media table now shows the stored `.webp` filename/type separately from the `Uploaded as` source filename.
-- Media Library status filtering now defaults to `Live media`, supports `All media items` and `Trash`, and no longer shows the unused date dropdown.
+- Media Library no longer shows the unused list/grid view controls, `All media items` dropdown, date dropdown, or `Filter` button.
 - Media with empty alt text now falls back to the uploaded filename, and new uploads/imports save that filename fallback.
 - Media downloads now use a blob-based browser download handler instead of relying on cross-origin link download behavior.
 - Media search now filters automatically while typing, and the Media table supports checkbox selection plus bulk permanent delete through the existing safe delete endpoint. The visible `Usage` action remains available for manual reference checks.
+- Media search now sits in a centered row above the bulk-action toolbar.
 - Categories, Authors, and Redirects no longer render duplicate table footer headers, and their table body text now uses normal black styling.
 - Template Content is now presented as a WordPress-style Pages screen: a table of fixed pages first, then an Edit Page view after clicking a title.
 - Template pages now support `focus_keyphrase` and optional same-website `author_id`; the editor shows Focus keyphrase, SEO title, Meta description, and Author below the content box.
@@ -278,9 +279,13 @@ Note: older entries below record the path taken during implementation. Any older
 - WordPress import now skips non-published WordPress pages/posts and reports them instead of importing them as drafts.
 - Media delete keeps the safe reference check and deletes the Supabase Storage object before deleting metadata when unused.
 - Pages now show `View` before `Delete` in the table Actions column and on Add/Edit screens, using the selected website's primary domain plus the page slug.
+- Pages list now supports automatic search, `Meta title` before `Author`, checkbox selection, and bulk permanent delete through existing page/template delete endpoints; Add Page moved into the list toolbar opposite search.
+- Pages Feature Image selection now opens a modal popup using the shared dialog component instead of expanding an inline picker inside the settings card.
+- Pages Feature Image popup now uses a wider dialog with a media list that scrolls after about 500px.
 - The Pages content area now uses a WordPress-like visual editor with working toolbar actions, Code mode for sanitized HTML, and an Add Media picker that inserts selected images.
 - The Pages editor now places the SEO card and page settings/feature-image card in one responsive two-column row.
 - The Pages visual editor now uses Tiptap open-source editor packages instead of the previous custom `contentEditable`/`document.execCommand` implementation. Toolbar support includes headings, bold, italic, lists, quote, link, media image insertion, YouTube embed, tables, alignment, undo, redo, and Code mode HTML review.
+- Tiptap editor images can now be resized inside the content editor; resized images save a sanitized numeric `width` attribute while keeping `data-media-id` for media usage checks.
 - Posts now follow the Pages-style admin UI with a WordPress-like list table, title-click editing, View/Delete actions, category selection, feature image selection, SEO/settings two-column layout, and the shared Tiptap visual editor.
 - Blog posts now save new editor content to `cms_posts.body_html`; legacy `body_blocks` remain available for imported/older posts and public fallback rendering.
 - Post editor images preserve `data-media-id`, and media usage checks include post `body_html` references.
