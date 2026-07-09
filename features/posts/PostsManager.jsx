@@ -1,10 +1,17 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Eye, RefreshCw, Search } from 'lucide-react'
+import { Eye, RefreshCw } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const emptyForm = {
   title: '',
@@ -332,6 +339,7 @@ function postMatchesSearch(post, query, authorsById, categoriesById) {
     post.title,
     post.slug,
     post.excerpt,
+    post.seoTitle,
     authorName,
     categoryName,
   ]
@@ -357,8 +365,9 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
   const [screen, setScreen] = useState('list')
   const [editorMode, setEditorMode] = useState('visual')
   const [isFeatureImagePickerOpen, setIsFeatureImagePickerOpen] = useState(false)
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPostIds, setSelectedPostIds] = useState([])
+  const [bulkAction, setBulkAction] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -378,6 +387,17 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
       ),
     [authorsById, categoriesById, posts, searchQuery]
   )
+  const visiblePostIds = useMemo(
+    () => filteredPosts.map((post) => post.id).filter(Boolean),
+    [filteredPosts]
+  )
+  const selectedPosts = useMemo(
+    () => posts.filter((post) => selectedPostIds.includes(post.id)),
+    [posts, selectedPostIds]
+  )
+  const allVisiblePostsSelected =
+    visiblePostIds.length > 0 &&
+    visiblePostIds.every((postId) => selectedPostIds.includes(postId))
 
   const selectedFeatureImage = useMemo(
     () => media.find((item) => item.id === form.featuredImageId) || null,
@@ -564,9 +584,77 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
     }
   }
 
-  function submitSearch(event) {
-    event.preventDefault()
-    setSearchQuery(searchInput.trim())
+  function togglePostSelection(postId) {
+    setSelectedPostIds((current) =>
+      current.includes(postId)
+        ? current.filter((id) => id !== postId)
+        : [...current, postId]
+    )
+  }
+
+  function toggleVisiblePostSelection() {
+    setSelectedPostIds((current) => {
+      if (allVisiblePostsSelected) {
+        return current.filter((id) => !visiblePostIds.includes(id))
+      }
+
+      return Array.from(new Set([...current, ...visiblePostIds]))
+    })
+  }
+
+  async function bulkDeletePosts() {
+    if (bulkAction !== 'delete') {
+      setMessage('Choose a bulk action first.')
+      return
+    }
+
+    if (selectedPosts.length === 0) {
+      setMessage('Select at least one post.')
+      return
+    }
+
+    if (
+      !window.confirm(
+        `Delete ${selectedPosts.length} selected post(s) permanently? This cannot be undone.`
+      )
+    ) {
+      return
+    }
+
+    setSaving(true)
+    setMessage('')
+
+    let deletedCount = 0
+    const failures = []
+
+    try {
+      for (const post of selectedPosts) {
+        const response = await fetch(`/api/cms/posts/${post.id}?websiteId=${websiteId}`, {
+          method: 'DELETE',
+        })
+        const result = await response.json().catch(() => ({}))
+
+        if (response.ok) {
+          deletedCount += 1
+        } else {
+          failures.push(getApiMessage(result, 'Unable to delete post.'))
+        }
+      }
+
+      setSelectedPostIds([])
+      setBulkAction('')
+      await loadPosts()
+
+      if (failures.length > 0) {
+        setMessage(
+          `${deletedCount} deleted. ${failures.length} could not be deleted. ${failures[0]}`
+        )
+      } else {
+        setMessage(`${deletedCount} post(s) deleted.`)
+      }
+    } finally {
+      setSaving(false)
+    }
   }
 
   function pageList() {
@@ -576,13 +664,6 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
           <h2 className="text-[1.55rem] font-normal leading-tight text-[#1f2330]">
             Posts
           </h2>
-          <button
-            type="button"
-            onClick={addPost}
-            className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-          >
-            Add Post
-          </button>
           <Button
             type="button"
             variant="outline"
@@ -600,32 +681,60 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[13px] text-[#1f2330]">
+          <button
+            type="button"
+            onClick={addPost}
+            className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+          >
+            Add Post
+          </button>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
+            aria-label="Search posts"
+            placeholder="Search posts"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#50575e]">
+          <select
+            value={bulkAction}
+            onChange={(event) => setBulkAction(event.target.value)}
+            aria-label="Bulk actions"
+            className="h-8 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
+          >
+            <option value="">Bulk actions</option>
+            <option value="delete">Delete selected</option>
+          </select>
+          <button
+            type="button"
+            onClick={bulkDeletePosts}
+            disabled={saving}
+            className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff] disabled:opacity-60"
+          >
+            Apply
+          </button>
+          <span className="ml-auto text-[#1f2330]">
             {filteredPosts.length} {filteredPosts.length === 1 ? 'item' : 'items'}
-          </p>
-          <form onSubmit={submitSearch} className="flex flex-wrap items-center gap-2">
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
-              aria-label="Search posts"
-            />
-            <button
-              type="submit"
-              className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-            >
-              <Search className="mr-1 inline h-3.5 w-3.5" />
-              Search Posts
-            </button>
-          </form>
+          </span>
         </div>
 
         <div className="overflow-x-auto border border-[#c3c4c7] bg-white">
-          <table className="w-full min-w-[68rem] text-left text-[13px] text-[#1f2330]">
+          <table className="w-full min-w-[76rem] text-left text-[13px] text-[#1f2330]">
             <thead>
               <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
+                <th className="w-10 px-3 py-2 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={allVisiblePostsSelected}
+                    onChange={toggleVisiblePostSelection}
+                    aria-label="Select all visible posts"
+                  />
+                </th>
                 <th className="px-3 py-2 font-medium">Title</th>
+                <th className="w-56 px-3 py-2 font-medium">Meta title</th>
                 <th className="w-48 px-3 py-2 font-medium">Author</th>
                 <th className="w-48 px-3 py-2 font-medium">Category</th>
                 <th className="w-52 px-3 py-2 font-medium">Date</th>
@@ -654,6 +763,14 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                     className="border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]"
                   >
                     <td className="px-3 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedPostIds.includes(post.id)}
+                        onChange={() => togglePostSelection(post.id)}
+                        aria-label={`Select ${post.title || 'Untitled'}`}
+                      />
+                    </td>
+                    <td className="px-3 py-4">
                       <button
                         type="button"
                         onClick={() => openPost(post)}
@@ -665,6 +782,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                         {postPath || 'Category and slug required'}
                       </p>
                     </td>
+                    <td className="px-3 py-4 text-[#1f2330]">{post.seoTitle || '-'}</td>
                     <td className="px-3 py-4 text-[#005cbb]">
                       {post.author?.name || authorsById.get(post.authorId)?.name || '-'}
                     </td>
@@ -700,7 +818,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
               })}
               {filteredPosts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-[#596171]">
+                  <td colSpan={7} className="px-3 py-8 text-center text-[#596171]">
                     No posts found.
                   </td>
                 </tr>
@@ -936,7 +1054,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsFeatureImagePickerOpen((current) => !current)}
+                    onClick={() => setIsFeatureImagePickerOpen(true)}
                     className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
                   >
                     {selectedFeatureImage ? 'Change feature image' : 'Set feature image'}
@@ -953,8 +1071,19 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                     </button>
                   ) : null}
                 </div>
-                {isFeatureImagePickerOpen ? (
-                  <div className="mt-3 max-h-72 overflow-y-auto border border-[#c3c4c7] bg-white p-3">
+              </div>
+              <Dialog
+                open={isFeatureImagePickerOpen}
+                onOpenChange={setIsFeatureImagePickerOpen}
+              >
+                <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Select feature image</DialogTitle>
+                    <DialogDescription>
+                      Choose an image from this website&apos;s media library.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="max-h-[500px] overflow-y-auto pr-1">
                     {media.length > 0 ? (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {media.map((item) => (
@@ -996,8 +1125,8 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                       </p>
                     )}
                   </div>
-                ) : null}
-              </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <label className="flex items-center gap-3 pt-7 text-[13px] font-medium text-[#1f2330]">
               <input

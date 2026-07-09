@@ -31,6 +31,12 @@ This file records the major product, architecture, schema, UI, and documentation
 
 Note: older entries below record the path taken during implementation. Any older mention of bulk trash/restore, media trash filters, draft/unpublish, optional post category, `/blog/{postSlug}` detail URLs, body-block-first editing, or Pages without View actions is superseded by the current direction above and the later correction entries.
 
+## Latest UI Corrections
+
+- Posts now mirror the current Pages list behavior: automatic search, `Add Post` in the toolbar row, bulk permanent delete, `Meta title` before `Author`, and row `View` before `Delete`.
+- The Posts Feature Image selector now uses the same `Select feature image` dialog pattern as Pages, with a scrollable media list capped around 500px.
+- Posts continue to use the shared Tiptap editor, so the latest Add Media popup, Small/Medium/Large image presets, image resizing, and fixed Code mode apply to both Pages and Posts.
+
 ## Website And Resource Scoping
 
 - Added website/account management as a core CMS concept.
@@ -286,6 +292,8 @@ Note: older entries below record the path taken during implementation. Any older
 - The Pages editor now places the SEO card and page settings/feature-image card in one responsive two-column row.
 - The Pages visual editor now uses Tiptap open-source editor packages instead of the previous custom `contentEditable`/`document.execCommand` implementation. Toolbar support includes headings, bold, italic, lists, quote, link, media image insertion, YouTube embed, tables, alignment, undo, redo, and Code mode HTML review.
 - Tiptap editor images can now be resized inside the content editor; resized images save a sanitized numeric `width` attribute while keeping `data-media-id` for media usage checks.
+- The shared Tiptap Add Media/Add Image workflow now opens a `Select image` dialog with a 500px scrolling media list and Small/Medium/Large insert presets. Code mode now edits a local draft and applies sanitized HTML only on Apply/switch/blur instead of rewriting every keystroke.
+- Code mode no longer syncs its draft HTML through the Tiptap visual schema while the Code tab is open, so allowed HTML wrappers such as `<div>` are not immediately converted to paragraphs while editing.
 - Posts now follow the Pages-style admin UI with a WordPress-like list table, title-click editing, View/Delete actions, category selection, feature image selection, SEO/settings two-column layout, and the shared Tiptap visual editor.
 - Blog posts now save new editor content to `cms_posts.body_html`; legacy `body_blocks` remain available for imported/older posts and public fallback rendering.
 - Post editor images preserve `data-media-id`, and media usage checks include post `body_html` references.

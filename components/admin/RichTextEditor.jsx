@@ -13,6 +13,13 @@ import TableRow from '@tiptap/extension-table-row'
 import Placeholder from '@tiptap/extension-placeholder'
 import Youtube from '@tiptap/extension-youtube'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   AlignCenter,
   AlignLeft,
   AlignRight,
@@ -34,6 +41,11 @@ const toolbarButtonClass =
 
 const MIN_IMAGE_WIDTH = 120
 const MAX_IMAGE_WIDTH = 1200
+const IMAGE_SIZE_PRESETS = [
+  { label: 'Small', width: 300 },
+  { label: 'Medium', width: 600 },
+  { label: 'Large', width: null },
+]
 
 function sanitizeImageWidth(value, maxWidth = MAX_IMAGE_WIDTH) {
   const number = Number.parseInt(value, 10)
@@ -77,9 +89,11 @@ function createResizableImageNodeView({ node, editor, getPos }) {
     if (safeWidth) {
       image.setAttribute('width', String(safeWidth))
       image.style.width = `${safeWidth}px`
+      wrapper.style.width = `${safeWidth}px`
     } else {
       image.removeAttribute('width')
-      image.style.width = ''
+      image.style.width = '100%'
+      wrapper.style.width = '100%'
     }
   }
 
@@ -198,6 +212,7 @@ export default function RichTextEditor({
   codeLabel = 'HTML content',
 }) {
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false)
+  const [codeDraft, setCodeDraft] = useState(value || '')
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -246,12 +261,19 @@ export default function RichTextEditor({
 
   useEffect(() => {
     if (!editor) return
+    if (editorMode === 'code') return
 
     const nextHtml = value || ''
     if (editor.getHTML() !== nextHtml) {
       editor.commands.setContent(nextHtml, false)
     }
-  }, [editor, value])
+  }, [editor, editorMode, value])
+
+  useEffect(() => {
+    if (editorMode !== 'code') {
+      setCodeDraft(value || '')
+    }
+  }, [editorMode, value])
 
   function runCommand(callback) {
     if (!editor) return
@@ -315,10 +337,10 @@ export default function RichTextEditor({
       setMessage('Upload media first, then use Add Media.')
       return
     }
-    setIsMediaPickerOpen((current) => !current)
+    setIsMediaPickerOpen(true)
   }
 
-  function insertMediaIntoContent(item) {
+  function insertMediaIntoContent(item, width = null) {
     if (!editor) return
 
     editor
@@ -328,9 +350,31 @@ export default function RichTextEditor({
         src: item.publicUrl,
         alt: getMediaLabel(item),
         mediaId: item.id,
+        width,
       })
       .run()
     setIsMediaPickerOpen(false)
+  }
+
+  function openCodeMode() {
+    setCodeDraft(editor?.getHTML() || value || '')
+    setEditorMode('code')
+  }
+
+  function applyCodeDraft(nextMode = editorMode) {
+    const sanitized = sanitizeHtml(codeDraft)
+    onChange(sanitized)
+    setCodeDraft(sanitized)
+    if (nextMode === 'visual' && editor) {
+      editor.commands.setContent(sanitized, false)
+    }
+    if (nextMode !== editorMode) {
+      setEditorMode(nextMode)
+    }
+  }
+
+  function openVisualMode() {
+    applyCodeDraft('visual')
   }
 
   return (
@@ -347,7 +391,7 @@ export default function RichTextEditor({
         <div className="flex overflow-hidden rounded-t-[3px] border border-[#c3c4c7] bg-white">
           <button
             type="button"
-            onClick={() => setEditorMode('visual')}
+            onClick={openVisualMode}
             className={`px-3 py-1.5 text-[13px] ${
               editorMode === 'visual'
                 ? 'bg-white text-[#1f2330]'
@@ -358,7 +402,7 @@ export default function RichTextEditor({
           </button>
           <button
             type="button"
-            onClick={() => setEditorMode('code')}
+            onClick={openCodeMode}
             className={`border-l border-[#c3c4c7] px-3 py-1.5 text-[13px] ${
               editorMode === 'code'
                 ? 'bg-white text-[#1f2330]'
@@ -529,45 +573,84 @@ export default function RichTextEditor({
             </button>
           </div>
 
-          {isMediaPickerOpen ? (
-            <div className="border-b border-[#dcdcde] bg-[#f6f7f7] p-3">
-              <div className="grid max-h-64 gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-4">
-                {media.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => insertMediaIntoContent(item)}
-                    className="flex items-center gap-3 rounded-[3px] border border-[#dcdcde] bg-white p-2 text-left hover:border-[#3858e9]"
-                  >
-                    <img
-                      src={item.publicUrl}
-                      alt={getMediaLabel(item)}
-                      className="h-14 w-14 rounded-[3px] object-cover"
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-medium text-[#1f2330]">
-                        {getMediaLabel(item)}
-                      </span>
-                      <span className="block text-[12px] font-normal text-[#3858e9]">
-                        Insert image
-                      </span>
-                    </span>
-                  </button>
-                ))}
+          <Dialog open={isMediaPickerOpen} onOpenChange={setIsMediaPickerOpen}>
+            <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Select image</DialogTitle>
+                <DialogDescription>
+                  Choose an image and insert it as small, medium, or full width.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[500px] overflow-y-auto pr-1">
+                {media.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {media.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-[3px] border border-[#dcdcde] bg-white p-2"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.publicUrl}
+                            alt={getMediaLabel(item)}
+                            className="h-14 w-14 rounded-[3px] object-cover"
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate text-[13px] font-medium text-[#1f2330]">
+                              {getMediaLabel(item)}
+                            </p>
+                            <p className="truncate text-[12px] font-normal text-[#50575e]">
+                              {item.originalFilename}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          {IMAGE_SIZE_PRESETS.map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => insertMediaIntoContent(item, preset.width)}
+                              className="rounded-[3px] border border-[#3858e9] bg-white px-2 py-1 text-[12px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[13px] font-normal text-[#50575e]">
+                    Upload media first, then use Add Media.
+                  </p>
+                )}
               </div>
-            </div>
-          ) : null}
+            </DialogContent>
+          </Dialog>
 
           <EditorContent editor={editor} />
         </>
       ) : (
-        <textarea
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          rows={16}
-          className="min-h-[20rem] w-full resize-y border-0 bg-white px-3 py-3 font-mono text-[14px] leading-6 text-[#1f2330] outline-none"
-          aria-label={codeLabel}
-        />
+        <div className="bg-white">
+          <div className="flex items-center justify-between border-b border-[#dcdcde] bg-[#f6f7f7] px-3 py-2">
+            <span className="text-[13px] font-medium text-[#1f2330]">{codeLabel}</span>
+            <button
+              type="button"
+              onClick={() => applyCodeDraft('code')}
+              className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+            >
+              Apply code
+            </button>
+          </div>
+          <textarea
+            value={codeDraft}
+            onChange={(event) => setCodeDraft(event.target.value)}
+            onBlur={() => applyCodeDraft('code')}
+            rows={16}
+            className="min-h-[20rem] w-full resize-y border-0 bg-white px-3 py-3 font-mono text-[14px] leading-6 text-[#1f2330] outline-none"
+            aria-label={codeLabel}
+          />
+        </div>
       )}
 
       <div className="border-t border-[#dcdcde] bg-[#f6f7f7] px-3 py-2 text-[13px] text-[#50575e]">

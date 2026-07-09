@@ -2319,3 +2319,68 @@ Use this structure for every completed milestone:
 - Known caveats:
   - Resize is horizontal only; height remains automatic to preserve aspect ratio.
 - Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Content Editor Media Popup Presets And Code Mode
+
+- Status: Complete
+- Date completed: 2026-07-10
+- Milestone goal: Make the shared Pages/Posts editor media insertion and Code mode usable for daily content editing.
+- What was implemented:
+  - Replaced the inline Add Media picker with a `Select image` dialog shared by the top Add Media button and toolbar Add Image button.
+  - Added Small, Medium, and Large insert presets: 300px, 600px, and full-width/no fixed width.
+  - Kept drag resize support for inserted images after placement.
+  - Changed Code mode to use local `codeDraft` state so typing HTML does not sanitize/reformat on every keystroke.
+  - Added `Apply code` and apply-on-switch/blur behavior so sanitized HTML is applied intentionally.
+- Files/modules changed:
+  - `components/admin/RichTextEditor.jsx`
+  - `styles/globals.css`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - Small/Medium images save numeric `width` attributes.
+  - Large images save without a fixed `width` attribute and render full content width through editor/content CSS.
+  - No API, database, Supabase Storage, media upload, or migration behavior changed.
+- Security and architecture checks:
+  - Code mode still sanitizes before applying content to the editor state.
+  - Image size presets reuse the existing safe image `width` attribute support and `data-media-id` references.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- components features styles docs test`
+- Known caveats:
+  - Code mode supports the CMS allowed HTML subset only; unsupported tags are still stripped when code is applied.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Posts Pages-Style List And Feature Image Dialog
+
+- Status: Complete
+- Date completed: 2026-07-10
+- Milestone goal: Bring Posts in line with the latest Pages UI patterns where the existing Posts schema/API supports it.
+- What was implemented:
+  - Moved `Add Post` into the list toolbar opposite the automatic search field.
+  - Removed submit-based post search and made filtering update while typing.
+  - Added select-all and row checkboxes, a `Delete selected` bulk action, and one-confirmation permanent bulk delete.
+  - Added a `Meta title` table column before `Author`.
+  - Kept row `View` before `Delete` and preserved category-based public post URLs.
+  - Replaced the inline Post Feature Image picker with the same `Select feature image` dialog used by Pages, including an internally scrollable media list.
+- Files/modules changed:
+  - `features/posts/PostsManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, Supabase Storage, migration, or public website contract changed.
+  - Bulk delete reuses the existing post delete endpoint for each selected saved post.
+- Security and architecture checks:
+  - Deletes remain permanent and require confirmation.
+  - Feature image selection still uses already loaded website-scoped media and existing `featuredImageId` payload behavior.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Posts still do not expose Focus keyphrase because the current Posts schema/API does not include that field.
+- Readiness for next milestone: Ready.

@@ -231,6 +231,10 @@
   border-radius: 6px;
 }
 
+.wp-admin-interface .prose-content img:not([width]) {
+  width: 100%;
+}
+
 .wp-admin-interface .prose-content .cms-editor-image-frame {
   position: relative;
   display: inline-block;
