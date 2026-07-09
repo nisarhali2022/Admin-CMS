@@ -9,7 +9,7 @@ All normal CMS resources are scoped by `website_id`. Use UUID primary keys, `cre
 - `published_at` is set when pages/posts/template content are saved.
 - Delete means permanent delete after admin confirmation.
 - Slugs are lowercase, URL-safe, and unique within each website where applicable.
-- Use `jsonb` for template `content_data`, post `body_blocks`, SEO extras, sitemap settings, and site content/config values.
+- Use `jsonb` for template `content_data`, legacy post `body_blocks`, SEO extras, sitemap settings, and site content/config values.
 - Validate JSON shape in app validators before saving.
 - Image references inside JSON should store `mediaId` as the primary reference. Public URLs are derived from `cms_media`.
 
@@ -124,7 +124,7 @@ Stores WordPress-style custom pages per website.
 | `website_id` | uuid | yes | references `cms_websites(id)` |
 | `title` | text | yes | admin/public title |
 | `path` | text | yes | public path, such as `/about-us`; `/` is reserved for Home |
-| `body_text` | text | yes | page editor body content |
+| `body_text` | text | yes | sanitized page editor HTML/content |
 | `focus_keyphrase` | text | no | page SEO focus keyphrase |
 | `seo_title` | text | no | manual SEO title |
 | `meta_description` | text | no | manual meta description |
@@ -171,7 +171,7 @@ Constraints and indexes:
 
 Behavior:
 
-- One category per post in v1.
+- One category per post is required in v1 because category slug is part of the public post URL.
 - Tags are not included in v1.
 
 ### `cms_authors`
@@ -216,13 +216,14 @@ Stores blog posts per website.
 |---|---|---:|---|
 | `id` | uuid | yes | primary key |
 | `website_id` | uuid | yes | references `cms_websites(id)` |
-| `category_id` | uuid | no | references `cms_categories(id)` |
+| `category_id` | uuid | no | references `cms_categories(id)`; required by admin validation for new saves |
 | `author_id` | uuid | yes | references `cms_authors(id)` |
 | `title` | text | yes | post title |
 | `slug` | text | yes | URL-safe |
 | `excerpt` | text | no | summary |
 | `featured_image_id` | uuid | no | references `cms_media(id)` |
-| `body_blocks` | jsonb | yes | structured blocks array |
+| `body_html` | text | no | preferred Tiptap editor HTML for new edits |
+| `body_blocks` | jsonb | yes | legacy/import fallback structured blocks array |
 | `seo_title` | text | no | manual SEO title |
 | `meta_description` | text | no | manual meta description |
 | `canonical_url` | text | no | optional override |
@@ -233,7 +234,14 @@ Stores blog posts per website.
 | `created_at` | timestamptz | yes | default now |
 | `updated_at` | timestamptz | yes | updated on change |
 
-Supported `body_blocks`:
+Preferred post body format:
+
+- New admin edits save sanitized Tiptap HTML in `body_html`.
+- Public sites should render `body_html` when present.
+- Images inside `body_html` include `data-media-id` so media usage checks can find references.
+- `body_blocks` remains for backward compatibility and imported legacy content.
+
+Supported legacy `body_blocks`:
 
 - `paragraph`
 - `heading`
@@ -256,9 +264,9 @@ Constraints and indexes:
 Behavior:
 
 - Layout is fixed in public website code.
-- Admin can add and reorder body blocks.
+- Admin edits post body through the shared Tiptap visual editor.
 - Each post has one website-scoped author in v1.
-- Author, category, featured image, OG image, and image blocks must belong to the same `website_id`.
+- Author, category, featured image, OG image, editor image references, and legacy image blocks must belong to the same `website_id`.
 - Blog posts do not support future scheduling in v1.
 - TOC block placement controls where generated heading links render.
 - FAQ blocks can generate FAQ schema.
@@ -307,6 +315,8 @@ Behavior:
 - If references exist, delete is blocked.
 - If unused, delete the Supabase Storage object first, then hard delete the `cms_media` row.
 - If Supabase Storage deletion fails, keep the metadata row and return an error.
+- Admin bulk delete is UI-level batching only; it calls the same permanent delete behavior per selected media row.
+- Media table search is client-side and automatic over loaded website media metadata.
 
 ### `cms_redirects`
 
@@ -376,6 +386,7 @@ Behavior:
 - Import creates or selects website-scoped authors for imported posts.
 - If WordPress author data is unavailable, create or select a fallback author named `Imported Author`.
 - Posts must never be imported without `author_id`.
+- If WordPress category data is unavailable, create or select a fallback category named `Uncategorized`.
 - Report must include imported template content, custom pages, posts, categories, authors when detected, images, rewritten URLs, unmatched/skipped pages, failed media URLs, and errors.
 
 ### `cms_site_settings`
@@ -456,6 +467,7 @@ Before permanent media delete, check:
 
 - `cms_posts.featured_image_id`
 - `cms_posts.og_image_id`
+- `cms_posts.body_html` image `data-media-id` references
 - `cms_posts.body_blocks` image references
 - `cms_pages.featured_image_id`
 - `cms_authors.avatar_image_id`

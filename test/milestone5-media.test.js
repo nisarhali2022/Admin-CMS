@@ -145,6 +145,7 @@ test('storage helper builds public URLs and uploads immutable WebP objects', asy
 
 test('media usage migration checks all planned reference locations', async () => {
   const sql = await readMigration('admin_media_usage')
+  const postBodyHtmlSql = await readMigration('post_body_html')
 
   assert.match(sql, /create or replace function public\.cms_admin_media_usage/)
   assert.match(sql, /cms_authors/)
@@ -155,7 +156,11 @@ test('media usage migration checks all planned reference locations', async () =>
   assert.match(sql, /cms_posts/)
   assert.match(sql, /featured_image_id/)
   assert.match(sql, /body_blocks::text/)
+  assert.match(postBodyHtmlSql, /create or replace function public\.cms_admin_media_usage/)
+  assert.match(postBodyHtmlSql, /body_html/)
+  assert.match(postBodyHtmlSql, /'bodyHtml'::text/)
   assert.match(sql, /grant execute on function public\.cms_admin_media_usage\(uuid, uuid\) to service_role/)
+  assert.match(postBodyHtmlSql, /grant execute on function public\.cms_admin_media_usage\(uuid, uuid\) to service_role/)
 })
 
 test('media upload service scopes storage path and creates cms_media metadata', async () => {

@@ -23,8 +23,9 @@ This file records decisions that should not be re-decided during implementation 
 - Do not store required `content_html` in v1.
 - If rendered HTML is added later, it must be explicitly chosen and sanitized.
 - Blog post pages use fixed public website layout.
-- Blog article bodies use structured `body_blocks`.
-- Supported post body blocks are paragraph, heading, image, list, quote, link/button, TOC placeholder, FAQ, table, and callout.
+- Blog article bodies use sanitized Tiptap `body_html` for new admin edits.
+- Structured `body_blocks` remain only as legacy/import fallback content.
+- Supported editor output includes headings, paragraphs, bold/italic, lists, quotes, links, media-library images, YouTube embeds, tables, and alignment.
 - Each post has one category in v1.
 - Each post has one website-scoped author in v1.
 - Authors are profile/content records, not login users.
@@ -82,12 +83,13 @@ This file records decisions that should not be re-decided during implementation 
 - OAuth client ID/client secret is not required for v1 WordPress import.
 - WordPress import credentials are not stored in `.env` and are not stored permanently.
 - If temporary credential storage is needed for a background job, encrypt it with `CMS_ENCRYPTION_KEY` and delete it after success or failure.
-- Import published posts, known supported pages, categories, authors, and media/images.
+- Import published posts, known supported pages, custom pages where safe, categories, authors, and media/images.
 - Known pages map to fixed template keys.
-- Unmatched WordPress pages go to an import review list.
-- WordPress post content converts to supported body blocks where possible.
+- Unmatched WordPress pages import into `cms_pages` when they can be represented safely; otherwise they are reported with a skipped reason.
+- WordPress post content converts to `body_html` where practical, with compatible `body_blocks` fallback when needed.
 - Import creates or reuses website-scoped authors in `cms_authors`.
 - Use fallback author `Imported Author` when WordPress author data is unavailable.
+- Use fallback category `Uncategorized` when WordPress post category data is unavailable.
 - Imported posts must never save without `author_id`.
 - Imported and embedded images are copied to Supabase Storage.
 - Old WordPress image URLs are rewritten to Supabase Storage public URLs.

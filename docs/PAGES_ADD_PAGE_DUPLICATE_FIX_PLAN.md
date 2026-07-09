@@ -1,5 +1,7 @@
 # Pages Add Page Duplicate Fix Plan
 
+> Current status: superseded by the later `cms_pages` custom-page implementation. This file is kept as a historical saved plan. The active behavior is that `Add Page` creates a custom `cms_pages` row and must not create or replace fixed `cms_template_content` rows.
+
 ## Summary
 
 The Add Page save error happens because the Add Page form can show an empty Slug field while the backend validator treats an empty path as the fixed template default path. If that template/path already exists, Supabase returns:

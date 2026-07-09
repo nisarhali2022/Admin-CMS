@@ -34,6 +34,9 @@ test('cms schema migration creates all v1 tables and excludes removed tables', a
   const customPagesSql = await readMigration('custom_pages')
   assert.match(customPagesSql, /create table if not exists public\.cms_pages/)
   assert.match(customPagesSql, /create unique index if not exists cms_pages_website_path_active_key/)
+  const postBodyHtmlSql = await readMigration('post_body_html')
+  assert.match(postBodyHtmlSql, /alter table public\.cms_posts/)
+  assert.match(postBodyHtmlSql, /add column if not exists body_html text/)
 
   for (const removedTable of [
     'cms_tags',

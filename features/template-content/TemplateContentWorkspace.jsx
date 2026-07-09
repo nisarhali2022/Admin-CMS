@@ -7,7 +7,10 @@ export default function TemplateContentWorkspace() {
   return (
     <WebsiteContextShell>
       {({ selectedWebsite }) => (
-        <TemplateContentManager websiteId={selectedWebsite.id} />
+        <TemplateContentManager
+          websiteId={selectedWebsite.id}
+          selectedWebsite={selectedWebsite}
+        />
       )}
     </WebsiteContextShell>
   )

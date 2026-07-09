@@ -265,6 +265,7 @@ Build:
 - Save metadata, public URL, alt text, caption, dimensions, MIME type, file size, source, and storage path in `cms_media`.
 - Build media picker filtered by selected website.
 - Implement usage lookup and permanent delete checks.
+- Build the Media Library table with automatic search, row/header checkboxes, `Usage` row action, and bulk permanent delete that reuses the existing per-item delete endpoint.
 
 Files/modules:
 
@@ -307,6 +308,9 @@ Exit tests:
 - Referenced media cannot be permanently deleted.
 - Unused permanent delete removes the Supabase Storage object first and then hard deletes metadata.
 - Storage delete failure keeps the media metadata row and surfaces an error.
+- Media search filters automatically while typing.
+- Bulk delete selected media calls the existing safe delete route per row and reports success/failure counts.
+- Usage lookup remains visible in the Media row Actions column.
 
 ## Milestone 6: Categories And Authors
 
@@ -348,7 +352,7 @@ Inputs/outputs:
 
 Interactions:
 
-- Posts require one same-website author and may use one same-website category.
+- Posts require one same-website author and one same-website category.
 - Public post responses include author and category display data.
 - Author changes affecting public posts trigger revalidation.
 
@@ -411,7 +415,7 @@ Interactions:
 
 Constraints:
 
-- Do not build generic arbitrary pages.
+- Do not add custom page creation to fixed template content; custom pages live in `cms_pages` and use the separate Pages API.
 - Do not build page builder or layout builder.
 - Do not build public draft preview tokens.
 - Do not support future scheduling.
@@ -438,16 +442,18 @@ Dependencies:
 Build:
 
 - Build post CRUD for selected website.
-- Require one same-website author and allow at most one same-website category.
+- Require one same-website author and one same-website category.
 - Support featured image, SEO fields, OG-compatible image reference, sitemap include flag, publish-only save, and permanent delete.
-- Build structured body blocks: paragraph, heading, image, list, quote, link/button, TOC placeholder, FAQ, table, and callout.
-- Store body image references by `mediaId`.
+- Build the Pages-style post list/editor UI with Tiptap visual editing and Code HTML mode.
+- Store new edited post content in `body_html`; keep `body_blocks` as legacy/import fallback.
+- Store editor image references with `data-media-id` and legacy body block images by `mediaId`.
 - Trigger revalidation after public-facing post, author, SEO, and media changes.
 
 Files/modules:
 
 - `app/api/cms/posts/`
 - `features/posts/`
+- `components/admin/RichTextEditor.jsx`
 - `lib/cms/schemas/post-blocks*`
 - `lib/cms/repositories/posts*`
 - `lib/cms/services/posts*`
@@ -456,28 +462,28 @@ Files/modules:
 
 Inputs/outputs:
 
-- Input: title, slug, excerpt, author, category, featured image, body blocks, and SEO fields.
+- Input: title, slug, excerpt, author, category, featured image, Tiptap `bodyHtml`, optional legacy `bodyBlocks`, and SEO fields.
 - Output: website-scoped post row.
-- Output: public post/list response with author data and resolved image objects.
+- Output: public post/list response with author data, `bodyHtml`, legacy `bodyBlocks`, and resolved image objects.
 - Output: FAQ data suitable for FAQ schema.
 
 Interactions:
 
 - Authors, categories, media, redirects, sitemap, SEO, and revalidation all connect to posts.
-- Public websites render the fixed blog shell and body blocks.
+- Public websites render the fixed blog shell and should prefer `bodyHtml`, falling back to `bodyBlocks`.
 
 Constraints:
 
 - Do not add tags.
-- Do not support multiple categories per post.
+- Do not support missing or multiple categories per post.
 - Do not support multiple authors per post.
-- Do not make freeform HTML the required storage model.
+- Do not add an arbitrary page builder layout model; blog layout stays fixed while the body editor stores sanitized HTML.
 - Do not support future scheduling.
 
 Exit tests:
 
 - Posts cannot save without `author_id`.
-- Author, category, featured image, OG image, and body image blocks must belong to the selected website.
+- Author, category, featured image, OG image, editor HTML images, and legacy body image blocks must belong to the selected website.
 - Public post/list responses include author display data and resolved image objects.
 - FAQ blocks produce data suitable for FAQ schema.
 - Author changes affecting public posts trigger revalidation.
@@ -571,6 +577,7 @@ Build:
 - Import posts, categories, authors, featured images, inline images, and SEO metadata where available.
 - Create or reuse website-scoped authors in `cms_authors`.
 - Use fallback author `Imported Author` when WordPress author data is unavailable.
+- Use fallback category `Uncategorized` when WordPress post category data is unavailable.
 - Rewrite old WordPress image URLs to Supabase Storage public URLs.
 - Implement import reset for inactive websites only.
 
@@ -616,6 +623,7 @@ Exit tests:
 - Unmatched WordPress pages import into `cms_pages` or are explicitly reported as skipped with a reason.
 - Imported posts never save without `author_id`.
 - Fallback author is created or reused when needed.
+- Fallback category `Uncategorized` is created or reused when needed.
 - Imported images are copied to Supabase Storage under the selected website prefix.
 - Reset clears only the inactive selected website's scoped rows and imported Supabase Storage objects.
 

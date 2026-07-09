@@ -37,6 +37,14 @@ const redirects = await cms.listRedirects('example.com')
 
 All public reads resolve the active website by domain in Supabase. Inactive websites, import jobs, and revalidation secrets are not returned.
 
+Individual post URLs should use the live WordPress-style category path:
+
+```text
+/{categorySlug}/{postSlug}
+```
+
+The public route should parse the final post slug from that URL before calling `getPost(domain, postSlug)`. `/blog` is the archive/list page only, not the prefix for every post.
+
 ## Images
 
 Public RPCs return resolved image objects:

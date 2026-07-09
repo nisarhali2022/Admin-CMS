@@ -15,8 +15,29 @@ const ROBOTS_META_VALUES = new Set([
   'noindex,nofollow',
 ])
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 export function assertPostId(value) {
   return assertMediaId(value)
+}
+
+function assertRequiredReferenceId(value, fieldName, label) {
+  if (!value) {
+    throw new CmsValidationError(`${label} is required.`, {
+      code: `${fieldName.toUpperCase()}_REQUIRED`,
+      details: { field: fieldName },
+    })
+  }
+
+  if (!UUID_PATTERN.test(String(value || ''))) {
+    throw new CmsValidationError(`Valid ${label.toLowerCase()} ID is required.`, {
+      code: `INVALID_${fieldName.toUpperCase()}`,
+      details: { field: fieldName },
+    })
+  }
+
+  return value
 }
 
 function assertNoScheduling(payload) {
@@ -172,9 +193,19 @@ export function validateBodyBlocks(bodyBlocks) {
   return blocks.map((block, index) => validateBlock(block, index))
 }
 
+function collectPostHtmlMediaIds(bodyHtml, result) {
+  const html = typeof bodyHtml === 'string' ? bodyHtml : ''
+  const mediaIdPattern = /data-media-id=["']([^"']+)["']/g
+
+  for (const match of html.matchAll(mediaIdPattern)) {
+    result.add(assertMediaId(match[1]))
+  }
+}
+
 export function collectPostMediaIds(payload, result = new Set()) {
   if (payload?.featuredImageId) result.add(assertMediaId(payload.featuredImageId))
   if (payload?.ogImageId) result.add(assertMediaId(payload.ogImageId))
+  collectPostHtmlMediaIds(payload?.bodyHtml, result)
 
   for (const block of payload?.bodyBlocks || []) {
     if (block?.type === 'image' && block.mediaId) {
@@ -193,9 +224,10 @@ function normalizePostFields(payload) {
     title,
     slug: normalizeSlug(payload?.slug, title),
     excerpt: normalizeOptionalText(payload?.excerpt, 'excerpt', 500),
-    authorId: assertMediaId(payload?.authorId),
-    categoryId: normalizeOptionalMediaId(payload?.categoryId),
+    authorId: assertRequiredReferenceId(payload?.authorId, 'authorId', 'Author'),
+    categoryId: assertRequiredReferenceId(payload?.categoryId, 'categoryId', 'Category'),
     featuredImageId: normalizeOptionalMediaId(payload?.featuredImageId),
+    bodyHtml: normalizeOptionalText(payload?.bodyHtml, 'bodyHtml', 100000),
     bodyBlocks: validateBodyBlocks(payload?.bodyBlocks),
     seoTitle: normalizeOptionalText(payload?.seoTitle, 'seoTitle', 180),
     metaDescription: normalizeOptionalText(

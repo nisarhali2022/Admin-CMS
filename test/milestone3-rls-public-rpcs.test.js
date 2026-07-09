@@ -85,6 +85,7 @@ test('public RPC SQL enforces public-safe visibility by resource type', async ()
 
 test('public RPC SQL resolves media and sanitizes AdSense settings', async () => {
   const sql = await readMigration('rls_public_rpcs')
+  const postBodyHtmlSql = await readMigration('post_body_html')
 
   assert.match(sql, /cms_public_image_object/)
   assert.match(sql, /cms_resolve_media_references/)
@@ -100,4 +101,8 @@ test('public RPC SQL resolves media and sanitizes AdSense settings', async () =>
   assert.match(sql, /'enabled', false/)
   assert.match(sql, /'publisherId', null/)
   assert.match(sql, /'adsTxt', null/)
+  assert.match(postBodyHtmlSql, /create or replace function public\.get_public_post/)
+  assert.match(postBodyHtmlSql, /'bodyHtml', p\.body_html/)
+  assert.match(postBodyHtmlSql, /'bodyBlocks', public\.cms_resolve_media_references/)
+  assert.match(postBodyHtmlSql, /coalesce\(p\.og_image_id, p\.featured_image_id\)/)
 })

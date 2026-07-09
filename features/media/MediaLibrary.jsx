@@ -97,8 +97,9 @@ export default function MediaLibrary({ websiteId }) {
   const [caption, setCaption] = useState('')
   const [editing, setEditing] = useState({})
   const [usage, setUsage] = useState({})
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedIds, setSelectedIds] = useState([])
+  const [bulkAction, setBulkAction] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
   const searchFilteredMedia = useMemo(
@@ -137,7 +138,10 @@ export default function MediaLibrary({ websiteId }) {
         return
       }
 
-      setMedia(result.media || [])
+      const nextMedia = result.media || []
+      const nextIds = new Set(nextMedia.map((item) => item.id))
+      setMedia(nextMedia)
+      setSelectedIds((current) => current.filter((id) => nextIds.has(id)))
     } finally {
       setLoading(false)
     }
@@ -236,6 +240,64 @@ export default function MediaLibrary({ websiteId }) {
     }
   }
 
+  async function bulkDeleteMedia() {
+    if (bulkAction !== 'delete') {
+      setMessage('Choose a bulk action first.')
+      return
+    }
+
+    if (selectedIds.length === 0) {
+      setMessage('Select at least one media item.')
+      return
+    }
+
+    if (
+      !window.confirm(
+        `Delete ${selectedIds.length} selected media item(s) permanently? This cannot be undone.`
+      )
+    ) {
+      return
+    }
+
+    setSaving(true)
+    setMessage('')
+
+    let deletedCount = 0
+    const failures = []
+
+    try {
+      for (const mediaId of selectedIds) {
+        const response = await fetch(
+          `/api/cms/media/${mediaId}?websiteId=${websiteId}`,
+          {
+            method: 'DELETE',
+          }
+        )
+        const result = await response.json().catch(() => ({}))
+
+        if (response.ok) {
+          deletedCount += 1
+        } else {
+          failures.push(getApiMessage(result, 'Unable to delete media.'))
+        }
+      }
+
+      setSelectedIds([])
+      setBulkAction('')
+      await loadMedia()
+
+      if (failures.length > 0) {
+        setMessage(
+          `${deletedCount} deleted. ${failures.length} could not be deleted. ${failures[0]}`
+        )
+      } else {
+        setMessage(`${deletedCount} media item(s) deleted.`)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function loadUsage(mediaId) {
     setMessage('')
 
@@ -284,11 +346,6 @@ export default function MediaLibrary({ websiteId }) {
     }))
   }
 
-  function submitSearch(event) {
-    event.preventDefault()
-    setSearchQuery(searchInput.trim())
-  }
-
   async function copyPublicUrl(url) {
     try {
       await navigator.clipboard.writeText(url)
@@ -322,6 +379,28 @@ export default function MediaLibrary({ websiteId }) {
     }
   }
 
+  function toggleMediaSelection(mediaId) {
+    setSelectedIds((current) =>
+      current.includes(mediaId)
+        ? current.filter((id) => id !== mediaId)
+        : [...current, mediaId]
+    )
+  }
+
+  function toggleVisibleSelection() {
+    const visibleIds = visibleMedia.map((item) => item.id)
+    const allVisibleSelected =
+      visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id))
+
+    setSelectedIds((current) => {
+      if (allVisibleSelected) {
+        return current.filter((id) => !visibleIds.includes(id))
+      }
+
+      return Array.from(new Set([...current, ...visibleIds]))
+    })
+  }
+
   function renderMediaRows(items) {
     return items.map((item) => {
       const draft = editing[item.id]
@@ -332,6 +411,14 @@ export default function MediaLibrary({ websiteId }) {
           <tr
             className="border-b border-[#f0f0f1] align-top odd:bg-white even:bg-[#f6f7f7]"
           >
+            <td className="w-10 px-3 py-3">
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(item.id)}
+                onChange={() => toggleMediaSelection(item.id)}
+                aria-label={`Select ${getMediaTitle(item)}`}
+              />
+            </td>
             <td className="px-3 py-3">
               <div className="flex gap-3">
                 <img
@@ -433,7 +520,7 @@ export default function MediaLibrary({ websiteId }) {
               key={`${item.id}-edit`}
               className="border-b border-[#dcdcde] bg-white"
             >
-              <td colSpan={6} className="px-3 py-4">
+              <td colSpan={7} className="px-3 py-4">
                 <div className="grid gap-4 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-4 md:grid-cols-2">
                   <label className="block text-[13px] font-medium text-[#1f2330]">
                     Alternative Text
@@ -496,6 +583,17 @@ export default function MediaLibrary({ websiteId }) {
         <table className="w-full min-w-[60rem] border-collapse text-left text-[13px] text-[#1f2330]">
           <thead>
             <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
+              <th className="w-10 px-3 py-2 font-medium">
+                <input
+                  type="checkbox"
+                  checked={
+                    visibleMedia.length > 0 &&
+                    visibleMedia.every((item) => selectedIds.includes(item.id))
+                  }
+                  onChange={toggleVisibleSelection}
+                  aria-label="Select all visible media"
+                />
+              </th>
               <th className="px-3 py-2 font-medium">File</th>
               <th className="w-56 px-3 py-2 font-medium">Alt text</th>
               <th className="w-32 px-3 py-2 font-medium">File size</th>
@@ -595,28 +693,36 @@ export default function MediaLibrary({ websiteId }) {
           >
             Filter
           </button>
-          <form
-            onSubmit={submitSearch}
-            className="ml-auto flex flex-wrap items-center gap-2"
-          >
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             <input
               aria-label="Search media"
               type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
             />
-            <button
-              type="submit"
-              className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-            >
-              Search Media
-            </button>
-          </form>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-3 border-b border-[#dcdcde] bg-[#f6f7f7] p-3 text-[13px] text-[#50575e]">
-            <span>{filteredMedia.length} items</span>
+        <div className="flex flex-wrap items-center gap-3 border-b border-[#dcdcde] bg-[#f6f7f7] p-3 text-[13px] text-[#50575e]">
+            <select
+              value={bulkAction}
+              onChange={(event) => setBulkAction(event.target.value)}
+              aria-label="Bulk actions"
+              className="h-8 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none"
+            >
+              <option value="">Bulk actions</option>
+              <option value="delete">Delete selected</option>
+            </select>
+            <button
+              type="button"
+              onClick={bulkDeleteMedia}
+              disabled={saving}
+              className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff] disabled:opacity-60"
+            >
+              Apply
+            </button>
+            <span className="ml-auto">{filteredMedia.length} items</span>
             <button
               type="button"
               onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}

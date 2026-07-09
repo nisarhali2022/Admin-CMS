@@ -18,8 +18,9 @@ Implemented:
 - Website-scoped media upload to Supabase Storage.
 - WebP image optimization through `sharp`.
 - Media metadata, usage checks, and permanent delete behavior.
+- Media Library table search filters automatically while typing, and bulk delete calls the existing safe permanent delete endpoint per selected row.
 - Website-scoped template content for fixed public page templates.
-- Website-scoped blog posts with structured body blocks.
+- Website-scoped blog posts with Tiptap `body_html` as the preferred body format and structured `body_blocks` as legacy/import fallback.
 - Website-scoped categories and authors.
 - Website-scoped redirects.
 - Website-scoped settings, SEO defaults, robots, sitemap config, AdSense config, and revalidation config.
@@ -79,6 +80,13 @@ All admin pages use `AdminShell` and require the admin session before showing th
 | `/admin/quiz` | Global quiz management | `features/quiz/QuizManager.jsx` |
 
 Website-scoped pages preserve `websiteId` in the query string when navigating between sections. Quiz intentionally does not show the left sidebar. Website creation/editing/import UI belongs to `setup-provisioning/`; normal CMS pages should not render the website list, Add Website card, Selected Website edit card, or WordPress import form.
+
+Media Library specifics:
+
+- The media table includes checkbox selection, an automatic search input, and a bulk permanent delete toolbar.
+- Bulk delete loops through the existing media `DELETE` API route for each selected item.
+- The `Usage` action stays in the row `Actions` column and calls the existing usage endpoint.
+- Referenced media remains protected by server-side usage checks.
 
 ## App Route Layout
 
@@ -242,7 +250,7 @@ Custom pages:
 - Website-scoped WordPress-style page records.
 - Created by the Pages admin `Add Page` action.
 - Do not use `template_key` and must not replace fixed template rows.
-- Use `body_text` for the current simple page editor content.
+- Use `body_text` to store the current sanitized page editor HTML.
 - Public reads use `get_public_page(domain, page_path)`.
 - Sitemap includes published rows with `sitemap_include = true`.
 
@@ -250,10 +258,11 @@ Blog posts:
 
 - Stored in `cms_posts`.
 - Require one same-website `author_id`.
-- May use one same-website category.
-- Store structured `body_blocks`.
-- Supported blocks include paragraph, heading, image, list, quote, link/button, TOC placeholder, FAQ, table, and callout.
-- Images are referenced by `mediaId`.
+- Require one same-website category for new saves because public post URLs use `/{categorySlug}/{postSlug}`.
+- Store new admin edits as sanitized Tiptap `body_html`.
+- Keep structured `body_blocks` for backward compatibility and imported legacy content.
+- Public sites should prefer `body_html` when present and fall back to `body_blocks`.
+- Images in editor HTML are referenced with `data-media-id`; legacy blocks reference images by `mediaId`.
 
 Authors:
 
@@ -314,8 +323,10 @@ Behavior:
 - Imports authors before posts when possible.
 - Creates or reuses fallback author `Imported Author` if author data is missing.
 - Never imports posts without `author_id`.
+- Creates or reuses fallback category `Uncategorized` if category data is missing.
 - Maps known WordPress pages to template content.
-- Converts basic HTML to structured content/body blocks.
+- Imports unmatched WordPress pages into `cms_pages` when safe, otherwise reports them as skipped.
+- Converts basic HTML to template content and either `body_html` or compatible fallback body blocks for posts.
 - Copies images into Supabase Storage.
 - Rewrites old WordPress image URLs to Supabase Storage public URLs where possible.
 - Clears temporary credentials after import success/failure.

@@ -181,3 +181,84 @@
 .wp-admin-interface .category-taxonomy-screen button {
   border-radius: 3px;
 }
+
+.wp-admin-interface .prose-content p {
+  margin: 0 0 0.85rem;
+}
+
+.wp-admin-interface .prose-content h2 {
+  margin: 1rem 0 0.65rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.wp-admin-interface .prose-content h3 {
+  margin: 0.9rem 0 0.55rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.wp-admin-interface .prose-content h4 {
+  margin: 0.8rem 0 0.45rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.wp-admin-interface .prose-content ul,
+.wp-admin-interface .prose-content ol {
+  margin: 0 0 0.85rem 1.5rem;
+}
+
+.wp-admin-interface .prose-content ul {
+  list-style: disc;
+}
+
+.wp-admin-interface .prose-content ol {
+  list-style: decimal;
+}
+
+.wp-admin-interface .prose-content blockquote {
+  margin: 1rem 0;
+  border-left: 4px solid #c3c4c7;
+  padding-left: 1rem;
+  color: #50575e;
+}
+
+.wp-admin-interface .prose-content img {
+  margin: 1rem 0;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.wp-admin-interface .prose-content table {
+  margin: 1rem 0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wp-admin-interface .prose-content th,
+.wp-admin-interface .prose-content td {
+  border: 1px solid #dcdcde;
+  padding: 0.5rem;
+  vertical-align: top;
+}
+
+.wp-admin-interface .prose-content th {
+  background: #f6f7f7;
+  font-weight: 600;
+}
+
+.wp-admin-interface .prose-content iframe {
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  border: 0;
+}
+
+.wp-admin-interface .prose-content .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: #8c8f94;
+  pointer-events: none;
+}

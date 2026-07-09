@@ -6,7 +6,9 @@ import WebsiteContextShell from '@/features/websites/WebsiteContextShell'
 export default function PostsWorkspace() {
   return (
     <WebsiteContextShell>
-      {({ selectedWebsite }) => <PostsManager websiteId={selectedWebsite.id} />}
+      {({ selectedWebsite }) => (
+        <PostsManager websiteId={selectedWebsite.id} selectedWebsite={selectedWebsite} />
+      )}
     </WebsiteContextShell>
   )
 }

@@ -24,7 +24,8 @@ export function getPublicContentUrls({
   for (const post of posts || []) {
     if (post?.sitemapInclude === false) continue
     const slug = post?.slug
-    if (slug) urls.push(`${base}/blog/${slug}${suffix}`)
+    const categorySlug = post?.categorySlug || post?.category?.slug
+    if (categorySlug && slug) urls.push(`${base}/${categorySlug}/${slug}${suffix}`)
   }
 
   return [...new Set(urls)]

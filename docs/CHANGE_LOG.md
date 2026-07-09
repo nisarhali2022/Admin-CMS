@@ -15,6 +15,21 @@ This file records the major product, architecture, schema, UI, and documentation
 - Public websites are separate apps and read public-safe data from Supabase.
 - Supabase is used for database, auth/session support, and media storage.
 - Supabase Storage replaced Cloudflare R2 for v1 media.
+- New post edits use sanitized Tiptap `body_html`; legacy `body_blocks` are fallback/import compatibility only.
+- Individual public post URLs use `/{categorySlug}/{postSlug}`. `/blog` is the archive/list page only.
+- New post saves require both Author and Category. WordPress import falls back to `Imported Author` and `Uncategorized` when source data is missing.
+- Active CMS behavior is publish-only and permanent-delete only; draft, trash, restore, move-to-trash, and unpublish workflows are removed from the active product.
+
+## Documentation Alignment: Latest Post And Import Contracts
+
+- Normalized docs around Tiptap `body_html` as the preferred post body and `body_blocks` as legacy/import fallback.
+- Documented category-based post URLs consistently across planning, API, testing, and public-site integration docs.
+- Clarified that `/blog` remains only the archive/list path.
+- Clarified required Author and Category validation for new post saves.
+- Clarified WordPress fallback records: `Imported Author` and `Uncategorized`.
+- Marked older duplicate-page guidance as superseded by the `cms_pages` custom-page model.
+
+Note: older entries below record the path taken during implementation. Any older mention of bulk trash/restore, media trash filters, draft/unpublish, optional post category, `/blog/{postSlug}` detail URLs, body-block-first editing, or Pages without View actions is superseded by the current direction above and the later correction entries.
 
 ## Website And Resource Scoping
 
@@ -141,12 +156,12 @@ This file records the major product, architecture, schema, UI, and documentation
 - Categories are supported.
 - Tags were removed from v1.
 - Blog layouts are fixed.
-- Blog body content uses structured blocks.
-- Supported body blocks include FAQ blocks.
-- Images can be placed inside blog body blocks, such as after paragraph 1 or 2.
+- Blog body content now uses sanitized Tiptap HTML for new edits.
+- Legacy body blocks remain as import/backward-compatibility fallback content.
+- Images can be placed anywhere in the blog body through the Media Library picker.
 - Fixed template content uses code-defined templates in `cms_template_content`.
 - WordPress-style custom pages use `cms_pages`, so Add Page creates a new page row instead of consuming or replacing Home/About/Contact template slots.
-- No visual page builder is included in v1.
+- No drag-and-drop page builder is included in v1; Pages use a Tiptap HTML editor for formatted content.
 - No revisions are included in v1.
 - No public draft preview tokens are included in v1.
 - Internal admin preview is included for template content.
@@ -239,13 +254,14 @@ This file records the major product, architecture, schema, UI, and documentation
 - Category and Author add forms now place `Name` and `Slug` side by side on wider screens.
 - The Author add form now also places `Bio` and `Author Image` side by side on wider screens.
 - Media upload now resets a captured form reference after success, avoiding the `event.currentTarget.reset()` null crash.
-- Media Library now uses a WordPress-style table/list view with thumbnail rows, a dedicated `Alt text` column, no `Uploaded to` column, a final `Actions` column with usage feedback, search, safe bulk trash/restore, inline alt/caption editing, URL copy, and media actions.
+- Media Library now uses a WordPress-style table/list view with thumbnail rows, a dedicated `Alt text` column, no `Uploaded to` column, a final `Actions` column with usage feedback, search, bulk permanent delete, inline alt/caption editing, URL copy, and media actions.
 - Media Library no longer shows the placeholder `Author` column; it now shows optimized WebP `File size` and `Dimensions` columns from stored media metadata.
 - Media uploads keep using server-side `sharp` conversion/compression so PNG/JPG inputs are stored as optimized WebP files; images wider than 1200px are resized down to 1200px without upscaling smaller images.
 - The Media table now shows the stored `.webp` filename/type separately from the `Uploaded as` source filename.
 - Media Library status filtering now defaults to `Live media`, supports `All media items` and `Trash`, and no longer shows the unused date dropdown.
 - Media with empty alt text now falls back to the uploaded filename, and new uploads/imports save that filename fallback.
 - Media downloads now use a blob-based browser download handler instead of relying on cross-origin link download behavior.
+- Media search now filters automatically while typing, and the Media table supports checkbox selection plus bulk permanent delete through the existing safe delete endpoint. The visible `Usage` action remains available for manual reference checks.
 - Categories, Authors, and Redirects no longer render duplicate table footer headers, and their table body text now uses normal black styling.
 - Template Content is now presented as a WordPress-style Pages screen: a table of fixed pages first, then an Edit Page view after clicking a title.
 - Template pages now support `focus_keyphrase` and optional same-website `author_id`; the editor shows Focus keyphrase, SEO title, Meta description, and Author below the content box.
@@ -253,7 +269,7 @@ This file records the major product, architecture, schema, UI, and documentation
 - Page editor toolbar buttons, Add Media, and Visual/Code tabs now perform visible editor actions instead of acting as static controls.
 - Page editor now labels the URL field as `Slug`, shows `Feature Image` instead of `Open Graph image`, and prevents `Add Page` from opening an existing page when all fixed pages already exist.
 - Pages trash actions now return to the Trash list, Add Page opens with blank visible fields, editor screens no longer show another Add Page button, and Feature Image uses an in-page media picker button.
-- Pages UI has been simplified to publish/delete only: no Draft, View, Trash, Restore, Move to Trash, Unpublish, status dropdown, or bulk trash controls. Saves now publish pages, and Delete uses the permanent delete route after confirmation.
+- Pages UI was simplified to publish/delete only at this stage: no Draft, Trash, Restore, Move to Trash, Unpublish, status dropdown, or bulk trash controls. Saves publish pages, and Delete uses the permanent delete route after confirmation. A later correction reintroduced `View` actions without bringing back draft/trash workflows.
 - Pages now load hidden legacy rows only for fixed-template existence checks, preventing Add Page from creating duplicate template keys while keeping hidden rows out of the visible table. Slug collisions also show a clearer message before save.
 - Global publish-only cleanup removed Draft, Trash, Restore, Move to Trash, and Unpublish behavior from all active CMS resources.
 - Categories, Authors, Redirects, Posts, Pages, Template Content, and Media now use direct permanent delete actions after confirmation.
@@ -261,6 +277,16 @@ This file records the major product, architecture, schema, UI, and documentation
 - Added setup/provisioning migration `202607080002_remove_draft_trash_restore.sql` to delete legacy hidden/non-published rows, drop content `status` and `deleted_at` columns, replace partial unique indexes, and update public/admin SQL functions.
 - WordPress import now skips non-published WordPress pages/posts and reports them instead of importing them as drafts.
 - Media delete keeps the safe reference check and deletes the Supabase Storage object before deleting metadata when unused.
+- Pages now show `View` before `Delete` in the table Actions column and on Add/Edit screens, using the selected website's primary domain plus the page slug.
+- The Pages content area now uses a WordPress-like visual editor with working toolbar actions, Code mode for sanitized HTML, and an Add Media picker that inserts selected images.
+- The Pages editor now places the SEO card and page settings/feature-image card in one responsive two-column row.
+- The Pages visual editor now uses Tiptap open-source editor packages instead of the previous custom `contentEditable`/`document.execCommand` implementation. Toolbar support includes headings, bold, italic, lists, quote, link, media image insertion, YouTube embed, tables, alignment, undo, redo, and Code mode HTML review.
+- Posts now follow the Pages-style admin UI with a WordPress-like list table, title-click editing, View/Delete actions, category selection, feature image selection, SEO/settings two-column layout, and the shared Tiptap visual editor.
+- Blog posts now save new editor content to `cms_posts.body_html`; legacy `body_blocks` remain available for imported/older posts and public fallback rendering.
+- Post editor images preserve `data-media-id`, and media usage checks include post `body_html` references.
+- Post View/permalink and sitemap URLs now match the live WordPress-style structure `/{categorySlug}/{postSlug}` instead of `/blog/{postSlug}`. `/blog` remains available as an archive/list page path.
+- Add Post validation now reports clear required-field messages for Title, Author, and Category instead of the generic media ID error. Category is required for new saves because it is part of the public post URL.
+- WordPress import now creates or selects an `Uncategorized` fallback category for imported posts that have no WordPress category.
 
 ## Validation Completed
 

@@ -115,16 +115,17 @@ test('sitemap helper returns published template and post URLs without duplicates
         { path: '/hidden-page', sitemapInclude: false },
       ],
       posts: [
-        { slug: 'hello', sitemapInclude: true },
-        { slug: 'hidden', sitemapInclude: false },
-        { slug: 'hello', sitemapInclude: true },
+        { slug: 'hello', category: { slug: 'news' }, sitemapInclude: true },
+        { slug: 'hidden', category: { slug: 'news' }, sitemapInclude: false },
+        { slug: 'hello', categorySlug: 'news', sitemapInclude: true },
+        { slug: 'missing-category', sitemapInclude: true },
       ],
     }),
     [
       'https://example.com',
       'https://example.com/about',
       'https://example.com/about-us',
-      'https://example.com/blog/hello',
+      'https://example.com/news/hello',
     ]
   )
 })

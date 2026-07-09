@@ -87,6 +87,7 @@ function postRow(body) {
     slug: body.slug,
     excerpt: body.excerpt,
     featured_image_id: body.featured_image_id,
+    body_html: body.body_html,
     body_blocks: body.body_blocks,
     seo_title: body.seo_title,
     meta_description: body.meta_description,
@@ -108,6 +109,7 @@ function validPayload(overrides = {}) {
     authorId,
     categoryId,
     featuredImageId,
+    bodyHtml: `<p>Intro text</p><p><img src="/image.webp" data-media-id="${bodyImageId}" alt="Body image"></p>`,
     bodyBlocks: [
       { type: 'paragraph', text: 'Intro text' },
       { type: 'image', mediaId: bodyImageId, alt: 'Body image' },
@@ -118,7 +120,7 @@ function validPayload(overrides = {}) {
     ],
     seoTitle: 'Summer Packages',
     metaDescription: 'Latest packages and offers.',
-    canonicalUrl: '/blog/summer-packages',
+    canonicalUrl: '/packages/summer-packages',
     robotsMeta: 'index,follow',
     ogImageId: featuredImageId,
     sitemapInclude: true,
@@ -135,6 +137,7 @@ test('post validator accepts supported body blocks and rejects scheduling', () =
   const payload = validPayload()
 
   assert.equal(payload.slug, 'summer-packages')
+  assert.match(payload.bodyHtml, /data-media-id/)
   assert.deepEqual([...collectPostMediaIds(payload)].sort(), [
     bodyImageId,
     featuredImageId,
@@ -159,6 +162,30 @@ test('post validator accepts supported body blocks and rejects scheduling', () =
     () =>
       validatePostPayload({
         title: 'No author',
+      }),
+    /Author is required/
+  )
+  assert.throws(
+    () =>
+      validatePostPayload({
+        ...validPayload(),
+        categoryId: null,
+      }),
+    /Category is required/
+  )
+  assert.equal(
+    validatePostPayload({
+      ...validPayload(),
+      featuredImageId: null,
+      ogImageId: null,
+    }).featuredImageId,
+    null
+  )
+  assert.throws(
+    () =>
+      validatePostPayload({
+        ...validPayload(),
+        featuredImageId: 'not-a-uuid',
       }),
     /Valid media ID is required/
   )
@@ -203,6 +230,7 @@ test('post service validates author, category, and media before creating a post'
   assert.equal(insertBody.website_id, websiteId)
   assert.equal(insertBody.category_id, categoryId)
   assert.equal(insertBody.featured_image_id, featuredImageId)
+  assert.match(insertBody.body_html, /data-media-id/)
   assert.equal(insertBody.status, undefined)
   assert.ok(insertBody.published_at)
   assert.equal(revalidation.skipped, true)

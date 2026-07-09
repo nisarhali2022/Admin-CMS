@@ -112,7 +112,7 @@ Public reads should be exposed through:
 
 - `get_public_site_by_domain(domain text)`
 - `get_public_template_content(domain text, template_key text)`
-- `get_public_post(domain text, slug text)`
+- `get_public_post(domain text, slug text)` after the public route extracts the post slug from `/{categorySlug}/{postSlug}`
 - `list_public_posts(domain text, category_slug text default null, search text default null, limit_count int default 20, offset_count int default 0)`
 - `list_public_categories(domain text)`
 - `list_public_authors(domain text)`
@@ -143,7 +143,7 @@ Admin route handlers must reject:
 - duplicate redirect paths within a website
 - redirect loops
 - invalid template content schema
-- invalid post block schema
+- invalid post editor HTML or legacy post block schema
 - attempts to update redirect hit tracking from public anon context
 
 ## RLS Testing Requirements

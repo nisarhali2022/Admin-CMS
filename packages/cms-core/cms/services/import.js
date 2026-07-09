@@ -29,6 +29,7 @@ import {
 } from './wordpress.js'
 
 const FALLBACK_AUTHOR_NAME = 'Imported Author'
+const FALLBACK_CATEGORY_NAME = 'Uncategorized'
 const TEMPLATE_BY_SLUG = new Map([
   ['home', 'home'],
   ['about', 'about'],
@@ -584,7 +585,12 @@ export async function importWordPressForWebsite(websiteId, payload) {
               categoryBySlug,
               report
             )
-          : null)
+          : await getOrCreateCategory(
+              websiteId,
+              { name: FALLBACK_CATEGORY_NAME },
+              categoryBySlug,
+              report
+            ))
 
       try {
         await createPostForWebsite(
@@ -594,7 +600,7 @@ export async function importWordPressForWebsite(websiteId, payload) {
             slug: post.slug || normalizeSlug(post.title, `post-${post.id}`),
             excerpt: post.excerpt || null,
             authorId: author.id,
-            categoryId: category?.id || null,
+            categoryId: category.id,
             featuredImageId: featuredMedia?.id || null,
             bodyBlocks: htmlToBodyBlocks(post.contentHtml, mediaByUrl),
             seoTitle: post.title || null,

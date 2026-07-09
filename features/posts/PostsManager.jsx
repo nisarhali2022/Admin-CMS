@@ -1,22 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Plus, RefreshCw } from 'lucide-react'
-import {
-  AdminPanel,
-  EmptyState,
-  MessageAlert,
-  PageHeader,
-} from '@/components/admin/admin-ui'
+import { useEffect, useMemo, useState } from 'react'
+import { Eye, RefreshCw, Search } from 'lucide-react'
+import { MessageAlert } from '@/components/admin/admin-ui'
+import RichTextEditor from '@/components/admin/RichTextEditor'
 import { Button } from '@/components/ui/button'
-
-const defaultBlocks = [
-  { type: 'paragraph', text: '' },
-  { type: 'heading', level: 2, text: '' },
-  { type: 'image', mediaId: '', alt: '', caption: '' },
-  { type: 'toc' },
-  { type: 'faq', items: [{ question: '', answer: '' }] },
-]
 
 const emptyForm = {
   title: '',
@@ -25,17 +13,254 @@ const emptyForm = {
   authorId: '',
   categoryId: '',
   featuredImageId: '',
-  bodyBlocksText: JSON.stringify(defaultBlocks, null, 2),
+  bodyHtml: '',
   seoTitle: '',
   metaDescription: '',
   canonicalUrl: '',
   robotsMeta: '',
-  ogImageId: '',
   sitemapInclude: true,
+}
+
+const allowedEditorTags = new Set([
+  'A',
+  'B',
+  'BLOCKQUOTE',
+  'BR',
+  'COL',
+  'COLGROUP',
+  'DIV',
+  'EM',
+  'H2',
+  'H3',
+  'H4',
+  'I',
+  'IFRAME',
+  'IMG',
+  'LI',
+  'OL',
+  'P',
+  'STRONG',
+  'TABLE',
+  'TBODY',
+  'TD',
+  'TH',
+  'THEAD',
+  'TR',
+  'UL',
+])
+
+const allowedEditorAttributes = {
+  A: new Set(['href', 'target', 'rel']),
+  IMG: new Set(['src', 'alt', 'data-media-id']),
+  IFRAME: new Set([
+    'src',
+    'width',
+    'height',
+    'allow',
+    'allowfullscreen',
+    'frameborder',
+    'loading',
+    'title',
+  ]),
+  TD: new Set(['colspan', 'rowspan']),
+  TH: new Set(['colspan', 'rowspan']),
+  DIV: new Set(['style']),
+  P: new Set(['style']),
+  BLOCKQUOTE: new Set(['style']),
+  H2: new Set(['style']),
+  H3: new Set(['style']),
+  H4: new Set(['style']),
 }
 
 function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function formatDate(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('en', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function sanitizeUrl(value) {
+  const text = String(value || '').trim()
+  if (
+    text.startsWith('/') ||
+    text.startsWith('#') ||
+    /^https?:\/\//i.test(text) ||
+    /^mailto:/i.test(text)
+  ) {
+    return text
+  }
+
+  return ''
+}
+
+function sanitizeStyle(value) {
+  const text = String(value || '').toLowerCase()
+  const match = text.match(/text-align\s*:\s*(left|center|right)/)
+  return match ? `text-align: ${match[1]};` : ''
+}
+
+function sanitizeEditorHtml(html) {
+  if (typeof window === 'undefined' || !window.DOMParser) {
+    return String(html || '')
+  }
+
+  const documentHtml = new window.DOMParser().parseFromString(
+    `<div>${html || ''}</div>`,
+    'text/html'
+  )
+
+  function cleanNode(node) {
+    if (node.nodeType === window.Node.TEXT_NODE) return
+
+    if (node.nodeType !== window.Node.ELEMENT_NODE) {
+      node.remove()
+      return
+    }
+
+    const tagName = node.tagName
+
+    if (!allowedEditorTags.has(tagName)) {
+      const text = documentHtml.createTextNode(node.textContent || '')
+      node.replaceWith(text)
+      return
+    }
+
+    for (const attribute of [...node.attributes]) {
+      const allowed = allowedEditorAttributes[tagName]
+      if (!allowed?.has(attribute.name)) {
+        node.removeAttribute(attribute.name)
+      }
+    }
+
+    if (tagName === 'A') {
+      const href = sanitizeUrl(node.getAttribute('href'))
+      if (!href) {
+        node.removeAttribute('href')
+      } else {
+        node.setAttribute('href', href)
+        node.setAttribute('target', '_blank')
+        node.setAttribute('rel', 'noreferrer')
+      }
+    }
+
+    if (tagName === 'IMG') {
+      const src = sanitizeUrl(node.getAttribute('src'))
+      if (!src) {
+        node.remove()
+        return
+      }
+      node.setAttribute('src', src)
+      node.setAttribute('alt', node.getAttribute('alt') || '')
+      const mediaId = node.getAttribute('data-media-id')
+      if (mediaId) node.setAttribute('data-media-id', mediaId)
+    }
+
+    if (tagName === 'IFRAME') {
+      const src = sanitizeUrl(node.getAttribute('src'))
+      if (
+        !src ||
+        !/^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\//i.test(src)
+      ) {
+        node.remove()
+        return
+      }
+      node.setAttribute('src', src)
+      node.setAttribute('loading', 'lazy')
+      node.setAttribute('title', node.getAttribute('title') || 'Embedded video')
+      node.setAttribute(
+        'allow',
+        node.getAttribute('allow') ||
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+      )
+    }
+
+    if (node.hasAttribute('style')) {
+      const style = sanitizeStyle(node.getAttribute('style'))
+      if (style) node.setAttribute('style', style)
+      else node.removeAttribute('style')
+    }
+
+    for (const child of [...node.childNodes]) {
+      cleanNode(child)
+    }
+  }
+
+  const root = documentHtml.body.firstElementChild
+  for (const child of [...root.childNodes]) {
+    cleanNode(child)
+  }
+
+  return root.innerHTML
+}
+
+function getTextWordCount(html) {
+  if (!html) return 0
+  const text = String(html).replace(/<[^>]*>/g, ' ').trim()
+  return text ? text.split(/\s+/).length : 0
+}
+
+function blocksToEditorHtml(blocks) {
+  if (!Array.isArray(blocks) || blocks.length === 0) return ''
+
+  return blocks
+    .map((block) => {
+      switch (block?.type) {
+        case 'paragraph':
+          return `<p>${escapeHtml(block.text)}</p>`
+        case 'heading': {
+          const level = [2, 3, 4].includes(Number(block.level))
+            ? Number(block.level)
+            : 2
+          return `<h${level}>${escapeHtml(block.text)}</h${level}>`
+        }
+        case 'list': {
+          const tag = block.ordered ? 'ol' : 'ul'
+          const items = Array.isArray(block.items)
+            ? block.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+            : ''
+          return `<${tag}>${items}</${tag}>`
+        }
+        case 'quote':
+          return `<blockquote>${escapeHtml(block.text)}</blockquote>`
+        case 'image':
+          return block.media?.url
+            ? `<p><img src="${escapeHtml(block.media.url)}" alt="${escapeHtml(
+                block.alt || block.media.alt || ''
+              )}" data-media-id="${escapeHtml(block.mediaId || block.media.id || '')}"></p>`
+            : ''
+        case 'faq':
+          return Array.isArray(block.items)
+            ? block.items
+                .map(
+                  (item) =>
+                    `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(
+                      item.answer
+                    )}</p>`
+                )
+                .join('')
+            : ''
+        default:
+          return ''
+      }
+    })
+    .join('')
 }
 
 function toForm(post) {
@@ -46,45 +271,103 @@ function toForm(post) {
     authorId: post.authorId || '',
     categoryId: post.categoryId || '',
     featuredImageId: post.featuredImageId || '',
-    bodyBlocksText: JSON.stringify(post.bodyBlocks || [], null, 2),
+    bodyHtml: post.bodyHtml || blocksToEditorHtml(post.bodyBlocks),
     seoTitle: post.seoTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
     robotsMeta: post.robotsMeta || '',
-    ogImageId: post.ogImageId || '',
     sitemapInclude: Boolean(post.sitemapInclude),
   }
 }
 
-function parseBlocks(text) {
-  try {
-    const parsed = JSON.parse(text || '[]')
-    if (!Array.isArray(parsed)) return { error: 'Body blocks must be an array.' }
-    return { parsed }
-  } catch {
-    return { error: 'Body blocks must be valid JSON.' }
-  }
+function normalizeSlug(value, title) {
+  const raw = typeof value === 'string' ? value.trim() : ''
+  const source =
+    raw ||
+    String(title || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+
+  return source.replace(/^\//, '')
 }
 
-function getFaqItems(blocks) {
-  return blocks
-    .filter((block) => block.type === 'faq' && Array.isArray(block.items))
-    .flatMap((block) => block.items)
-    .filter((item) => item?.question && item?.answer)
+function getOptionalSlug(value, title) {
+  const raw = typeof value === 'string' ? value.trim() : ''
+  const source =
+    raw ||
+    String(title || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+
+  return source.replace(/^\//, '')
 }
 
-export default function PostsManager({ websiteId }) {
+function postMatchesSearch(post, query, authorsById, categoriesById) {
+  if (!query) return true
+
+  const authorName = post.author?.name || authorsById.get(post.authorId)?.name
+  const categoryName = post.category?.name || categoriesById.get(post.categoryId)?.name
+  const haystack = [
+    post.title,
+    post.slug,
+    post.excerpt,
+    authorName,
+    categoryName,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  return haystack.includes(query.toLowerCase())
+}
+
+function formatPostPath(categorySlug, postSlug) {
+  if (!categorySlug || !postSlug) return ''
+  return `/${categorySlug}/${postSlug}`
+}
+
+export default function PostsManager({ websiteId, selectedWebsite = null }) {
   const [posts, setPosts] = useState([])
   const [authors, setAuthors] = useState([])
   const [categories, setCategories] = useState([])
   const [media, setMedia] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [form, setForm] = useState(emptyForm)
+  const [screen, setScreen] = useState('list')
+  const [editorMode, setEditorMode] = useState('visual')
+  const [isFeatureImagePickerOpen, setIsFeatureImagePickerOpen] = useState(false)
+  const [searchInput, setSearchInput] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const parsedBlocks = parseBlocks(form.bodyBlocksText)
-  const faqItems = parsedBlocks.parsed ? getFaqItems(parsedBlocks.parsed) : []
+
+  const authorsById = useMemo(
+    () => new Map(authors.map((author) => [author.id, author])),
+    [authors]
+  )
+  const categoriesById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories]
+  )
+  const filteredPosts = useMemo(
+    () =>
+      posts.filter((post) =>
+        postMatchesSearch(post, searchQuery, authorsById, categoriesById)
+      ),
+    [authorsById, categoriesById, posts, searchQuery]
+  )
+
+  const selectedFeatureImage = useMemo(
+    () => media.find((item) => item.id === form.featuredImageId) || null,
+    [form.featuredImageId, media]
+  )
 
   async function loadPosts() {
     if (!websiteId) return
@@ -134,46 +417,79 @@ export default function PostsManager({ websiteId }) {
     loadOptions()
   }, [websiteId])
 
-  function selectPost(post) {
+  function openPost(post) {
     setSelectedId(post.id)
     setForm(toForm(post))
+    setScreen('edit')
     setMessage('')
   }
 
-  function newPost() {
+  function addPost() {
     setSelectedId(null)
     setForm(emptyForm)
+    setScreen('add')
     setMessage('')
+  }
+
+  function updateBodyHtml(value) {
+    setForm((current) => ({ ...current, bodyHtml: sanitizeEditorHtml(value) }))
+  }
+
+  function getCategorySlug(categoryId = form.categoryId, category = null) {
+    return category?.slug || categoriesById.get(categoryId)?.slug || ''
+  }
+
+  function getPostPath({
+    slug = form.slug,
+    title = form.title,
+    categoryId = form.categoryId,
+    category = null,
+  } = {}) {
+    const normalizedSlug = getOptionalSlug(slug, title)
+    const categorySlug = getOptionalSlug(getCategorySlug(categoryId, category))
+    return formatPostPath(categorySlug, normalizedSlug)
+  }
+
+  function getPostViewUrl(args = {}) {
+    const domain = selectedWebsite?.primaryDomain
+    const path = getPostPath(args)
+    if (!domain || !path) return ''
+
+    const origin = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
+    return `${origin.replace(/\/$/, '')}${path}`
   }
 
   function buildPayload() {
-    const { parsed, error } = parseBlocks(form.bodyBlocksText)
-    if (error) return { error }
-
     return {
-      payload: {
-        title: form.title,
-        slug: form.slug,
-        excerpt: form.excerpt || null,
-        authorId: form.authorId,
-        categoryId: form.categoryId || null,
-        featuredImageId: form.featuredImageId || null,
-        bodyBlocks: parsed,
-        seoTitle: form.seoTitle || null,
-        metaDescription: form.metaDescription || null,
-        canonicalUrl: form.canonicalUrl || null,
-        robotsMeta: form.robotsMeta || null,
-        ogImageId: form.ogImageId || null,
-        sitemapInclude: form.sitemapInclude,
-      },
+      title: form.title,
+      slug: normalizeSlug(form.slug, form.title),
+      excerpt: form.excerpt || null,
+      authorId: form.authorId,
+      categoryId: form.categoryId || null,
+      featuredImageId: form.featuredImageId || null,
+      bodyHtml: form.bodyHtml,
+      bodyBlocks: [],
+      seoTitle: form.seoTitle || null,
+      metaDescription: form.metaDescription || null,
+      canonicalUrl: form.canonicalUrl || null,
+      robotsMeta: form.robotsMeta || null,
+      ogImageId: form.featuredImageId || null,
+      sitemapInclude: form.sitemapInclude,
     }
+  }
+
+  function validateEditorForm() {
+    if (!form.title.trim()) return 'Title is required.'
+    if (!form.authorId) return 'Author is required.'
+    if (!form.categoryId) return 'Category is required.'
+    return ''
   }
 
   async function savePost(event) {
     event.preventDefault()
-    const { payload, error } = buildPayload()
-    if (error) {
-      setMessage(error)
+    const validationMessage = validateEditorForm()
+    if (validationMessage) {
+      setMessage(validationMessage)
       return
     }
 
@@ -187,7 +503,7 @@ export default function PostsManager({ websiteId }) {
       const response = await fetch(url, {
         method: selectedId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(buildPayload()),
       })
       const result = await response.json().catch(() => ({}))
 
@@ -199,19 +515,21 @@ export default function PostsManager({ websiteId }) {
       await loadPosts()
       setSelectedId(result.post.id)
       setForm(toForm(result.post))
+      setScreen('edit')
+      setMessage('Post saved.')
     } finally {
       setSaving(false)
     }
   }
 
-  async function deletePost() {
-    if (!selectedId) return
-    if (!window.confirm('Delete this post permanently?')) return
+  async function deletePost(postId = selectedId) {
+    if (!postId) return
+    if (!window.confirm('Delete this post permanently? This cannot be undone.')) return
     setSaving(true)
     setMessage('')
 
     try {
-      const response = await fetch(`/api/cms/posts/${selectedId}?websiteId=${websiteId}`, {
+      const response = await fetch(`/api/cms/posts/${postId}?websiteId=${websiteId}`, {
         method: 'DELETE',
       })
       const result = await response.json().catch(() => ({}))
@@ -222,19 +540,34 @@ export default function PostsManager({ websiteId }) {
       }
 
       await loadPosts()
-      newPost()
+      setScreen('list')
+      setSelectedId(null)
+      setForm(emptyForm)
+      setMessage('Post deleted.')
     } finally {
       setSaving(false)
     }
   }
 
-  return (
-    <section className="space-y-5">
-      <PageHeader
-        eyebrow="Blog"
-        title="Posts"
-        description="Create structured posts with authors, categories, media, SEO fields, body blocks, and publish controls."
-        action={
+  function submitSearch(event) {
+    event.preventDefault()
+    setSearchQuery(searchInput.trim())
+  }
+
+  function pageList() {
+    return (
+      <section className="category-taxonomy-screen space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-[1.55rem] font-normal leading-tight text-[#1f2330]">
+            Posts
+          </h2>
+          <button
+            type="button"
+            onClick={addPost}
+            className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+          >
+            Add Post
+          </button>
           <Button
             type="button"
             variant="outline"
@@ -244,235 +577,447 @@ export default function PostsManager({ websiteId }) {
               loadOptions()
             }}
             disabled={loading}
+            className="ml-auto"
           >
             <RefreshCw className={loading ? 'animate-spin' : ''} />
             {loading ? 'Loading...' : 'Refresh'}
           </Button>
-        }
-      />
+        </div>
 
-      <MessageAlert message={message} />
-
-      <div className="mt-5 grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <AdminPanel
-          title="Posts"
-          description={`${posts.length} record(s) in this website.`}
-          action={
-            <Button type="button" size="sm" onClick={newPost}>
-              <Plus />
-              Add New
-            </Button>
-          }
-          contentClassName="p-0"
-        >
-          {posts.length === 0 ? (
-            <EmptyState
-              title="No posts yet"
-              description="Create the first blog post for this website."
-              className="m-4"
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[13px] text-[#1f2330]">
+            {filteredPosts.length} {filteredPosts.length === 1 ? 'item' : 'items'}
+          </p>
+          <form onSubmit={submitSearch} className="flex flex-wrap items-center gap-2">
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
+              aria-label="Search posts"
             />
+            <button
+              type="submit"
+              className="h-8 rounded-[3px] border border-[#3858e9] bg-white px-3 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+            >
+              <Search className="mr-1 inline h-3.5 w-3.5" />
+              Search Posts
+            </button>
+          </form>
+        </div>
+
+        <div className="overflow-x-auto border border-[#c3c4c7] bg-white">
+          <table className="w-full min-w-[68rem] text-left text-[13px] text-[#1f2330]">
+            <thead>
+              <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
+                <th className="px-3 py-2 font-medium">Title</th>
+                <th className="w-48 px-3 py-2 font-medium">Author</th>
+                <th className="w-48 px-3 py-2 font-medium">Category</th>
+                <th className="w-52 px-3 py-2 font-medium">Date</th>
+                <th className="w-44 px-3 py-2 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPosts.map((post) => {
+                const category = post.category || categoriesById.get(post.categoryId)
+                const postPath = getPostPath({
+                  slug: post.slug,
+                  title: post.title,
+                  categoryId: post.categoryId,
+                  category,
+                })
+                const viewUrl = getPostViewUrl({
+                  slug: post.slug,
+                  title: post.title,
+                  categoryId: post.categoryId,
+                  category,
+                })
+
+                return (
+                  <tr
+                    key={post.id}
+                    className="border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]"
+                  >
+                    <td className="px-3 py-4">
+                      <button
+                        type="button"
+                        onClick={() => openPost(post)}
+                        className="font-normal text-[#005cbb] hover:text-[#003f85] hover:underline"
+                      >
+                        {post.title || 'Untitled'}
+                      </button>
+                      <p className="mt-1 text-[#50575e]">
+                        {postPath || 'Category and slug required'}
+                      </p>
+                    </td>
+                    <td className="px-3 py-4 text-[#005cbb]">
+                      {post.author?.name || authorsById.get(post.authorId)?.name || '-'}
+                    </td>
+                    <td className="px-3 py-4">{category?.name || '-'}</td>
+                    <td className="px-3 py-4">
+                      <p className="text-[#50575e]">
+                        {formatDate(post.publishedAt || post.updatedAt)}
+                      </p>
+                    </td>
+                    <td className="px-3 py-4">
+                      <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.84rem]">
+                        {viewUrl ? (
+                          <a
+                            href={viewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-[#005cbb] hover:underline"
+                          >
+                            View
+                          </a>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => deletePost(post.id)}
+                          className="font-medium text-red-700 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {filteredPosts.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-8 text-center text-[#596171]">
+                    No posts found.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )
+  }
+
+  function editPost() {
+    const isAddingPost = screen === 'add'
+
+    return (
+      <form onSubmit={savePost} className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-[1.55rem] font-normal leading-tight text-[#1f2330]">
+            {isAddingPost ? 'Add Post' : 'Edit Post'}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setScreen('list')}
+            className="ml-auto rounded-[3px] border border-[#8c8f94] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2330] hover:border-[#1f2330]"
+          >
+            Back to Posts
+          </button>
+          {getPostViewUrl() ? (
+            <a
+              href={getPostViewUrl()}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+            >
+              <Eye className="h-4 w-4" />
+              View
+            </a>
           ) : (
-            <div className="divide-y divide-[#dcdcde]">
-              {posts.map((post) => (
-                <button
-                  key={post.id}
-                  type="button"
-                  onClick={() => selectPost(post)}
-                  className={`grid w-full gap-1 px-4 py-3 text-left transition ${
-                    post.id === selectedId
-                      ? 'bg-[#f0f6fc] shadow-[inset_3px_0_0_#2271b1]'
-                      : 'bg-white hover:bg-[#f6f7f7]'
-                  }`}
-                >
-                  <span className="flex min-w-0 items-center justify-between gap-2">
-                    <span className="truncate text-sm font-semibold text-[#2271b1]">
-                      {post.title || 'Untitled'}
-                    </span>
-                  </span>
-                  <span className="truncate text-xs text-[#646970]">
-                    /{post.slug || 'no-slug'}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              disabled
+              className="inline-flex cursor-not-allowed items-center gap-1 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] px-3 py-1.5 text-[13px] font-medium text-[#8c8f94]"
+            >
+              <Eye className="h-4 w-4" />
+              View
+            </button>
           )}
-        </AdminPanel>
+        </div>
+        {isAddingPost ? (
+          <p className="text-[13px] text-[#50575e]">
+            View opens the public URL. Save this post before expecting new content
+            to appear on the website.
+          </p>
+        ) : null}
 
-        <form onSubmit={savePost} className="border border-[#c3c4c7] bg-white p-4">
-          <div className="-mx-4 -mt-4 mb-4 border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
-            <h3 className="text-sm font-semibold text-[#1d2327]">
-              {selectedId ? 'Edit post' : 'Add New Post'}
-            </h3>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <input
-              type="text"
-              value={form.title}
-              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Post title"
-              className="rounded-md border border-slate-300 px-3 py-2"
-            />
-            <input
-              type="text"
-              value={form.slug}
-              onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
-              placeholder="Slug"
-              className="rounded-md border border-slate-300 px-3 py-2"
-            />
-            <select
-              value={form.authorId}
-              onChange={(event) => setForm((current) => ({ ...current, authorId: event.target.value }))}
-              className="rounded-md border border-slate-300 px-3 py-2"
-            >
-              <option value="">Select author</option>
-              {authors.map((author) => (
-                <option key={author.id} value={author.id}>
-                  {author.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={form.categoryId}
-              onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}
-              className="rounded-md border border-slate-300 px-3 py-2"
-            >
-              <option value="">No category</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={form.featuredImageId}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, featuredImageId: event.target.value }))
-              }
-              className="rounded-md border border-slate-300 px-3 py-2"
-            >
-              <option value="">No featured image</option>
-              {media.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.altText || item.originalFilename}
-                </option>
-              ))}
-            </select>
-          </div>
+        <input
+          type="text"
+          value={form.title}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, title: event.target.value }))
+          }
+          className="w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 text-[1.35rem] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
+          aria-label="Post title"
+        />
 
+        <div className="flex flex-wrap items-center gap-2 px-2 text-[13px] text-[#1f2330]">
+          <span>Permalink:</span>
+          <span className={getPostPath() ? 'text-[#005cbb]' : 'text-[#50575e]'}>
+            {getPostViewUrl() ||
+              getPostPath() ||
+              'Select a category and enter a title/slug to generate the permalink.'}
+          </span>
+        </div>
+
+        <RichTextEditor
+          value={form.bodyHtml}
+          onChange={updateBodyHtml}
+          media={media}
+          editorMode={editorMode}
+          setEditorMode={setEditorMode}
+          setMessage={setMessage}
+          sanitizeHtml={sanitizeEditorHtml}
+          sanitizeUrl={sanitizeUrl}
+          wordCount={getTextWordCount(form.bodyHtml)}
+          placeholder="Start writing post content..."
+          codeLabel="HTML post content"
+        />
+
+        <label className="block text-[13px] font-medium text-[#1f2330]">
+          Excerpt
           <textarea
             value={form.excerpt}
-            onChange={(event) => setForm((current) => ({ ...current, excerpt: event.target.value }))}
-            placeholder="Excerpt"
-            rows={2}
-            className="mt-4 w-full rounded-md border border-slate-300 px-3 py-2"
+            onChange={(event) =>
+              setForm((current) => ({ ...current, excerpt: event.target.value }))
+            }
+            rows={3}
+            className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
           />
+        </label>
 
-          <label className="mt-4 block text-sm font-medium text-slate-700">
-            Body blocks
-            <textarea
-              value={form.bodyBlocksText}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, bodyBlocksText: event.target.value }))
-              }
-              rows={16}
-              className="mt-2 w-full rounded-md border border-slate-300 bg-slate-950 px-3 py-2 font-mono text-sm text-white"
-            />
-          </label>
-
-          <div className="mt-4 border border-[#dcdcde] bg-[#f6f7f7] p-3">
-            <p className="text-sm font-semibold text-slate-700">Media IDs</p>
-            <div className="mt-2 grid gap-2 text-xs text-slate-600">
-              {media.length === 0 ? <span>No uploaded media yet.</span> : null}
-              {media.map((item) => (
-                <code key={item.id} className="rounded bg-white px-2 py-1">
-                  {`${item.originalFilename}: {"type":"image","mediaId":"${item.id}"}`}
-                </code>
-              ))}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="border border-[#c3c4c7] bg-white">
+            <div className="border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
+              <h3 className="text-[1rem] font-semibold text-[#1f2330]">SEO</h3>
+            </div>
+            <div className="grid gap-4 p-4 md:grid-cols-2">
+              <label className="block text-[13px] font-medium text-[#1f2330]">
+                SEO title
+                <input
+                  type="text"
+                  value={form.seoTitle}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, seoTitle: event.target.value }))
+                  }
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                />
+              </label>
+              <label className="block text-[13px] font-medium text-[#1f2330]">
+                Author
+                <select
+                  value={form.authorId}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, authorId: event.target.value }))
+                  }
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                >
+                  <option value="">Select author</option>
+                  {authors.map((author) => (
+                    <option key={author.id} value={author.id}>
+                      {author.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-[13px] font-medium text-[#1f2330] md:col-span-2">
+                Meta description
+                <textarea
+                  value={form.metaDescription}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      metaDescription: event.target.value,
+                    }))
+                  }
+                  rows={4}
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                />
+              </label>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <input
-              type="text"
-              value={form.seoTitle}
-              onChange={(event) => setForm((current) => ({ ...current, seoTitle: event.target.value }))}
-              placeholder="SEO title"
-              className="rounded-md border border-slate-300 px-3 py-2"
-            />
-            <input
-              type="text"
-              value={form.metaDescription}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, metaDescription: event.target.value }))
-              }
-              placeholder="Meta description"
-              className="rounded-md border border-slate-300 px-3 py-2"
-            />
-            <input
-              type="text"
-              value={form.canonicalUrl}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, canonicalUrl: event.target.value }))
-              }
-              placeholder="Canonical URL"
-              className="rounded-md border border-slate-300 px-3 py-2"
-            />
-            <select
-              value={form.robotsMeta}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, robotsMeta: event.target.value }))
-              }
-              className="rounded-md border border-slate-300 px-3 py-2"
-            >
-              <option value="">Default robots</option>
-              <option value="index,follow">index,follow</option>
-              <option value="noindex,follow">noindex,follow</option>
-              <option value="index,nofollow">index,nofollow</option>
-              <option value="noindex,nofollow">noindex,nofollow</option>
-            </select>
-            <select
-              value={form.ogImageId}
-              onChange={(event) => setForm((current) => ({ ...current, ogImageId: event.target.value }))}
-              className="rounded-md border border-slate-300 px-3 py-2"
-            >
-              <option value="">No OG image</option>
-              {media.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.altText || item.originalFilename}
-                </option>
-              ))}
-            </select>
-            <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+          <div className="grid gap-4 border border-[#c3c4c7] bg-white p-4 md:grid-cols-2">
+            <label className="block text-[13px] font-medium text-[#1f2330]">
+              Slug
+              <input
+                type="text"
+                value={form.slug}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, slug: event.target.value }))
+                }
+                className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+              />
+            </label>
+            <label className="block text-[13px] font-medium text-[#1f2330]">
+              Category
+              <select
+                value={form.categoryId}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, categoryId: event.target.value }))
+                }
+                className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+              >
+                <option value="">Select category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-[13px] font-medium text-[#1f2330]">
+              Canonical URL
+              <input
+                type="text"
+                value={form.canonicalUrl}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, canonicalUrl: event.target.value }))
+                }
+                className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+              />
+            </label>
+            <label className="block text-[13px] font-medium text-[#1f2330]">
+              Robots meta
+              <select
+                value={form.robotsMeta}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, robotsMeta: event.target.value }))
+                }
+                className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+              >
+                <option value="">Default robots</option>
+                <option value="index,follow">index,follow</option>
+                <option value="noindex,follow">noindex,follow</option>
+                <option value="index,nofollow">index,nofollow</option>
+                <option value="noindex,nofollow">noindex,nofollow</option>
+              </select>
+            </label>
+            <div className="block text-[13px] font-medium text-[#1f2330]">
+              Feature Image
+              <div className="mt-2 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-3">
+                {selectedFeatureImage ? (
+                  <div className="mb-3 flex items-center gap-3">
+                    <img
+                      src={selectedFeatureImage.publicUrl}
+                      alt={selectedFeatureImage.altText || selectedFeatureImage.originalFilename}
+                      className="h-16 w-16 rounded-[3px] border border-[#c3c4c7] object-cover"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-[#1f2330]">
+                        {selectedFeatureImage.altText ||
+                          selectedFeatureImage.originalFilename}
+                      </p>
+                      <p className="truncate text-[12px] font-normal text-[#50575e]">
+                        {selectedFeatureImage.originalFilename}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mb-3 text-[13px] font-normal text-[#50575e]">
+                    No feature image selected.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsFeatureImagePickerOpen((current) => !current)}
+                    className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+                  >
+                    {selectedFeatureImage ? 'Change feature image' : 'Set feature image'}
+                  </button>
+                  {form.featuredImageId ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((current) => ({ ...current, featuredImageId: '' }))
+                      }
+                      className="rounded-[3px] border border-[#8c8f94] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2330] hover:border-[#1f2330]"
+                    >
+                      Remove feature image
+                    </button>
+                  ) : null}
+                </div>
+                {isFeatureImagePickerOpen ? (
+                  <div className="mt-3 max-h-72 overflow-y-auto border border-[#c3c4c7] bg-white p-3">
+                    {media.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {media.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setForm((current) => ({
+                                ...current,
+                                featuredImageId: item.id,
+                              }))
+                              setIsFeatureImagePickerOpen(false)
+                            }}
+                            className={`flex items-center gap-3 rounded-[3px] border p-2 text-left hover:border-[#3858e9] ${
+                              form.featuredImageId === item.id
+                                ? 'border-[#3858e9] bg-[#f0f3ff]'
+                                : 'border-[#dcdcde] bg-white'
+                            }`}
+                          >
+                            <img
+                              src={item.publicUrl}
+                              alt={item.altText || item.originalFilename}
+                              className="h-14 w-14 rounded-[3px] object-cover"
+                            />
+                            <span className="min-w-0">
+                              <span className="block truncate text-[13px] font-medium text-[#1f2330]">
+                                {item.altText || item.originalFilename}
+                              </span>
+                              <span className="block text-[12px] font-normal text-[#3858e9]">
+                                Select
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[13px] font-normal text-[#50575e]">
+                        Upload media first, then choose a feature image.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <label className="flex items-center gap-3 pt-7 text-[13px] font-medium text-[#1f2330]">
               <input
                 type="checkbox"
                 checked={form.sitemapInclude}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, sitemapInclude: event.target.checked }))
+                  setForm((current) => ({
+                    ...current,
+                    sitemapInclude: event.target.checked,
+                  }))
                 }
-                className="h-4 w-4 rounded border-slate-300"
               />
               Include in sitemap
             </label>
           </div>
+        </div>
 
-          {faqItems.length > 0 ? (
-            <div className="mt-4 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              {faqItems.length} FAQ item(s) ready for FAQ schema.
-            </div>
-          ) : null}
-
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-[#dcdcde] pt-4">
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Saving...' : 'Save'}
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={saving}>
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+          {selectedId ? (
+            <Button type="button" variant="destructive" onClick={() => deletePost()}>
+              Delete
             </Button>
-            {selectedId ? (
-              <Button type="button" variant="destructive" onClick={deletePost}>
-                Delete
-              </Button>
-            ) : null}
-          </div>
-        </form>
-      </div>
+          ) : null}
+        </div>
+      </form>
+    )
+  }
+
+  return (
+    <section className="space-y-5">
+      <MessageAlert message={message} />
+      {screen === 'edit' || screen === 'add' ? editPost() : pageList()}
     </section>
   )
 }

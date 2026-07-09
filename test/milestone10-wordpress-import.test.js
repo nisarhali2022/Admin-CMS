@@ -12,6 +12,7 @@ const jobId = '22222222-2222-4222-8222-222222222222'
 const authorId = '33333333-3333-4333-8333-333333333333'
 const postId = '44444444-4444-4444-8444-444444444444'
 const mediaId = '55555555-5555-4555-8555-555555555555'
+const categoryId = '66666666-6666-4666-8666-666666666666'
 const pageId = '77777777-7777-4777-8777-777777777777'
 
 function setValidEnv() {
@@ -62,6 +63,18 @@ function authorRow() {
     avatar_image_id: null,
     is_active: true,
     deleted_at: null,
+    created_at: '2026-07-04T00:00:00.000Z',
+    updated_at: '2026-07-04T00:00:00.000Z',
+  }
+}
+
+function categoryRow(body = {}) {
+  return {
+    id: categoryId,
+    website_id: websiteId,
+    name: body.name || 'Uncategorized',
+    slug: body.slug || 'uncategorized',
+    description: body.description || null,
     created_at: '2026-07-04T00:00:00.000Z',
     updated_at: '2026-07-04T00:00:00.000Z',
   }
@@ -215,6 +228,20 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
       return Response.json([authorRow()])
     }
 
+    if (stringUrl.endsWith('/rest/v1/cms_categories')) {
+      if (options.method === 'POST') {
+        return Response.json([categoryRow(JSON.parse(options.body))])
+      }
+      return Response.json([])
+    }
+
+    if (stringUrl.includes('/rest/v1/cms_categories')) {
+      if (stringUrl.includes(categoryId)) {
+        return Response.json([categoryRow()])
+      }
+      return Response.json([])
+    }
+
     if (stringUrl.includes('/rest/v1/cms_site_settings')) {
       return Response.json([])
     }
@@ -259,6 +286,7 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
     importJobBodies.some((body) => body.report?.progress?.phase === 'posts')
   )
   assert.equal(postBody.author_id, authorId)
+  assert.equal(postBody.category_id, categoryId)
   assert.ok(postBody.body_blocks.length > 0)
   assert.equal(pageBody.path, '/custom-page')
   assert.equal(pageBody.body_text, 'Page body')

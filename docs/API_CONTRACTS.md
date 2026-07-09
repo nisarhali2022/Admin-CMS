@@ -192,8 +192,9 @@ Save payload:
   "slug": "post-title",
   "excerpt": "Short summary",
   "authorId": "uuid",
-  "categoryId": null,
+  "categoryId": "uuid",
   "featuredImageId": null,
+  "bodyHtml": "<p>Post body HTML</p>",
   "bodyBlocks": [],
   "seoTitle": null,
   "metaDescription": null,
@@ -206,13 +207,15 @@ Save payload:
 
 Behavior:
 
-- one category per post in v1
+- one website-scoped category is required per post in v1 because category slug is part of the public URL
 - one website-scoped author per post in v1
-- validate `bodyBlocks`
+- `bodyHtml` is the preferred body format for new admin edits
+- keep `bodyBlocks` for backward compatibility and imported legacy posts
+- public/admin serializers return both `bodyHtml` and `bodyBlocks`; public sites should prefer `bodyHtml` when present and fall back to `bodyBlocks`
 - block duplicate slug within same website
 - allow same slug across different websites
 - block cross-website image/category/author references
-- image blocks store `mediaId` as the primary reference
+- editor image HTML stores `data-media-id` and legacy image blocks store `mediaId` as the primary reference
 - posts do not support future scheduling in v1
 - save always publishes; draft, unpublish, trash, and restore routes are not part of the active CMS
 - `DELETE` permanently deletes after admin confirmation
@@ -246,6 +249,8 @@ Behavior:
 - referenced media cannot be deleted
 - unused media deletes Supabase Storage object first, then hard deletes the metadata row
 - if Supabase Storage deletion fails, keep the metadata row and return an error
+- the Media Library bulk delete UI does not use a separate bulk API; it calls the same `DELETE /api/cms/media/:id?websiteId=...` route for each selected item so reference checks remain centralized
+- `GET /api/cms/media/:id/usage?websiteId=...` remains available for the Media table `Usage` action
 
 ## Admin Categories
 
@@ -353,9 +358,10 @@ Behavior:
 - create/select website-scoped authors for posts
 - use fallback author `Imported Author` when WordPress author data is unavailable
 - never import a post without `author_id`
+- create/select fallback category `Uncategorized` when WordPress post category data is unavailable
 - copy images to Supabase Storage
 - rewrite old image URLs
-- convert post content to supported body blocks where possible
+- convert post content to `bodyHtml` where practical, with compatible `bodyBlocks` fallback when needed
 - import WordPress pages that do not map to known fixed templates as custom pages
 - record unmatched/skipped pages and skipped items in report
 - failed reset clears only the inactive website's scoped rows and Supabase Storage objects
@@ -399,7 +405,7 @@ Required public functions/views:
 - `get_public_site_by_domain(domain)`
 - `get_public_template_content(domain, template_key)`
 - `get_public_page(domain, page_path)`
-- `get_public_post(domain, slug)`
+- `get_public_post(domain, slug)` for post detail lookup after the public route extracts the post slug from `/{categorySlug}/{postSlug}`
 - `list_public_posts(domain, category_slug, search, limit_count, offset_count)`
 - `list_public_categories(domain)`
 - `list_public_authors(domain)`
@@ -440,7 +446,7 @@ Public post result should include:
 - author name/slug/bio/avatar image object
 - category
 - featured image object
-- body blocks with image references resolved to image objects
+- `bodyHtml` when present, plus legacy body blocks with image references resolved to image objects
 - SEO fields
 - publish date
 
@@ -479,7 +485,7 @@ Recommended request:
 {
   "websiteId": "uuid",
   "event": "post.published",
-  "paths": ["/blog/post-title", "/blog", "/sitemap.xml"],
+  "paths": ["/category-slug/post-title", "/blog", "/sitemap.xml"],
   "resourceType": "post",
   "resourceId": "uuid"
 }

@@ -1,21 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  Bold,
-  ImagePlus,
-  Italic,
-  List,
-  ListOrdered,
-  Quote,
+  Eye,
   RefreshCw,
   Search,
 } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
+import TiptapPageEditor from './TiptapPageEditor'
 
 const templateOptions = {
   home: {
@@ -96,16 +89,56 @@ const emptySeo = {
   featuredImageId: '',
 }
 
-const editorTools = [
-  { label: 'Bold', icon: Bold, before: '**', after: '**' },
-  { label: 'Italic', icon: Italic, before: '_', after: '_' },
-  { label: 'Bulleted list', icon: List, before: '- ', after: '' },
-  { label: 'Numbered list', icon: ListOrdered, before: '1. ', after: '' },
-  { label: 'Quote', icon: Quote, before: '> ', after: '' },
-  { label: 'Align left', icon: AlignLeft, before: '<div style="text-align:left">', after: '</div>' },
-  { label: 'Align center', icon: AlignCenter, before: '<div style="text-align:center">', after: '</div>' },
-  { label: 'Align right', icon: AlignRight, before: '<div style="text-align:right">', after: '</div>' },
-]
+const allowedEditorTags = new Set([
+  'A',
+  'B',
+  'BLOCKQUOTE',
+  'BR',
+  'COL',
+  'COLGROUP',
+  'DIV',
+  'EM',
+  'H2',
+  'H3',
+  'H4',
+  'I',
+  'IFRAME',
+  'IMG',
+  'LI',
+  'OL',
+  'P',
+  'STRONG',
+  'TABLE',
+  'TBODY',
+  'TD',
+  'TH',
+  'THEAD',
+  'TR',
+  'UL',
+])
+
+const allowedEditorAttributes = {
+  A: new Set(['href', 'target', 'rel']),
+  IMG: new Set(['src', 'alt', 'data-media-id']),
+  IFRAME: new Set([
+    'src',
+    'width',
+    'height',
+    'allow',
+    'allowfullscreen',
+    'frameborder',
+    'loading',
+    'title',
+  ]),
+  TD: new Set(['colspan', 'rowspan']),
+  TH: new Set(['colspan', 'rowspan']),
+  DIV: new Set(['style']),
+  P: new Set(['style']),
+  BLOCKQUOTE: new Set(['style']),
+  H2: new Set(['style']),
+  H3: new Set(['style']),
+  H4: new Set(['style']),
+}
 
 function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
@@ -120,6 +153,126 @@ function formatDate(value) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+function sanitizeUrl(value) {
+  const text = String(value || '').trim()
+  if (
+    text.startsWith('/') ||
+    text.startsWith('#') ||
+    /^https?:\/\//i.test(text) ||
+    /^mailto:/i.test(text)
+  ) {
+    return text
+  }
+
+  return ''
+}
+
+function sanitizeStyle(value) {
+  const text = String(value || '').toLowerCase()
+  const match = text.match(/text-align\s*:\s*(left|center|right)/)
+  return match ? `text-align: ${match[1]};` : ''
+}
+
+function sanitizeEditorHtml(html) {
+  if (typeof window === 'undefined' || !window.DOMParser) {
+    return String(html || '')
+  }
+
+  const documentHtml = new window.DOMParser().parseFromString(
+    `<div>${html || ''}</div>`,
+    'text/html'
+  )
+
+  function cleanNode(node) {
+    if (node.nodeType === window.Node.TEXT_NODE) return
+
+    if (node.nodeType !== window.Node.ELEMENT_NODE) {
+      node.remove()
+      return
+    }
+
+    const tagName = node.tagName
+
+    if (!allowedEditorTags.has(tagName)) {
+      const text = documentHtml.createTextNode(node.textContent || '')
+      node.replaceWith(text)
+      return
+    }
+
+    for (const attribute of [...node.attributes]) {
+      const allowed = allowedEditorAttributes[tagName]
+      if (!allowed?.has(attribute.name)) {
+        node.removeAttribute(attribute.name)
+      }
+    }
+
+    if (tagName === 'A') {
+      const href = sanitizeUrl(node.getAttribute('href'))
+      if (!href) {
+        node.removeAttribute('href')
+      } else {
+        node.setAttribute('href', href)
+        node.setAttribute('target', '_blank')
+        node.setAttribute('rel', 'noreferrer')
+      }
+    }
+
+    if (tagName === 'IMG') {
+      const src = sanitizeUrl(node.getAttribute('src'))
+      if (!src) {
+        node.remove()
+        return
+      }
+      node.setAttribute('src', src)
+      node.setAttribute('alt', node.getAttribute('alt') || '')
+      const mediaId = node.getAttribute('data-media-id')
+      if (mediaId) node.setAttribute('data-media-id', mediaId)
+    }
+
+    if (tagName === 'IFRAME') {
+      const src = sanitizeUrl(node.getAttribute('src'))
+      if (
+        !src ||
+        !/^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\//i.test(src)
+      ) {
+        node.remove()
+        return
+      }
+      node.setAttribute('src', src)
+      node.setAttribute('loading', 'lazy')
+      node.setAttribute('title', node.getAttribute('title') || 'Embedded video')
+      node.setAttribute(
+        'allow',
+        node.getAttribute('allow') ||
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+      )
+    }
+
+    if (node.hasAttribute('style')) {
+      const style = sanitizeStyle(node.getAttribute('style'))
+      if (style) node.setAttribute('style', style)
+      else node.removeAttribute('style')
+    }
+
+    for (const child of [...node.childNodes]) {
+      cleanNode(child)
+    }
+  }
+
+  const root = documentHtml.body.firstElementChild
+  for (const child of [...root.childNodes]) {
+    cleanNode(child)
+  }
+
+  return root.innerHTML
+}
+
+function getTextWordCount(html) {
+  if (!html) return 0
+  const text = String(html).replace(/<[^>]*>/g, ' ').trim()
+  return text ? text.split(/\s+/).length : 0
 }
 
 function getDefaultContentData(templateKey) {
@@ -262,8 +415,7 @@ function getPageSaveMessage(result, fallback) {
   return getApiMessage(result, fallback)
 }
 
-export default function TemplateContentManager({ websiteId }) {
-  const contentTextareaRef = useRef(null)
+export default function TemplateContentManager({ websiteId, selectedWebsite = null }) {
   const [templates, setTemplates] = useState([])
   const [customPages, setCustomPages] = useState([])
   const [media, setMedia] = useState([])
@@ -424,45 +576,32 @@ export default function TemplateContentManager({ websiteId }) {
   }
 
   function updateContentText(value) {
+    const nextValue = sanitizeEditorHtml(value)
     const field = templateOptions[form.templateKey]?.primaryContentField
 
     setForm((current) => ({
       ...current,
-      contentText: value,
+      contentText: nextValue,
       contentData: field
         ? {
             ...current.contentData,
-            [field]: value,
+            [field]: nextValue,
           }
         : current.contentData,
     }))
   }
 
-  function insertIntoContent(before, after = '') {
-    const textarea = contentTextareaRef.current
-    const start = textarea?.selectionStart ?? form.contentText.length
-    const end = textarea?.selectionEnd ?? form.contentText.length
-    const selected = form.contentText.slice(start, end)
-    const nextText = `${form.contentText.slice(0, start)}${before}${selected}${after}${form.contentText.slice(end)}`
-
-    updateContentText(nextText)
-
-    requestAnimationFrame(() => {
-      textarea?.focus()
-      const cursor = start + before.length + selected.length + after.length
-      textarea?.setSelectionRange(cursor, cursor)
-    })
-  }
-
-  function addMediaToContent() {
-    const item = media[0]
-
-    if (!item) {
-      setMessage('Upload media first, then use Add Media.')
-      return
+  function getPageViewUrl(path = form.path, title = form.title, templateKey = form.templateKey) {
+    const domain = selectedWebsite?.primaryDomain
+    if (!domain) return ''
+    if (templateKey === 'custom' && !String(path || '').trim() && !String(title || '').trim()) {
+      return ''
     }
 
-    insertIntoContent(`![${item.altText || item.originalFilename || 'Image'}](${item.publicUrl})`)
+    const normalizedPath = normalizeEditorPath(path, title, templateKey)
+    if (templateKey === 'custom' && normalizedPath === '/') return ''
+    const origin = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
+    return `${origin.replace(/\/$/, '')}${normalizedPath}`
   }
 
   function updateFeaturedImage(mediaId) {
@@ -738,13 +877,25 @@ export default function TemplateContentManager({ websiteId }) {
                   <td className="px-3 py-4">
                     <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.84rem]">
                       {page.id ? (
-                        <button
-                          type="button"
-                          onClick={() => deletePage(page)}
-                          className="font-medium text-red-700 hover:underline"
-                        >
-                          Delete
-                        </button>
+                        <>
+                          {getPageViewUrl(page.path, page.title, page.templateKey) ? (
+                            <a
+                              href={getPageViewUrl(page.path, page.title, page.templateKey)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-medium text-[#005cbb] hover:underline"
+                            >
+                              View
+                            </a>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => deletePage(page)}
+                            className="font-medium text-red-700 hover:underline"
+                          >
+                            Delete
+                          </button>
+                        </>
                       ) : (
                         <span className="text-[#50575e]">-</span>
                       )}
@@ -786,7 +937,33 @@ export default function TemplateContentManager({ websiteId }) {
           >
             Back to Pages
           </button>
+          {getPageViewUrl() ? (
+            <a
+              href={getPageViewUrl()}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+            >
+              <Eye className="h-4 w-4" />
+              View
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="inline-flex cursor-not-allowed items-center gap-1 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] px-3 py-1.5 text-[13px] font-medium text-[#8c8f94]"
+            >
+              <Eye className="h-4 w-4" />
+              View
+            </button>
+          )}
         </div>
+        {isAddingPage ? (
+          <p className="text-[13px] text-[#50575e]">
+            View opens the public URL. Save this page before expecting new content
+            to appear on the website.
+          </p>
+        ) : null}
 
         <input
           type="text"
@@ -809,184 +986,126 @@ export default function TemplateContentManager({ websiteId }) {
           </button>
         </div>
 
-        <div className="border border-[#c3c4c7] bg-white">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#c3c4c7] bg-[#f6f7f7] px-2 py-2">
-            <button
-              type="button"
-              onClick={addMediaToContent}
-              className="inline-flex items-center gap-1 rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] text-[#3858e9]"
-            >
-              <ImagePlus className="h-4 w-4" />
-              Add Media
-            </button>
-            <div className="flex overflow-hidden rounded-t-[3px] border border-[#c3c4c7] bg-white">
-              <button
-                type="button"
-                onClick={() => setEditorMode('visual')}
-                className={`px-3 py-1.5 text-[13px] ${
-                  editorMode === 'visual'
-                    ? 'bg-white text-[#1f2330]'
-                    : 'bg-[#f6f7f7] text-[#50575e]'
-                }`}
-              >
-                Visual
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditorMode('code')}
-                className={`border-l border-[#c3c4c7] px-3 py-1.5 text-[13px] ${
-                  editorMode === 'code'
-                    ? 'bg-white text-[#1f2330]'
-                    : 'bg-[#f6f7f7] text-[#50575e]'
-                }`}
-              >
-                Code
-              </button>
+        <TiptapPageEditor
+          value={form.contentText}
+          onChange={updateContentText}
+          media={media}
+          editorMode={editorMode}
+          setEditorMode={setEditorMode}
+          setMessage={setMessage}
+          sanitizeHtml={sanitizeEditorHtml}
+          sanitizeUrl={sanitizeUrl}
+          wordCount={getTextWordCount(form.contentText)}
+        />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="border border-[#c3c4c7] bg-white">
+            <div className="border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
+              <h3 className="text-[1rem] font-semibold text-[#1f2330]">SEO</h3>
+            </div>
+            <div className="grid gap-4 p-4 md:grid-cols-2">
+              <label className="block text-[13px] font-medium text-[#1f2330]">
+                Focus keyphrase
+                <input
+                  type="text"
+                  value={form.focusKeyphrase}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      focusKeyphrase: event.target.value,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                />
+              </label>
+              <label className="block text-[13px] font-medium text-[#1f2330]">
+                SEO title
+                <input
+                  type="text"
+                  value={form.seoTitle}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, seoTitle: event.target.value }))
+                  }
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                />
+              </label>
+              <label className="block text-[13px] font-medium text-[#1f2330] md:col-span-2">
+                Meta description
+                <textarea
+                  value={form.metaDescription}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      metaDescription: event.target.value,
+                    }))
+                  }
+                  rows={4}
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                />
+              </label>
+              <label className="block text-[13px] font-medium text-[#1f2330]">
+                Author
+                <select
+                  value={form.authorId}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, authorId: event.target.value }))
+                  }
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                >
+                  <option value="">Select author</option>
+                  {authors
+                    .map((author) => (
+                      <option key={author.id} value={author.id}>
+                        {author.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1 border-b border-[#dcdcde] bg-white px-2 py-2">
-            <select
-              className="h-8 rounded-[3px] border border-[#c3c4c7] bg-white px-2 text-[13px]"
-              defaultValue="paragraph"
-            >
-              <option value="paragraph">Paragraph</option>
-            </select>
-            {editorTools.map(({ label, icon: Icon, before, after }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => insertIntoContent(before, after)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-[3px] text-[#3c434a] hover:bg-[#f0f0f1]"
-                aria-label={label}
-                title={label}
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
-          </div>
-
-          <textarea
-            ref={contentTextareaRef}
-            value={form.contentText}
-            onChange={(event) => updateContentText(event.target.value)}
-            rows={16}
-            className="min-h-[20rem] w-full resize-y border-0 bg-white px-3 py-3 text-[15px] leading-6 text-[#1f2330] outline-none"
-            aria-label="Page content"
-          />
-
-          <div className="border-t border-[#dcdcde] bg-[#f6f7f7] px-3 py-2 text-[13px] text-[#50575e]">
-            Word count: {form.contentText.trim() ? form.contentText.trim().split(/\s+/).length : 0}
-          </div>
-        </div>
-
-        <div className="border border-[#c3c4c7] bg-white">
-          <div className="border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
-            <h3 className="text-[1rem] font-semibold text-[#1f2330]">SEO</h3>
-          </div>
-          <div className="grid gap-4 p-4 md:grid-cols-2">
+          <div className="grid gap-4 border border-[#c3c4c7] bg-white p-4 md:grid-cols-2">
             <label className="block text-[13px] font-medium text-[#1f2330]">
-              Focus keyphrase
+              Slug
               <input
                 type="text"
-                value={form.focusKeyphrase}
+                value={form.path}
                 onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    focusKeyphrase: event.target.value,
-                  }))
+                  setForm((current) => ({ ...current, path: event.target.value }))
                 }
                 className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               />
             </label>
             <label className="block text-[13px] font-medium text-[#1f2330]">
-              SEO title
+              Canonical URL
               <input
                 type="text"
-                value={form.seoTitle}
+                value={form.canonicalUrl}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, seoTitle: event.target.value }))
+                  setForm((current) => ({ ...current, canonicalUrl: event.target.value }))
                 }
-                className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-              />
-            </label>
-            <label className="block text-[13px] font-medium text-[#1f2330] md:col-span-2">
-              Meta description
-              <textarea
-                value={form.metaDescription}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    metaDescription: event.target.value,
-                  }))
-                }
-                rows={4}
                 className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               />
             </label>
             <label className="block text-[13px] font-medium text-[#1f2330]">
-              Author
+              Robots meta
               <select
-                value={form.authorId}
+                value={form.robotsMeta}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, authorId: event.target.value }))
+                  setForm((current) => ({ ...current, robotsMeta: event.target.value }))
                 }
                 className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               >
-                <option value="">Select author</option>
-                {authors
-                  .map((author) => (
-                    <option key={author.id} value={author.id}>
-                      {author.name}
-                    </option>
-                  ))}
+                <option value="">Default robots</option>
+                <option value="index,follow">index,follow</option>
+                <option value="noindex,follow">noindex,follow</option>
+                <option value="index,nofollow">index,nofollow</option>
+                <option value="noindex,nofollow">noindex,nofollow</option>
               </select>
             </label>
-          </div>
-        </div>
-
-        <div className="grid gap-4 border border-[#c3c4c7] bg-white p-4 md:grid-cols-2">
-          <label className="block text-[13px] font-medium text-[#1f2330]">
-            Slug
-            <input
-              type="text"
-              value={form.path}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, path: event.target.value }))
-              }
-              className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-            />
-          </label>
-          <label className="block text-[13px] font-medium text-[#1f2330]">
-            Canonical URL
-            <input
-              type="text"
-              value={form.canonicalUrl}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, canonicalUrl: event.target.value }))
-              }
-              className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-            />
-          </label>
-          <label className="block text-[13px] font-medium text-[#1f2330]">
-            Robots meta
-            <select
-              value={form.robotsMeta}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, robotsMeta: event.target.value }))
-              }
-              className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-            >
-              <option value="">Default robots</option>
-              <option value="index,follow">index,follow</option>
-              <option value="noindex,follow">noindex,follow</option>
-              <option value="index,nofollow">index,nofollow</option>
-              <option value="noindex,nofollow">noindex,nofollow</option>
-            </select>
-          </label>
-          <div className="block text-[13px] font-medium text-[#1f2330]">
-            Feature Image
-            <div className="mt-2 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-3">
+            <div className="block text-[13px] font-medium text-[#1f2330]">
+              Feature Image
+              <div className="mt-2 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-3">
               {selectedFeatureImage ? (
                 <div className="mb-3 flex items-center gap-3">
                   <img
@@ -1069,19 +1188,20 @@ export default function TemplateContentManager({ websiteId }) {
               ) : null}
             </div>
           </div>
-          <label className="flex items-center gap-3 pt-7 text-[13px] font-medium text-[#1f2330]">
-            <input
-              type="checkbox"
-              checked={form.sitemapInclude}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  sitemapInclude: event.target.checked,
-                }))
-              }
-            />
-            Include in sitemap
-          </label>
+            <label className="flex items-center gap-3 pt-7 text-[13px] font-medium text-[#1f2330]">
+              <input
+                type="checkbox"
+                checked={form.sitemapInclude}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    sitemapInclude: event.target.checked,
+                  }))
+                }
+              />
+              Include in sitemap
+            </label>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">

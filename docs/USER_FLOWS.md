@@ -75,7 +75,7 @@ Rules:
 5. Setup app tests WordPress REST API access.
 6. Setup app fetches WordPress REST API data.
 7. Setup app imports known pages into template content.
-8. Setup app imports posts into structured body blocks.
+8. Setup app imports posts into the preferred `body_html` format when practical, or keeps compatible `body_blocks` fallback data when needed.
 9. Setup app imports categories and authors where available.
 10. Setup app copies images to Supabase Storage.
 11. Setup app rewrites inline image URLs.
@@ -139,11 +139,24 @@ Expected behavior:
 4. Admin selects one author.
 5. Admin selects one category.
 6. Admin selects featured image if needed.
-7. Admin edits article body blocks.
+7. Admin edits article content in the Tiptap visual editor or Code HTML mode.
 8. Admin edits SEO fields.
 9. Admin saves the published post or permanently deletes it.
 
-Supported body blocks:
+Supported editor content:
+
+- headings
+- paragraphs
+- bold and italic text
+- lists
+- blockquotes
+- links
+- images selected from the website Media Library
+- YouTube embeds
+- tables
+- alignment
+
+Legacy body blocks can still be opened as starter HTML:
 
 - paragraph
 - heading
@@ -162,6 +175,7 @@ Expected behavior:
 - TOC is generated from heading blocks
 - FAQ block can generate FAQ schema
 - author picker shows selected website authors only
+- category is required because the visitor-facing post URL is `/{categorySlug}/{postSlug}`
 - same slug can exist on different websites
 - duplicate slug is blocked within same website
 - future scheduling is not available for posts in v1
@@ -176,11 +190,15 @@ Expected behavior:
 6. Server uploads to Supabase Storage under `websites/{website_id}/media/...`.
 7. CMS saves metadata row.
 8. Admin can edit alt text/caption.
-9. Admin can select image from template/post editors.
+9. Admin can search media automatically while typing.
+10. Admin can select one or more media rows and bulk delete them.
+11. Admin can use the `Usage` action to check references manually.
+12. Admin can select image from template/post editors.
 
 Delete behavior:
 
 - delete is permanent after confirmation
+- bulk delete is permanent after one confirmation and processes selected media through the same safe delete endpoint
 - delete checks usage first
 - referenced media cannot be deleted
 - unused media deletes Supabase Storage object before hard deleting metadata row

@@ -209,7 +209,7 @@ Local `.env` should include only development keys. Do not commit secrets.
 6. Configure admin CMS environment variables.
 7. Configure public website environment variables.
 8. Add public revalidation endpoints.
-9. Add websites through the admin CMS/database records.
+9. Add websites through the setup/provisioning app, which writes database records.
 10. Run tests and manual checks.
 
 ## Security Checklist

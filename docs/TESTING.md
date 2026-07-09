@@ -77,13 +77,14 @@ Test:
 
 Test:
 
-- one category per post
+- one category is required per post for category-based public URLs
 - one author per post
 - multiple category payloads are rejected if attempted
 - post author must belong to selected website
 - inactive authors are not selectable for new posts
-- post `body_blocks` schema is validated
-- supported blocks save and render in public read output
+- post `body_html` is sanitized and validated for safe editor output
+- legacy post `body_blocks` schema is still validated for fallback/import content
+- public reads expose `bodyHtml` and fallback `bodyBlocks`
 - TOC placeholder generates entries from heading blocks
 - FAQ block can be used for FAQ schema
 - featured image must belong to selected website
@@ -121,6 +122,11 @@ Test:
 - referenced media cannot be deleted
 - unused media delete removes Supabase Storage object before metadata
 - Supabase Storage deletion failure keeps the media row and returns an error
+- Media Library search filters automatically from input changes without a manual submit button
+- Media Library row checkboxes and select-all checkbox select currently visible media rows
+- Media Library bulk `Delete selected` calls the existing media delete endpoint for each selected row
+- Media Library bulk delete clears selection, reloads media, and reports success/failure counts
+- Media Library keeps the `Usage` action visible and usage results render in the Actions cell
 - public websites receive media URLs from Supabase data and never upload, delete, or list Supabase Storage objects
 - public template/post reads return resolved image objects, not unresolved `mediaId` values
 - public image objects include URL, alt text, caption, width, and height when available
@@ -205,11 +211,12 @@ Test:
 - known fixed pages map to template keys
 - unmatched WordPress pages import into `cms_pages` or are reported with a skipped reason
 - posts import into `cms_posts`
-- WordPress content converts to supported `body_blocks` where possible
+- WordPress content converts to `body_html` where practical, with compatible `body_blocks` fallback when needed
 - categories import per website
 - authors import or fallback author records are created per website when available/needed
 - import creates or selects website-scoped authors for posts
 - missing WordPress author data uses fallback author `Imported Author`
+- missing WordPress category data uses fallback category `Uncategorized`
 - imported posts are rejected or skipped if no `author_id` can be assigned
 - import job rows are admin-only and not exposed to public reads
 - featured images copy to Supabase Storage

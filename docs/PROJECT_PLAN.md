@@ -27,8 +27,9 @@ The main CMS manages daily website content only: text, links, images, fixed-temp
 - Audit events/activity log are not included in v1.
 - Media is per website only; there is no shared/global media library.
 - Supabase Storage is the media storage backend.
+- Media Library uses a table workflow with automatic client-side search, checkbox selection, bulk permanent delete through the existing safe delete endpoint, and a `Usage` action for reference checks.
 - Public website layouts are fixed.
-- Blog layouts are fixed, but blog article bodies support structured content blocks.
+- Blog layouts are fixed, and new blog article edits use sanitized Tiptap HTML. Legacy structured body blocks remain only as import/backward-compatibility fallback.
 - Blog authors are website-scoped profile records, not login users.
 - Template content and blog posts do not support future scheduling in v1.
 - Quiz is global current data and separate from CMS page/post scheduling.
@@ -162,9 +163,10 @@ Rules:
 - slug
 - excerpt
 - publish date
-- category ID
+- required category ID
 - featured image ID
-- body blocks
+- body HTML
+- legacy/import fallback body blocks
 - SEO title
 - meta description
 - canonical override
@@ -173,7 +175,14 @@ Rules:
 - sitemap include flag
 - publish timestamp
 
-Supported v1 `body_blocks`:
+Preferred v1 body editor:
+
+- New admin edits use the shared Tiptap visual editor.
+- Saved post content uses sanitized `body_html`.
+- Editor images store `data-media-id` so media usage checks can resolve ownership.
+- Legacy/imported `body_blocks` remain supported as fallback content.
+
+Supported legacy `body_blocks`:
 
 - paragraph
 - heading
@@ -189,8 +198,8 @@ Supported v1 `body_blocks`:
 Rules:
 
 - Blog post page layout stays fixed in public website code.
-- Admin can add/reorder article body blocks.
-- Each post has one category in v1.
+- Admin can write article body content with Tiptap formatting, media-library images, YouTube embeds, tables, and Code mode HTML review.
+- Each post must have one category in v1 because category slug is part of the public post URL.
 - Each post has one website-scoped author in v1.
 - Authors are selected from the selected website's author records.
 - Multiple categories per post are not included in v1.
@@ -200,7 +209,7 @@ Rules:
 - FAQ uses a structured question/answer block.
 - FAQ block can generate FAQ schema.
 - Table and callout blocks support package comparisons and highlighted notes.
-- Blog editor uses a structured block editor.
+- Blog editor uses the shared Tiptap editor; public websites keep a fixed post layout.
 
 ### Other Website-Scoped Resources
 
@@ -217,6 +226,13 @@ Rules:
 - MIME type
 - file size
 - source: upload or WordPress import
+
+Media Library UI behavior:
+
+- Search filters automatically while the admin types.
+- Bulk delete is permanent after one confirmation and calls the existing media delete route for each selected item.
+- Server-side media delete still checks references and blocks deletion when media is used.
+- The `Usage` action remains available so admins can manually inspect references before deleting.
 
 `cms_categories`
 
@@ -277,7 +293,7 @@ CMS owns:
 - editable links
 - editable image references
 - template content fields
-- blog article body blocks
+- blog article body HTML and legacy body blocks
 - SEO fields
 - sitemap include flags
 
@@ -291,14 +307,13 @@ For blog posts:
 
 - CMS stores repeatable post records.
 - Public websites render posts using their fixed blog layout.
-- Admin can compose the article body with supported structured blocks.
+- Admin composes the article body with the shared Tiptap editor.
 - Admin selects one website-scoped author for each post.
 
 Rules:
 
 - CMS must not own public theme/layout.
-- No required `content_html` field in v1.
-- If rendered HTML is added later, it must be explicitly chosen and sanitized.
+- Page/post body HTML is explicitly chosen for editor content and must be sanitized before saving/rendering.
 - Admin has an internal preview panel only.
 - Public draft preview tokens are not included in v1.
 - Revision history and rollback are not included in v1.
@@ -316,7 +331,7 @@ Admin routes must:
 - Reject cross-website edit/delete attempts.
 - Allow the same slug on different websites.
 - Block duplicate slugs within the same website.
-- Use strict validation for slugs, ownership, redirect loops, image type/size, content schemas, body blocks, and required fields.
+- Use strict validation for slugs, ownership, redirect loops, image type/size, content schemas, editor HTML, legacy body blocks, and required fields.
 
 Admin mutations use route handlers under `/api/cms/...`.
 
@@ -338,7 +353,7 @@ Recommended public interfaces:
 
 - `get_public_site_by_domain(domain)`
 - `get_public_template_content(domain, template_key)`
-- `get_public_post(domain, slug)`
+- `get_public_post(domain, slug)` for post detail lookup after the public route extracts the post slug
 - `list_public_posts(domain, filters)`
 - `list_public_categories(domain)`
 - `list_public_authors(domain)`
@@ -385,19 +400,18 @@ Page import mapping:
 
 Unmatched WordPress pages:
 
-- Go to an import review list.
-- Are not automatically turned into arbitrary CMS pages.
+- Import into `cms_pages` as custom pages when they can be represented safely.
+- If a page cannot be imported safely, record it in the import report with a clear skipped reason.
 
 Post import mapping:
 
 - WordPress posts import into `cms_posts`.
-- WordPress post content should be converted into supported `body_blocks` where possible.
+- WordPress post content should be converted into `body_html` where practical, with supported `body_blocks` fallback when needed.
+- If WordPress author data is unavailable, create/reuse `Imported Author`.
+- If WordPress post category data is unavailable, create/reuse `Uncategorized`.
 - Embedded images should be imported to Supabase Storage and rewritten.
-- Headings should become heading blocks.
-- Paragraphs should become paragraph blocks.
-- Lists should become list blocks.
-- Tables should become table blocks where parsing is reliable.
-- FAQ-like content can be flagged for review if it cannot be safely converted into FAQ blocks.
+- Headings, paragraphs, lists, tables, and images should be preserved in sanitized editor-compatible HTML where practical.
+- FAQ-like content can be flagged for review if it cannot be safely represented.
 
 SEO import:
 
@@ -481,7 +495,7 @@ System handles:
 - Basic automatic schema:
   - Article schema for posts.
   - WebPage schema for template content.
-  - FAQ schema from FAQ body blocks.
+  - FAQ schema from supported editor/fallback FAQ content.
 
 Not included in v1:
 
@@ -520,7 +534,7 @@ V1 admin features:
 - Website selector.
 - Dashboard for selected website.
 - Template Content Management for fixed pages.
-- Posts CRUD with structured block editor.
+- Posts CRUD with shared Tiptap visual editor, sanitized `body_html`, and legacy `body_blocks` fallback.
 - Authors CRUD.
 - Media library with WebP/Supabase Storage upload.
 - Categories CRUD.
@@ -555,7 +569,7 @@ For template content, posts, media, categories, authors, redirects, and other de
 
 Media delete rules:
 
-- Media delete must first check references in posts, template content, featured images, Open Graph images, and body block image references.
+- Media delete must first check references in posts, template content, featured images, Open Graph images, editor HTML image references, and legacy body block image references.
 - If media is still referenced, delete is blocked and the admin sees where it is used.
 - If media is unused, delete the Supabase Storage object first, then hard delete the `cms_media` row.
 - If Supabase Storage deletion fails, keep the media row and show an error.
@@ -743,7 +757,7 @@ The admin CMS manages:
 - links
 - images
 - fixed-template page content
-- blog posts and article body blocks
+- blog posts and article body HTML
 - blog authors
 - categories
 - SEO metadata
@@ -766,7 +780,7 @@ The separate public websites own:
 - Prevent redirect loops.
 - Prevent duplicate redirect paths per website.
 - Validate template `content_data` against code-defined schemas before saving.
-- Validate post `body_blocks` against supported block schemas before saving.
+- Validate post editor HTML and legacy `body_blocks` before saving.
 - Block cross-website author selection and cross-website author avatar assignment.
 - Block permanent author deletion while posts still reference the author.
 - Do not expose Supabase service-role key to public websites.
@@ -811,7 +825,7 @@ Docs must clearly explain:
 - Supabase Storage uses one bucket with `websites/{website_id}/...` prefixes,
 - `website_id` scopes all normal CMS resources,
 - template content replaces generic pages,
-- post bodies use structured blocks,
+- post bodies use sanitized Tiptap `body_html`, with structured `body_blocks` only for legacy/import fallback,
 - authors are website-scoped blog profile records,
 - quiz is global,
 - code must stay feature-separated,
@@ -860,7 +874,7 @@ Required tests:
 - Redirect duplicate prevention.
 - Redirect loop prevention.
 - Template content schema validation.
-- Post body block validation.
+- Post body HTML and legacy body block validation.
 - Author CRUD.
 - Author slug uniqueness per website.
 - Author avatar image ownership validation.

@@ -60,7 +60,8 @@ Rules:
 - Use `mediaId`, `authorId`, `categoryId`, and `templateKey` in JS payloads.
 - Use `storage_path` in database rows for Supabase Storage object paths.
 - Use `public_url` in database rows for resolved public image URLs.
-- Use `body_blocks` in database rows and `bodyBlocks` in API payloads.
+- Use `body_html` / `bodyHtml` as the preferred post body format for new edits.
+- Keep `body_blocks` / `bodyBlocks` only for legacy/import fallback content.
 - Public API responses return resolved image objects instead of raw media IDs unless a raw ID is explicitly needed by trusted internal rendering.
 
 ## Admin Route Pattern
@@ -140,6 +141,12 @@ Delete helper behavior:
 
 Admin media permanent delete must check references first. If unused, delete the Supabase Storage object first, then hard-delete the `cms_media` row. If object deletion fails, keep the media row and surface the error.
 
+Media Library UI rule:
+
+- Keep media search automatic from input changes; no submit button is required.
+- Bulk delete is permanent and must reuse the same per-item delete route so server-side reference checks still run for every selected media row.
+- Keep the `Usage` action available for manual reference lookup.
+
 ## Revalidation Pattern
 
 Services that change public rendering should return affected paths or events to a shared revalidation helper.
@@ -179,6 +186,7 @@ Import services must:
 - create/update `cms_import_jobs`
 - import authors before posts where possible
 - use fallback author `Imported Author` when needed
+- use fallback category `Uncategorized` when post category data is missing
 - never save imported posts without `author_id`
 - copy imported images to Supabase Storage
 - rewrite old WordPress image URLs to Supabase Storage public URLs

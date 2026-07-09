@@ -6,6 +6,29 @@ Update this file immediately after each milestone is completed and validated. Be
 
 This is not a CMS audit-log feature. It is development documentation for continuity between implementation steps.
 
+## Current Supersession Notes
+
+Older review entries intentionally remain as historical records. When they mention optional post categories, `/blog/{postSlug}` detail URLs, body-block-first post editing, draft/unpublish/trash/restore workflows, media trash filters, media date filters, media search submit buttons, or fixed-template Add Page behavior, they are superseded by the later correction entries:
+
+- `Milestone 13 Correction: True Custom Pages`
+- `Milestone 13 Correction: Global Publish-Only Delete Cleanup`
+- `Milestone 13 Correction: Posts Pages-Style UI And Tiptap Body HTML`
+- `Milestone 13 Correction: Category-Based Post URLs`
+- `Milestone 13 Correction: Post Required Field Validation`
+- `Milestone 13 Correction: Documentation Alignment For Latest CMS Contracts`
+- `Milestone 13 Correction: Media Bulk Delete And Auto Search`
+
+Current active behavior:
+
+- `cms_pages` owns custom Pages rows; Add Page does not create or replace fixed `cms_template_content` rows.
+- New post edits use sanitized Tiptap `body_html`; `body_blocks` are legacy/import fallback only.
+- Public post URLs use `/{categorySlug}/{postSlug}`; `/blog` is only the archive/list page path.
+- New post saves require Author and Category.
+- WordPress import uses fallback `Imported Author` and `Uncategorized` when source data is missing.
+- Active CMS workflows are publish-only with permanent delete after confirmation.
+- Pages keep public `View` actions while still omitting Draft, Trash, Restore, Move to Trash, and Unpublish.
+- Media Library search filters automatically while typing; bulk delete is UI-level batching over the existing safe per-item permanent delete endpoint; the `Usage` action remains available.
+
 ## Review Entry Template
 
 Use this structure for every completed milestone:
@@ -1913,4 +1936,267 @@ Use this structure for every completed milestone:
   - Old historical milestone review entries may mention the previous trash/draft implementation; this correction supersedes them.
 - Follow-up items:
   - Run the corrective migration in Supabase before deploying code that expects removed columns.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages View Links And Visual Editor
+
+- Status: Complete
+- Date completed: 2026-07-08
+- Milestone goal: Restore public View access on Pages and replace the plain content textarea with a working WordPress-like visual editor.
+- What was implemented:
+  - Added `View` links before `Delete` in the Pages table Actions column.
+  - Added visible View controls on Add/Edit screens using selected website `primaryDomain` and the normalized page slug/path.
+  - Passed the full selected website object into `TemplateContentManager`.
+  - Replaced the visual content textarea with a contenteditable editor that supports formatting commands, headings, lists, quotes, alignment, links, and media insertion.
+  - Kept Code mode as the editable sanitized HTML view.
+  - Moved SEO and page settings into a responsive two-column row.
+- Files/modules changed:
+  - `features/template-content/TemplateContentWorkspace.jsx`
+  - `features/template-content/TemplateContentManager.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - docs
+- Inputs/outputs added or changed:
+  - Editor content is now treated as sanitized HTML in the existing page/template content field.
+  - View links open the public website URL in a new tab and show saved content only.
+- Security and architecture checks:
+  - Sanitization allows only a small set of formatting/image/link tags and safe URL forms.
+  - No schema, API, RLS, storage, or public website contract changes were added.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+- Known caveats:
+  - The public website must render the saved HTML field for visual formatting to appear to visitors.
+  - Unsaved Add Page edits are not previewed by View; View opens the public saved URL.
+- Follow-up items:
+  - Review public website rendering once public site integration begins.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Tiptap Pages Editor Integration
+
+- Status: Complete
+- Date completed: 2026-07-08
+- Milestone goal: Replace the custom Pages visual editor with a more capable open-source editor.
+- What was implemented:
+  - Added Tiptap editor packages for React, StarterKit, Image, Link, TextAlign, Table, Placeholder, and YouTube embeds.
+  - Added `TiptapPageEditor` as the reusable Pages visual editor component.
+  - Replaced the old `contentEditable` and `document.execCommand` implementation in `TemplateContentManager`.
+  - Kept Visual and Code modes, with Code mode exposing the saved HTML.
+  - Kept the existing website-scoped media picker and changed image insertion to use Tiptap image commands.
+  - Added toolbar controls for headings, bold, italic, lists, quote, link, image, YouTube URL embed, table, alignment, undo, and redo.
+  - Expanded HTML sanitization for safe table and YouTube iframe output.
+- Files/modules changed:
+  - `features/template-content/TemplateContentManager.jsx`
+  - `features/template-content/TiptapPageEditor.jsx`
+  - `styles/globals.css`
+  - `package.json`
+  - `package-lock.json`
+  - docs and tests
+- Inputs/outputs added or changed:
+  - Page body content continues to save as sanitized HTML in the existing content field.
+  - Media images are still selected from the CMS Media Library and inserted by public URL.
+  - Video support is URL/embed based; direct video uploads are not part of this pass.
+- Security and architecture checks:
+  - Sanitization remains centralized before content is persisted.
+  - YouTube iframes are limited to YouTube and YouTube nocookie URLs.
+  - No database, API, RLS, storage, or public website contract changes were added.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+- Known caveats:
+  - Public websites still need to render saved HTML safely for visitors to see formatting.
+- Follow-up items:
+  - Review public website HTML rendering and CSS when public integration begins.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Posts Pages-Style UI And Tiptap Body HTML
+
+- Status: Complete
+- Date completed: 2026-07-09
+- Milestone goal: Redesign Posts to match the Pages editor pattern and make Tiptap HTML the preferred post body format.
+- What was implemented:
+  - Rebuilt Posts as a WordPress-like list table with Add Post, search, title-click editing, View, and permanent Delete.
+  - Added a Pages-style Add/Edit Post screen with permalink display, View button, shared Tiptap editor, Code mode, excerpt, feature image picker, category dropdown, and responsive SEO/settings cards.
+  - Refactored the Tiptap editor into `components/admin/RichTextEditor.jsx` so Pages and Posts share one editor implementation.
+  - Added `cms_posts.body_html` through the setup/provisioning migration and kept `body_blocks` as legacy/import fallback content.
+  - Updated post serializers, repositories, validators, media usage checks, public post RPC output, docs, and tests for `bodyHtml`.
+- Files/modules changed:
+  - `components/admin/RichTextEditor.jsx`
+  - `features/template-content/TiptapPageEditor.jsx`
+  - `features/template-content/TemplateContentManager.jsx`
+  - `features/posts/PostsWorkspace.jsx`
+  - `features/posts/PostsManager.jsx`
+  - `packages/cms-core/cms/repositories/posts.js`
+  - `packages/cms-core/cms/serializers/posts.js`
+  - `packages/cms-core/cms/validators/posts.js`
+  - `setup-provisioning/supabase/migrations/202607090001_post_body_html.sql`
+  - docs and tests
+- Inputs/outputs added or changed:
+  - Admin post payloads now include `bodyHtml`.
+  - Public/admin post serializers return both `bodyHtml` and legacy `bodyBlocks`.
+  - Public websites should prefer `bodyHtml` when present and fall back to `bodyBlocks`.
+  - Post editor image HTML preserves `data-media-id` for media ownership and usage checks.
+- Security and architecture checks:
+  - Editor HTML is sanitized before saving.
+  - YouTube iframes remain limited to YouTube domains.
+  - Media references in feature images, OG fallback, editor HTML, and legacy blocks are validated against the selected website.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `npm.cmd --workspace setup-provisioning run build`
+  - `git diff --check -- features components packages setup-provisioning docs test`
+- Known caveats:
+  - The setup/provisioning migration must be run before relying on `cms_posts.body_html`.
+  - Public websites need to render saved `bodyHtml` safely for visitor-facing formatting.
+- Follow-up items:
+  - Review public website blog rendering once public integration begins.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Category-Based Post URLs
+
+- Status: Complete
+- Date completed: 2026-07-09
+- Milestone goal: Match CMS post View/permalink/sitemap URLs to the live WordPress-style category URL structure.
+- What was implemented:
+  - Changed Posts admin View and permalink generation from `/blog/{postSlug}` to `/{categorySlug}/{postSlug}`.
+  - Changed Add Post blank-state permalink text so it no longer shows `/blog/` before category and slug/title exist.
+  - Changed sitemap URL generation to use category-based post paths.
+  - Kept `/blog` only as an archive/list page path in revalidation examples.
+- Files/modules changed:
+  - `features/posts/PostsManager.jsx`
+  - `packages/cms-core/public-cms/sitemap.js`
+  - docs and tests
+- Inputs/outputs added or changed:
+  - Post View links require selected website domain, category slug, and post slug/title.
+  - Sitemap post entries require category slug and post slug.
+- Security and architecture checks:
+  - No schema, API write payload, RLS, storage, or migration change was required.
+  - Posts without category no longer produce an active public View URL.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features packages docs test`
+- Known caveats:
+  - Public website routing must support `/{categorySlug}/{postSlug}` for these View links to resolve.
+- Follow-up items:
+  - Confirm public site blog archive still lives at `/blog`.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Post Required Field Validation
+
+- Status: Complete
+- Date completed: 2026-07-09
+- Milestone goal: Replace the confusing Add Post `Valid media ID is required.` failure with clear Author/Category validation.
+- What was implemented:
+  - Added field-specific post reference validation for required author and category IDs.
+  - Added client-side Add/Edit Post validation for Title, Author, and Category before sending the save request.
+  - Changed the Category dropdown placeholder to `Select category`.
+  - Updated WordPress import to create/select an `Uncategorized` fallback category when imported posts have no WordPress category.
+  - Kept feature image optional and image fields using media-specific validation.
+- Files/modules changed:
+  - `features/posts/PostsManager.jsx`
+  - `packages/cms-core/cms/services/import.js`
+  - `packages/cms-core/cms/validators/posts.js`
+  - docs and tests
+- Inputs/outputs added or changed:
+  - Missing author now returns `Author is required.`
+  - Missing category now returns `Category is required.`
+  - Invalid image IDs still return the media ID validation error.
+- Security and architecture checks:
+  - No database migration was required; `cms_posts.category_id` remains nullable for old/imported rows, but new admin saves require a category.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features packages test docs`
+- Known caveats:
+  - Existing legacy posts without a category need category assignment before editing/saving if they should have active View links.
+- Follow-up items:
+  - Consider a setup cleanup/report for legacy uncategorized posts before launch.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Documentation Alignment For Latest CMS Contracts
+
+- Status: Complete
+- Date completed: 2026-07-09
+- Milestone goal: Refresh all Markdown documentation so it consistently reflects the latest post editor, post URL, import fallback, custom page, setup/provisioning, and publish-only behavior.
+- What was implemented:
+  - Updated planning, decision, architecture, data model, API, implementation, flow, testing, and public integration docs to treat Tiptap `body_html` as the preferred new post body.
+  - Kept `body_blocks` documented only as legacy/import fallback.
+  - Documented category-based public post URLs as `/{categorySlug}/{postSlug}` and `/blog` as archive/list only.
+  - Clarified new post save requirements for Author and Category.
+  - Clarified WordPress import fallback records: `Imported Author` and `Uncategorized`.
+  - Marked the older Add Page duplicate-fix plan as superseded by the later `cms_pages` custom-page implementation.
+  - Added current supersession notes so historical review entries do not confuse future implementers.
+- Files/modules changed:
+  - `docs/PROJECT_PLAN.md`
+  - `docs/DECISIONS.md`
+  - `docs/ARCHITECTURE.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/RLS_POLICIES.md`
+  - `docs/API_CONTRACTS.md`
+  - `docs/USER_FLOWS.md`
+  - `docs/IMPLEMENTATION_GUIDE.md`
+  - `docs/IMPLEMENTATION_CONTEXT.md`
+  - `docs/IMPLEMENTATION_MILESTONES.md`
+  - `docs/IMPLEMENTATION_DETAILS.md`
+  - `docs/SETUP.md`
+  - `docs/TESTING.md`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+  - `docs/PAGES_ADD_PAGE_DUPLICATE_FIX_PLAN.md`
+  - `docs/public-site-integration/README.md`
+- Inputs/outputs added or changed:
+  - No runtime inputs or outputs changed; this was documentation-only.
+- Security and architecture checks:
+  - Main CMS remains the daily content editor.
+  - `setup-provisioning/` remains migration, website onboarding, and WordPress import owner.
+  - Public websites still use Supabase anon credentials and public RPCs/views.
+- Tests and validation run:
+  - `rg` stale-term scan over `docs/`
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- docs`
+- Known caveats:
+  - Historical milestone entries still mention older behavior by design, but the supersession notes and later correction entries define current behavior.
+- Follow-up items:
+  - Keep docs updated whenever code changes a route, schema, public contract, or setup/provisioning responsibility.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Media Bulk Delete And Auto Search
+
+- Status: Complete
+- Date completed: 2026-07-09
+- Milestone goal: Improve Media Library table workflow by adding bulk delete and making search filter automatically while preserving manual Usage lookup.
+- What was implemented:
+  - Added checkbox selection for media rows and a select-all checkbox for the current visible page.
+  - Added a `Bulk actions` toolbar with `Delete selected` and `Apply`.
+  - Bulk delete reuses the existing media `DELETE` route for each selected item, so server-side usage/reference checks still protect in-use media.
+  - Search now updates directly from the input change and no longer needs a `Search Media` submit button.
+  - Kept the `Usage` action and inline usage result display in the Media row Actions column.
+  - Supersedes older Media Library notes about grid/modal media UI, date filters, search submit buttons, and safe bulk trash/restore.
+- Files/modules changed:
+  - `features/media/MediaLibrary.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - No API, database, storage, RLS, or public website contract changed.
+  - Bulk delete returns a UI summary of deleted and failed items after reload.
+- Security and architecture checks:
+  - Bulk delete remains permanent-delete behavior after confirmation.
+  - In-use media remains protected by the existing server-side delete checks.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Bulk delete runs requests sequentially through the existing endpoint; this is acceptable for the current admin UI and keeps behavior simple.
+- Follow-up items:
+  - Add a batch delete API only if media libraries become large enough that sequential deletes feel slow.
 - Readiness for next milestone: Ready.

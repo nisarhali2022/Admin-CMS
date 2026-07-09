@@ -75,7 +75,7 @@ sequenceDiagram
 
   A->>R: Submit website-scoped mutation with websiteId
   R->>R: Validate ADMIN_SECRET session
-  R->>V: Validate payload, status, slug, website ownership
+  R->>V: Validate payload, slug, website ownership, and required references
   R->>DB: Write scoped row using service role
   R->>W: Trigger revalidation if public rendering changed
   R-->>A: Return saved resource
@@ -130,6 +130,8 @@ sequenceDiagram
 
 Permanent media delete checks all references first. If the media is unused, delete the Supabase Storage object and then hard delete the metadata row. If Supabase Storage deletion fails, keep the media row and surface the error.
 
+The Media Library can select multiple rows and bulk delete them, but this is only UI-level batching. The browser calls the normal media delete endpoint for each selected item, so every item still goes through the same reference checks and storage-delete ordering. Media search filters automatically while typing over the currently loaded website media rows. The `Usage` action remains available for manual reference inspection.
+
 ## Public Image Resolution Flow
 
 ```mermaid
@@ -168,7 +170,7 @@ Rules:
 flowchart TD
   Start["Inactive website selected"] --> Fetch["Fetch WordPress REST data"]
   Fetch --> MapPages["Map known pages to template content"]
-  Fetch --> MapPosts["Convert posts to body_blocks"]
+  Fetch --> MapPosts["Convert posts to body_html or compatible body_blocks"]
   Fetch --> Media["Copy media to Supabase Storage"]
   Media --> Rewrite["Rewrite old image URLs"]
   MapPages --> Save["Save website-scoped CMS rows"]
@@ -191,8 +193,6 @@ app/
   api/cms/
 features/
   admin-shell/
-  websites/
-  import/
   template-content/
   posts/
   authors/
@@ -210,7 +210,13 @@ lib/
     serializers/
     schemas/
 supabase/
-  migrations/
+  # migrations are owned by setup-provisioning/
+setup-provisioning/
+  features/
+    websites/
+    import/
+  supabase/
+    migrations/
 docs/
 ```
 

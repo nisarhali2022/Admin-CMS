@@ -19,7 +19,7 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 13. Build categories.
 14. Build authors.
 15. Build template content management.
-16. Build posts and block editor.
+16. Build posts with the shared Tiptap editor and `body_html` save path.
 17. Build redirects.
 18. Build settings, SEO, robots, sitemap, and AdSense controls.
 19. Build WordPress import in `setup-provisioning/`.
@@ -34,7 +34,7 @@ This guide defines the recommended build order. Follow it to avoid losing contex
 - Route handlers validate admin session.
 - Route handlers call services/repositories.
 - Repositories own database access.
-- Validators own payload, slug, ownership, content schema, and body block validation.
+- Validators own payload, slug, ownership, content schema, editor HTML validation, and legacy body block validation.
 - Supabase Storage helpers live under `packages/cms-core/storage/`.
 - CMS schemas live under `packages/cms-core/cms/schemas/`.
 - Multi-step workflows live under `packages/cms-core/cms/services/`.
@@ -206,7 +206,6 @@ Do not implement in v1 unless scope changes:
 - audit events/activity log
 - shared/global media library
 - page builder/layout builder
-- generic arbitrary pages
 - public draft preview tokens
 - revision history/rollback
 - SEO scoring
