@@ -5,7 +5,11 @@ import {
   getDefaultTemplateContentData,
 } from '../schemas/templateContent.js'
 import { assertMediaId } from './media.js'
-import { normalizeOptionalText, normalizeRequiredText } from './taxonomy.js'
+import {
+  normalizeFocusKeyphrase,
+  normalizeOptionalText,
+  normalizeRequiredText,
+} from './taxonomy.js'
 
 const ROBOTS_META_VALUES = new Set([
   'index,follow',
@@ -14,8 +18,29 @@ const ROBOTS_META_VALUES = new Set([
   'noindex,nofollow',
 ])
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 export function assertTemplateContentId(value) {
   return assertMediaId(value)
+}
+
+function assertRequiredReferenceId(value, fieldName, label) {
+  if (!value) {
+    throw new CmsValidationError(`${label} is required.`, {
+      code: `${fieldName.toUpperCase()}_REQUIRED`,
+      details: { field: fieldName },
+    })
+  }
+
+  if (!UUID_PATTERN.test(String(value || ''))) {
+    throw new CmsValidationError(`Valid ${label.toLowerCase()} ID is required.`, {
+      code: `INVALID_${fieldName.toUpperCase()}`,
+      details: { field: fieldName },
+    })
+  }
+
+  return value
 }
 
 function normalizeTemplateKey(value) {
@@ -156,21 +181,21 @@ export function validateTemplateContentPayload(payload) {
     path: normalizePath(payload?.path, templateKey),
     title,
     contentData,
-    focusKeyphrase: normalizeOptionalText(
-      payload?.focusKeyphrase,
-      'focusKeyphrase',
-      180
-    ),
-    seoTitle: normalizeOptionalText(payload?.seoTitle, 'seoTitle', 180),
-    metaDescription: normalizeOptionalText(
+    focusKeyphrase: normalizeFocusKeyphrase(payload?.focusKeyphrase),
+    seoTitle: normalizeRequiredText(payload?.seoTitle, 'SEO title', 180),
+    metaDescription: normalizeRequiredText(
       payload?.metaDescription,
-      'metaDescription',
+      'Meta description',
       300
     ),
-    authorId: payload?.authorId ? assertMediaId(payload.authorId) : null,
+    authorId: assertRequiredReferenceId(payload?.authorId, 'authorId', 'Author'),
     canonicalUrl: normalizeUrl(payload?.canonicalUrl, 'canonicalUrl'),
     robotsMeta: normalizeRobotsMeta(payload?.robotsMeta),
-    ogImageId: payload?.ogImageId ? assertMediaId(payload.ogImageId) : null,
+    ogImageId: assertRequiredReferenceId(
+      payload?.ogImageId,
+      'featuredImageId',
+      'Feature image'
+    ),
     sitemapInclude:
       typeof payload?.sitemapInclude === 'boolean' ? payload.sitemapInclude : true,
   }
@@ -199,24 +224,20 @@ export function validateTemplateContentPatchPayload(payload) {
     result.contentData = validateContentData(templateKey, payload.contentData)
   }
   if (Object.hasOwn(payload || {}, 'focusKeyphrase')) {
-    result.focusKeyphrase = normalizeOptionalText(
-      payload.focusKeyphrase,
-      'focusKeyphrase',
-      180
-    )
+    result.focusKeyphrase = normalizeFocusKeyphrase(payload.focusKeyphrase)
   }
   if (Object.hasOwn(payload || {}, 'seoTitle')) {
-    result.seoTitle = normalizeOptionalText(payload.seoTitle, 'seoTitle', 180)
+    result.seoTitle = normalizeRequiredText(payload.seoTitle, 'SEO title', 180)
   }
   if (Object.hasOwn(payload || {}, 'metaDescription')) {
-    result.metaDescription = normalizeOptionalText(
+    result.metaDescription = normalizeRequiredText(
       payload.metaDescription,
-      'metaDescription',
+      'Meta description',
       300
     )
   }
   if (Object.hasOwn(payload || {}, 'authorId')) {
-    result.authorId = payload.authorId ? assertMediaId(payload.authorId) : null
+    result.authorId = assertRequiredReferenceId(payload.authorId, 'authorId', 'Author')
   }
   if (Object.hasOwn(payload || {}, 'canonicalUrl')) {
     result.canonicalUrl = normalizeUrl(payload.canonicalUrl, 'canonicalUrl')
@@ -225,7 +246,11 @@ export function validateTemplateContentPatchPayload(payload) {
     result.robotsMeta = normalizeRobotsMeta(payload.robotsMeta)
   }
   if (Object.hasOwn(payload || {}, 'ogImageId')) {
-    result.ogImageId = payload.ogImageId ? assertMediaId(payload.ogImageId) : null
+    result.ogImageId = assertRequiredReferenceId(
+      payload.ogImageId,
+      'featuredImageId',
+      'Feature image'
+    )
   }
   if (Object.hasOwn(payload || {}, 'sitemapInclude')) {
     result.sitemapInclude =

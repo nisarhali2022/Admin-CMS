@@ -104,6 +104,7 @@ const allowedEditorTags = new Set([
   'COLGROUP',
   'DIV',
   'EM',
+  'H1',
   'H2',
   'H3',
   'H4',
@@ -141,6 +142,7 @@ const allowedEditorAttributes = {
   DIV: new Set(['style']),
   P: new Set(['style']),
   BLOCKQUOTE: new Set(['style']),
+  H1: new Set(['style']),
   H2: new Set(['style']),
   H3: new Set(['style']),
   H4: new Set(['style']),
@@ -437,6 +439,24 @@ function getPageSaveMessage(result, fallback) {
   return getApiMessage(result, fallback)
 }
 
+function normalizeTitle(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function validateFocusKeyphraseInput(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+
+  const parts = text.split(',').map((part) => part.trim())
+  if (parts.some((part) => !part)) return 'Focus keyphrase entries cannot be empty.'
+  if (parts.length > 3) return 'Focus keyphrase supports up to 3 keywords.'
+  if (parts.some((part) => part.length > 60)) {
+    return 'Each focus keyphrase must be 60 characters or less.'
+  }
+
+  return ''
+}
+
 export default function TemplateContentManager({ websiteId, selectedWebsite = null }) {
   const [templates, setTemplates] = useState([])
   const [customPages, setCustomPages] = useState([])
@@ -699,9 +719,35 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
     }
   }
 
+  function validatePageForm() {
+    if (!form.title.trim()) return 'Title is required.'
+    if (!form.featuredImageId) return 'Feature Image is required.'
+    if (!form.seoTitle.trim()) return 'SEO title is required.'
+    if (!form.metaDescription.trim()) return 'Meta description is required.'
+    if (!form.authorId) return 'Author is required.'
+
+    const focusError = validateFocusKeyphraseInput(form.focusKeyphrase)
+    if (focusError) return focusError
+
+    const nextTitle = normalizeTitle(form.title)
+    const duplicateTitle = pageRows.find((page) => {
+      if (selectedId && page.id === selectedId && page.kind === selectedKind) return false
+      return normalizeTitle(page.title) === nextTitle
+    })
+
+    if (duplicateTitle) return 'A page with this title already exists.'
+
+    return ''
+  }
+
   async function saveTemplate(event) {
     event.preventDefault()
     const isCustomPage = selectedKind === 'custom' || screen === 'add'
+    const validationMessage = validatePageForm()
+    if (validationMessage) {
+      setMessage(validationMessage)
+      return
+    }
     const nextPath = normalizeEditorPath(form.path, form.title, form.templateKey)
 
     if (isCustomPage && nextPath === '/') {
@@ -1163,7 +1209,11 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                     }))
                   }
                   className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                  placeholder="keyword one, keyword two"
                 />
+                <span className="mt-1 block text-[12px] font-normal text-[#50575e]">
+                  Add 1 to 3 comma-separated keyphrases.
+                </span>
               </label>
               <label className="block text-[13px] font-medium text-[#1f2330]">
                 SEO title

@@ -89,6 +89,7 @@ function postRow(body) {
     featured_image_id: body.featured_image_id,
     body_html: body.body_html,
     body_blocks: body.body_blocks,
+    focus_keyphrase: body.focus_keyphrase,
     seo_title: body.seo_title,
     meta_description: body.meta_description,
     canonical_url: body.canonical_url,
@@ -118,6 +119,7 @@ function validPayload(overrides = {}) {
         items: [{ question: 'Can I subscribe?', answer: 'Yes.' }],
       },
     ],
+    focusKeyphrase: 'summer packages, telecom',
     seoTitle: 'Summer Packages',
     metaDescription: 'Latest packages and offers.',
     canonicalUrl: '/packages/summer-packages',
@@ -173,13 +175,22 @@ test('post validator accepts supported body blocks and rejects scheduling', () =
       }),
     /Category is required/
   )
-  assert.equal(
-    validatePostPayload({
-      ...validPayload(),
-      featuredImageId: null,
-      ogImageId: null,
-    }).featuredImageId,
-    null
+  assert.throws(
+    () =>
+      validatePostPayload({
+        ...validPayload(),
+        featuredImageId: null,
+        ogImageId: null,
+      }),
+    /Feature image is required/
+  )
+  assert.throws(
+    () =>
+      validatePostPayload({
+        ...validPayload(),
+        focusKeyphrase: 'one, two, three, four',
+      }),
+    /up to 3 keywords/
   )
   assert.throws(
     () =>
@@ -187,7 +198,7 @@ test('post validator accepts supported body blocks and rejects scheduling', () =
         ...validPayload(),
         featuredImageId: 'not-a-uuid',
       }),
-    /Valid media ID is required/
+    /Valid feature image ID is required/
   )
 })
 
@@ -253,7 +264,7 @@ test('post service rejects inactive authors and missing media references', async
   }
 
   await assert.rejects(
-    () => createPostForWebsite(websiteId, validPayload({ featuredImageId: null })),
+    () => createPostForWebsite(websiteId, validPayload()),
     /Post author must be active/
   )
 
@@ -285,14 +296,28 @@ test('updating a post saves as published without status field', async () => {
       return Response.json([authorRow()])
     }
 
+    if (stringUrl.includes('/rest/v1/cms_categories')) {
+      return Response.json([categoryRow()])
+    }
+
+    if (stringUrl.includes('/rest/v1/cms_media')) {
+      if (stringUrl.includes(featuredImageId)) return Response.json([mediaRow(featuredImageId)])
+      if (stringUrl.includes(bodyImageId)) return Response.json([mediaRow(bodyImageId)])
+      return Response.json([])
+    }
+
+    if (stringUrl.includes('/rest/v1/cms_posts') && options.method !== 'PATCH') {
+      return Response.json([])
+    }
+
     const body = JSON.parse(options.body)
     return Response.json([postRow({ ...body, author_id: authorId, category_id: null })])
   }
 
-  const { result } = await updatePostForWebsite(websiteId, postId, {
+  const { result } = await updatePostForWebsite(websiteId, postId, validPayload({
     title: 'Summer Packages Updated',
-    authorId,
-  })
+    slug: 'summer-packages-updated',
+  }))
   const patchCall = calls.find((call) => call.options.method === 'PATCH')
   const body = JSON.parse(patchCall.options.body)
 

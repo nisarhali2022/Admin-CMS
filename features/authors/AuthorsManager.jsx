@@ -4,6 +4,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { RefreshCw, Search, UserRound } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const emptyForm = {
   name: '',
@@ -63,7 +70,8 @@ export default function AuthorsManager({ websiteId }) {
   const [postCounts, setPostCounts] = useState({})
   const [countsFailed, setCountsFailed] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [editing, setEditing] = useState({})
+  const [editingAuthorId, setEditingAuthorId] = useState(null)
+  const [isAuthorImagePickerOpen, setIsAuthorImagePickerOpen] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
@@ -160,21 +168,24 @@ export default function AuthorsManager({ websiteId }) {
     }
   }
 
-  async function updateAuthor(authorId) {
-    const draft = editing[authorId]
-    if (!draft) return
+  async function updateAuthor(event) {
+    event.preventDefault()
+    if (!editingAuthorId) return
     setSaving(true)
     setMessage('')
 
     try {
-      const response = await fetch(`/api/cms/authors/${authorId}?websiteId=${websiteId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...draft,
-          avatarImageId: draft.avatarImageId || null,
-        }),
-      })
+      const response = await fetch(
+        `/api/cms/authors/${editingAuthorId}?websiteId=${websiteId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...form,
+            avatarImageId: form.avatarImageId || null,
+          }),
+        }
+      )
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
@@ -182,11 +193,8 @@ export default function AuthorsManager({ websiteId }) {
         return
       }
 
-      setEditing((current) => {
-        const next = { ...current }
-        delete next[authorId]
-        return next
-      })
+      setEditingAuthorId(null)
+      setForm(emptyForm)
       await loadAuthors()
     } finally {
       setSaving(false)
@@ -215,19 +223,6 @@ export default function AuthorsManager({ websiteId }) {
     }
   }
 
-  function mediaOptions() {
-    return (
-      <>
-        <option value="">No avatar</option>
-        {media.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.altText || item.originalFilename}
-          </option>
-        ))}
-      </>
-    )
-  }
-
   function getAvatarImage(author) {
     return author.avatarImage || media.find((item) => item.id === author.avatarImageId)
   }
@@ -237,24 +232,21 @@ export default function AuthorsManager({ websiteId }) {
   }
 
   function startEditing(author) {
-    setEditing((current) => ({
-      ...current,
-      [author.id]: {
-        name: author.name,
-        slug: author.slug,
-        bio: author.bio || '',
-        avatarImageId: author.avatarImageId || '',
-        isActive: author.isActive,
-      },
-    }))
+    setEditingAuthorId(author.id)
+    setForm({
+      name: author.name,
+      slug: author.slug,
+      bio: author.bio || '',
+      avatarImageId: author.avatarImageId || '',
+      isActive: author.isActive,
+    })
+    setMessage('')
   }
 
-  function cancelEditing(authorId) {
-    setEditing((current) => {
-      const next = { ...current }
-      delete next[authorId]
-      return next
-    })
+  function cancelEditing() {
+    setEditingAuthorId(null)
+    setForm(emptyForm)
+    setMessage('')
   }
 
   function submitSearch(event) {
@@ -289,10 +281,12 @@ export default function AuthorsManager({ websiteId }) {
 
       <div className="space-y-6">
         <form
-          onSubmit={createAuthor}
+          onSubmit={editingAuthorId ? updateAuthor : createAuthor}
           className="space-y-5 border border-[#c3c4c7] bg-white p-4"
         >
-          <h3 className="text-[1rem] font-semibold text-[#1f2330]">Add Author</h3>
+          <h3 className="text-[1rem] font-semibold text-[#1f2330]">
+            {editingAuthorId ? 'Edit Author' : 'Add Author'}
+          </h3>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -352,9 +346,9 @@ export default function AuthorsManager({ websiteId }) {
             </div>
 
             <div className="space-y-2">
-              <label className="block font-medium text-[#1f2330]" htmlFor="author-avatar">
+              <span className="block font-medium text-[#1f2330]">
                 Author Image
-              </label>
+              </span>
               <div className="flex items-start gap-3">
                 <AuthorAvatarPreview
                   image={formAvatarImage}
@@ -362,24 +356,84 @@ export default function AuthorsManager({ websiteId }) {
                   size="lg"
                 />
                 <div className="min-w-0 flex-1 space-y-2">
-                  <select
-                    id="author-avatar"
-                    value={form.avatarImageId}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        avatarImageId: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthorImagePickerOpen(true)}
+                    className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
                   >
-                    {mediaOptions()}
-                  </select>
+                    {form.avatarImageId ? 'Change author image' : 'Select author image'}
+                  </button>
+                  {form.avatarImageId ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((current) => ({ ...current, avatarImageId: '' }))
+                      }
+                      className="ml-2 rounded-[3px] border border-[#8c8f94] bg-white px-3 py-1.5 font-medium text-[#1f2330] hover:border-[#1f2330]"
+                    >
+                      Remove image
+                    </button>
+                  ) : null}
                   <p className="text-[0.85rem] leading-5 text-[#596171]">
                     Select an uploaded Media Library image for this author.
                   </p>
                 </div>
               </div>
+              <Dialog
+                open={isAuthorImagePickerOpen}
+                onOpenChange={setIsAuthorImagePickerOpen}
+              >
+                <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Select author image</DialogTitle>
+                    <DialogDescription>
+                      Choose an image from this website&apos;s media library.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="max-h-[500px] overflow-y-auto pr-1">
+                    {media.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {media.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setForm((current) => ({
+                                ...current,
+                                avatarImageId: item.id,
+                              }))
+                              setIsAuthorImagePickerOpen(false)
+                            }}
+                            className={`flex items-center gap-3 rounded-[3px] border p-2 text-left hover:border-[#3858e9] ${
+                              form.avatarImageId === item.id
+                                ? 'border-[#3858e9] bg-[#f0f3ff]'
+                                : 'border-[#dcdcde] bg-white'
+                            }`}
+                          >
+                            <img
+                              src={item.publicUrl}
+                              alt={item.altText || item.originalFilename}
+                              className="h-14 w-14 rounded-[3px] object-cover"
+                            />
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium text-[#1f2330]">
+                                {item.altText || item.originalFilename}
+                              </span>
+                              <span className="block text-[12px] font-normal text-[#3858e9]">
+                                Select
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[13px] font-normal text-[#50575e]">
+                        Upload media first, then choose an author image.
+                      </p>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -395,13 +449,24 @@ export default function AuthorsManager({ websiteId }) {
             Active author
           </label>
 
-          <button
-            type="submit"
-            disabled={saving || !form.name}
-            className="rounded-[3px] bg-[#3858e9] px-4 py-2 font-semibold text-white transition hover:bg-[#2944c9] disabled:cursor-not-allowed disabled:bg-[#a7b0f7]"
-          >
-            Add Author
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              disabled={saving || !form.name}
+              className="rounded-[3px] bg-[#3858e9] px-4 py-2 font-semibold text-white transition hover:bg-[#2944c9] disabled:cursor-not-allowed disabled:bg-[#a7b0f7]"
+            >
+              {editingAuthorId ? 'Save author' : 'Add Author'}
+            </button>
+            {editingAuthorId ? (
+              <button
+                type="button"
+                onClick={cancelEditing}
+                className="rounded-[3px] border border-[#8c8f94] bg-white px-4 py-2 font-semibold text-[#1f2330] hover:border-[#1f2330]"
+              >
+                Cancel edit
+              </button>
+            ) : null}
+          </div>
         </form>
 
         <div className="min-w-0 space-y-3">
@@ -446,10 +511,7 @@ export default function AuthorsManager({ websiteId }) {
               </thead>
               <tbody>
                 {filteredAuthors.map((author) => {
-                  const draft = editing[author.id]
-                  const isEditing = Boolean(draft)
                   const avatarImage = getAvatarImage(author)
-                  const draftAvatarImage = isEditing ? getMediaById(draft.avatarImageId) : null
                   const bio = author.bio || '-'
                   const count = countsFailed ? '-' : postCounts[author.id] || 0
 
@@ -459,104 +521,18 @@ export default function AuthorsManager({ websiteId }) {
                       className="border-b border-[#c3c4c7] bg-white align-top odd:bg-[#f6f7f7]"
                     >
                       <td className="px-3 py-3">
-                        {isEditing ? (
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-3">
-                              <AuthorAvatarPreview
-                                image={draftAvatarImage}
-                                label="Selected author image preview"
-                              />
-                              <select
-                                value={draft.avatarImageId}
-                                onChange={(event) =>
-                                  setEditing((current) => ({
-                                    ...current,
-                                    [author.id]: {
-                                      ...draft,
-                                      avatarImageId: event.target.value,
-                                    },
-                                  }))
-                                }
-                                className="min-w-0 flex-1 rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                              >
-                                {mediaOptions()}
-                              </select>
-                            </div>
-                            <input
-                              type="text"
-                              value={draft.name}
-                              onChange={(event) =>
-                                setEditing((current) => ({
-                                  ...current,
-                                  [author.id]: { ...draft, name: event.target.value },
-                                }))
-                              }
-                              className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                            />
-                            <label className="flex items-center gap-2 text-[0.85rem] text-[#1f2330]">
-                              <input
-                                type="checkbox"
-                                checked={draft.isActive}
-                                onChange={(event) =>
-                                  setEditing((current) => ({
-                                    ...current,
-                                    [author.id]: {
-                                      ...draft,
-                                      isActive: event.target.checked,
-                                    },
-                                  }))
-                                }
-                                className="h-4 w-4 border-[#8c8f94]"
-                              />
-                              Active
-                            </label>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-3">
-                            <AuthorAvatarPreview
-                              image={avatarImage}
-                              label={`${author.name} author image`}
-                            />
-                            <div className="min-w-0 space-y-1">
-                              <p className="font-normal text-[#1f2330]">{author.name}</p>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-[#1f2330]">
-                        {isEditing ? (
-                          <textarea
-                            value={draft.bio}
-                            onChange={(event) =>
-                              setEditing((current) => ({
-                                ...current,
-                                [author.id]: { ...draft, bio: event.target.value },
-                              }))
-                            }
-                            rows={3}
-                            className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                        <div className="flex items-start gap-3">
+                          <AuthorAvatarPreview
+                            image={avatarImage}
+                            label={`${author.name} author image`}
                           />
-                        ) : (
-                          bio
-                        )}
+                          <div className="min-w-0 space-y-1">
+                            <p className="font-normal text-[#1f2330]">{author.name}</p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-3 py-3 text-[#1f2330]">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={draft.slug}
-                            onChange={(event) =>
-                              setEditing((current) => ({
-                                ...current,
-                                [author.id]: { ...draft, slug: event.target.value },
-                              }))
-                            }
-                            className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                          />
-                        ) : (
-                          author.slug
-                        )}
-                      </td>
+                      <td className="px-3 py-3 text-[#1f2330]">{bio}</td>
+                      <td className="px-3 py-3 text-[#1f2330]">{author.slug}</td>
                       <td className="px-3 py-3">
                         <span
                           className={`inline-flex rounded-sm px-2 py-1 text-[0.78rem] font-semibold ${
@@ -570,44 +546,23 @@ export default function AuthorsManager({ websiteId }) {
                       </td>
                       <td className="px-3 py-3 text-right text-[#1f2330]">{count}</td>
                       <td className="px-3 py-3">
-                        {isEditing ? (
-                          <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.84rem]">
-                            <button
-                              type="button"
-                              onClick={() => updateAuthor(author.id)}
-                              disabled={saving}
-                              className="font-medium text-[#3858e9] hover:underline disabled:text-[#8a93a7]"
-                            >
-                              Save
-                            </button>
-                            <span className="text-[#8c8f94]">|</span>
-                            <button
-                              type="button"
-                              onClick={() => cancelEditing(author.id)}
-                              className="font-medium text-[#3858e9] hover:underline"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.84rem]">
-                            <button
-                              type="button"
-                              onClick={() => startEditing(author)}
-                              className="font-medium text-[#3858e9] hover:underline"
-                            >
-                              Edit
-                            </button>
-                            <span className="text-[#8c8f94]">|</span>
-                            <button
-                              type="button"
-                              onClick={() => deleteAuthor(author.id)}
-                              className="font-medium text-red-700 hover:underline"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.84rem]">
+                          <button
+                            type="button"
+                            onClick={() => startEditing(author)}
+                            className="font-medium text-[#3858e9] hover:underline"
+                          >
+                            Edit
+                          </button>
+                          <span className="text-[#8c8f94]">|</span>
+                          <button
+                            type="button"
+                            onClick={() => deleteAuthor(author.id)}
+                            className="font-medium text-red-700 hover:underline"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

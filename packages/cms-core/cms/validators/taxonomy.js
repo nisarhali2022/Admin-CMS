@@ -47,6 +47,39 @@ export function normalizeOptionalText(value, fieldName, maxLength = 1000) {
   return text
 }
 
+export function normalizeFocusKeyphrase(value) {
+  const text = normalizeOptionalText(value, 'focusKeyphrase', 180)
+  if (!text) return null
+
+  const rawParts = text.split(',')
+  const parts = rawParts.map((part) => part.trim())
+
+  if (parts.some((part) => !part)) {
+    throw new CmsValidationError('Focus keyphrase entries cannot be empty.', {
+      code: 'INVALID_FOCUS_KEYPHRASE',
+      details: { field: 'focusKeyphrase' },
+    })
+  }
+
+  if (parts.length > 3) {
+    throw new CmsValidationError('Focus keyphrase supports up to 3 keywords.', {
+      code: 'TOO_MANY_FOCUS_KEYPHRASES',
+      details: { field: 'focusKeyphrase', maxItems: 3 },
+    })
+  }
+
+  for (const part of parts) {
+    if (part.length > 60) {
+      throw new CmsValidationError('Each focus keyphrase must be 60 characters or less.', {
+        code: 'FOCUS_KEYPHRASE_TOO_LONG',
+        details: { field: 'focusKeyphrase', maxLength: 60 },
+      })
+    }
+  }
+
+  return parts.join(', ')
+}
+
 export function normalizeSlug(value, fallbackValue) {
   const slug = value ? slugify(value) : slugify(fallbackValue)
 

@@ -2,6 +2,7 @@ import { CmsValidationError } from '../http/errors.js'
 import { POST_BLOCK_TYPES, getDefaultPostBlocks } from '../schemas/postBlocks.js'
 import { assertMediaId } from './media.js'
 import {
+  normalizeFocusKeyphrase,
   normalizeOptionalMediaId,
   normalizeOptionalText,
   normalizeRequiredText,
@@ -226,13 +227,18 @@ function normalizePostFields(payload) {
     excerpt: normalizeOptionalText(payload?.excerpt, 'excerpt', 500),
     authorId: assertRequiredReferenceId(payload?.authorId, 'authorId', 'Author'),
     categoryId: assertRequiredReferenceId(payload?.categoryId, 'categoryId', 'Category'),
-    featuredImageId: normalizeOptionalMediaId(payload?.featuredImageId),
+    featuredImageId: assertRequiredReferenceId(
+      payload?.featuredImageId,
+      'featuredImageId',
+      'Feature image'
+    ),
     bodyHtml: normalizeOptionalText(payload?.bodyHtml, 'bodyHtml', 100000),
     bodyBlocks: validateBodyBlocks(payload?.bodyBlocks),
-    seoTitle: normalizeOptionalText(payload?.seoTitle, 'seoTitle', 180),
-    metaDescription: normalizeOptionalText(
+    focusKeyphrase: normalizeFocusKeyphrase(payload?.focusKeyphrase),
+    seoTitle: normalizeRequiredText(payload?.seoTitle, 'SEO title', 180),
+    metaDescription: normalizeRequiredText(
       payload?.metaDescription,
-      'metaDescription',
+      'Meta description',
       300
     ),
     canonicalUrl: normalizeUrl(payload?.canonicalUrl, 'canonicalUrl'),

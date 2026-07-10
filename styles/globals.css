@@ -186,22 +186,34 @@
   margin: 0 0 0.85rem;
 }
 
+.wp-admin-interface .prose-content a {
+  color: #d35400;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.wp-admin-interface .prose-content h1 {
+  margin: 1.1rem 0 0.7rem;
+  font-size: 1.65rem;
+  font-weight: 700;
+}
+
 .wp-admin-interface .prose-content h2 {
   margin: 1rem 0 0.65rem;
   font-size: 1.35rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .wp-admin-interface .prose-content h3 {
   margin: 0.9rem 0 0.55rem;
   font-size: 1.15rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .wp-admin-interface .prose-content h4 {
   margin: 0.8rem 0 0.45rem;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .wp-admin-interface .prose-content ul,

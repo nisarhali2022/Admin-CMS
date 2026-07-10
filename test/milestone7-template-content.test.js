@@ -47,7 +47,10 @@ test('template content validator accepts supported templates and rejects schedul
     },
     status: 'draft',
     focusKeyphrase: 'home page',
+    seoTitle: 'Home SEO',
+    metaDescription: 'Home meta description',
     authorId,
+    ogImageId: mediaId,
   })
 
   assert.equal(payload.templateKey, 'home')
@@ -160,6 +163,8 @@ test('template service validates media references before creating content', asyn
       },
       ogImageId: mediaId,
       focusKeyphrase: 'about company',
+      seoTitle: 'About SEO',
+      metaDescription: 'About meta description',
       authorId,
       status: 'draft',
     })
@@ -292,6 +297,10 @@ test('template service rejects cross-website or missing media references', async
             ctaHref: '',
             heroImage: { mediaId },
           },
+          seoTitle: 'Home SEO',
+          metaDescription: 'Home meta description',
+          authorId,
+          ogImageId: mediaId,
         })
       ),
     /media references must belong/
@@ -304,6 +313,76 @@ test('updating template content saves as published without status field', async 
 
   global.fetch = async (url, options = {}) => {
     calls.push({ url: String(url), options })
+    const stringUrl = String(url)
+
+    if (stringUrl.includes('/rest/v1/cms_pages')) {
+      return Response.json([])
+    }
+
+    if (
+      stringUrl.includes('/rest/v1/cms_template_content') &&
+      options.method !== 'PATCH'
+    ) {
+      return Response.json([
+        {
+          id: templateId,
+          website_id: websiteId,
+          template_key: 'home',
+          path: '/',
+          title: 'Home',
+          content_data: {},
+          focus_keyphrase: 'home page',
+          seo_title: 'Home SEO',
+          meta_description: 'Home meta description',
+          author_id: authorId,
+          canonical_url: null,
+          robots_meta: null,
+          og_image_id: mediaId,
+          sitemap_include: true,
+          published_at: '2026-07-04T00:00:00.000Z',
+          created_at: '2026-07-04T00:00:00.000Z',
+          updated_at: '2026-07-04T00:00:00.000Z',
+        },
+      ])
+    }
+
+    if (stringUrl.includes('/rest/v1/cms_authors')) {
+      return Response.json([
+        {
+          id: authorId,
+          website_id: websiteId,
+          name: 'Muhammad Shabbar',
+          slug: 'muhammad-shabbar',
+          bio: '',
+          avatar_image_id: null,
+          is_active: true,
+          created_at: '2026-07-04T00:00:00.000Z',
+          updated_at: '2026-07-04T00:00:00.000Z',
+        },
+      ])
+    }
+
+    if (stringUrl.includes('/rest/v1/cms_media')) {
+      return Response.json([
+        {
+          id: mediaId,
+          website_id: websiteId,
+          original_filename: 'hero.png',
+          storage_path: `websites/${websiteId}/media/2026/07/${mediaId}.webp`,
+          public_url: 'https://project.supabase.co/storage/v1/object/public/cms-media/hero.webp',
+          alt_text: 'Hero',
+          caption: null,
+          width: 10,
+          height: 10,
+          mime_type: 'image/webp',
+          file_size: 100,
+          source: 'upload',
+          created_at: '2026-07-04T00:00:00.000Z',
+          updated_at: '2026-07-04T00:00:00.000Z',
+        },
+      ])
+    }
+
     return Response.json([
       {
         id: templateId,
@@ -328,7 +407,7 @@ test('updating template content saves as published without status field', async 
   const { result } = await updateTemplateContentForWebsite(websiteId, templateId, {
     title: 'Home',
   })
-  const patchCall = calls[0]
+  const patchCall = calls.find((call) => call.options.method === 'PATCH')
   const body = JSON.parse(patchCall.options.body)
 
   assert.equal(result.status, undefined)

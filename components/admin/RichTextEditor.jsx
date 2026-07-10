@@ -218,7 +218,7 @@ export default function RichTextEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        heading: { levels: [2, 3, 4] },
+        heading: { levels: [1, 2, 3, 4] },
       }),
       CmsImage.configure({
         allowBase64: false,
@@ -250,7 +250,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          'min-h-[20rem] w-full bg-white px-4 py-4 text-[15px] leading-7 text-[#1f2330] outline-none prose-content',
+          'h-[600px] w-full overflow-y-auto bg-white px-4 py-4 text-[15px] leading-7 text-[#1f2330] outline-none prose-content',
         'aria-label': 'Visual page content editor',
       },
     },
@@ -423,6 +423,7 @@ export default function RichTextEditor({
               onChange={(event) => changeBlock(event.target.value)}
             >
               <option value="paragraph">Paragraph</option>
+              <option value="h1">Heading 1</option>
               <option value="h2">Heading 2</option>
               <option value="h3">Heading 3</option>
               <option value="h4">Heading 4</option>
@@ -647,7 +648,7 @@ export default function RichTextEditor({
             onChange={(event) => setCodeDraft(event.target.value)}
             onBlur={() => applyCodeDraft('code')}
             rows={16}
-            className="min-h-[20rem] w-full resize-y border-0 bg-white px-3 py-3 font-mono text-[14px] leading-6 text-[#1f2330] outline-none"
+            className="h-[600px] w-full resize-none overflow-y-auto border-0 bg-white px-3 py-3 font-mono text-[14px] leading-6 text-[#1f2330] outline-none"
             aria-label={codeLabel}
           />
         </div>

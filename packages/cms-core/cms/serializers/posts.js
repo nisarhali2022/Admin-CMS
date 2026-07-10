@@ -16,6 +16,7 @@ export function serializePost(row) {
     featuredImageId: row.featuredImageId ?? row.featured_image_id ?? null,
     bodyHtml: row.bodyHtml ?? row.body_html ?? null,
     bodyBlocks: row.bodyBlocks || row.body_blocks || [],
+    focusKeyphrase: row.focusKeyphrase ?? row.focus_keyphrase ?? null,
     seoTitle: row.seoTitle ?? row.seo_title ?? null,
     metaDescription: row.metaDescription ?? row.meta_description ?? null,
     canonicalUrl: row.canonicalUrl ?? row.canonical_url ?? null,

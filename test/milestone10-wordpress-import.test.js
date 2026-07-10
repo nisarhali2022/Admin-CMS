@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
+import sharp from 'sharp'
 
 import { importWordPressForWebsite, resetWordPressImportForWebsite } from 'cms-core/cms/services/import'
 import { validateWordPressImportPayload } from 'cms-core/cms/validators/import'
@@ -14,6 +15,18 @@ const postId = '44444444-4444-4444-8444-444444444444'
 const mediaId = '55555555-5555-4555-8555-555555555555'
 const categoryId = '66666666-6666-4666-8666-666666666666'
 const pageId = '77777777-7777-4777-8777-777777777777'
+async function createTinyPngBytes() {
+  return sharp({
+    create: {
+      width: 1,
+      height: 1,
+      channels: 3,
+      background: '#ffffff',
+    },
+  })
+    .png()
+    .toBuffer()
+}
 
 function setValidEnv() {
   process.env.ADMIN_SECRET = 'test-admin-secret'
@@ -179,7 +192,16 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
             content: { rendered: '<p>Body text</p>' },
             author: 99,
             categories: [],
-            featured_media: 0,
+            featured_media: 30,
+          },
+        ])
+      }
+      if (stringUrl.includes('/media?')) {
+        return Response.json([
+          {
+            id: 30,
+            source_url: 'https://wp.example/wp-content/uploads/feature.png',
+            media_details: {},
           },
         ])
       }
@@ -194,11 +216,17 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
             excerpt: { rendered: '<p>Page intro</p>' },
             content: { rendered: '<p>Page body</p>' },
             author: 99,
-            featured_media: 0,
+            featured_media: 30,
           },
         ])
       }
       return Response.json([])
+    }
+
+    if (stringUrl === 'https://wp.example/wp-content/uploads/feature.png') {
+      return new Response(await createTinyPngBytes(), {
+        headers: { 'content-type': 'image/png' },
+      })
     }
 
     if (stringUrl.includes('/rest/v1/cms_websites')) {
@@ -244,6 +272,56 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
 
     if (stringUrl.includes('/rest/v1/cms_site_settings')) {
       return Response.json([])
+    }
+
+    if (stringUrl.includes('/storage/v1/object/cms-media')) {
+      return new Response(null, { status: 200 })
+    }
+
+    if (
+      stringUrl.includes('/rest/v1/cms_media') &&
+      options.method !== 'POST'
+    ) {
+      return Response.json([
+        {
+          id: mediaId,
+          website_id: websiteId,
+          original_filename: 'feature.png',
+          storage_path: `websites/${websiteId}/media/2026/07/${mediaId}.webp`,
+          public_url: 'https://project.supabase.co/storage/v1/object/public/cms-media/feature.webp',
+          alt_text: 'Feature',
+          caption: null,
+          width: 10,
+          height: 10,
+          mime_type: 'image/webp',
+          file_size: 100,
+          source: 'wordpress_import',
+          created_at: '2026-07-04T00:00:00.000Z',
+          updated_at: '2026-07-04T00:00:00.000Z',
+        },
+      ])
+    }
+
+    if (stringUrl.endsWith('/rest/v1/cms_media')) {
+      const body = JSON.parse(options.body)
+      return Response.json([
+        {
+          id: mediaId,
+          website_id: body.website_id,
+          original_filename: body.original_filename,
+          storage_path: body.storage_path,
+          public_url: body.public_url,
+          alt_text: body.alt_text,
+          caption: body.caption,
+          width: body.width,
+          height: body.height,
+          mime_type: body.mime_type,
+          file_size: body.file_size,
+          source: body.source,
+          created_at: '2026-07-04T00:00:00.000Z',
+          updated_at: '2026-07-04T00:00:00.000Z',
+        },
+      ])
     }
 
     if (stringUrl.endsWith('/rest/v1/cms_posts')) {

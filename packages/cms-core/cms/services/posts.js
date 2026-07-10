@@ -5,6 +5,7 @@ import { getMedia } from '../repositories/media.js'
 import {
   createPost,
   hardDeletePost,
+  listPosts,
   updatePost,
 } from '../repositories/posts.js'
 import { collectPostMediaIds } from '../validators/posts.js'
@@ -60,6 +61,39 @@ async function assertPostReferences(websiteId, payload) {
   await assertMediaReferencesBelongToWebsite(websiteId, payload)
 }
 
+function normalizeTitle(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+async function assertUniquePostContent(websiteId, payload, currentPostId = null) {
+  const posts = await listPosts(websiteId)
+  const nextTitle = normalizeTitle(payload.title)
+  const nextSlug = String(payload.slug || '').trim().toLowerCase()
+  const nextCategoryId = String(payload.categoryId || '')
+
+  for (const post of posts) {
+    if (currentPostId && post.id === currentPostId) continue
+
+    if (normalizeTitle(post.title) === nextTitle) {
+      throw new CmsValidationError('A post with this title already exists.', {
+        code: 'DUPLICATE_POST_TITLE',
+      })
+    }
+
+    if (
+      String(post.categoryId || '') === nextCategoryId &&
+      String(post.slug || '').trim().toLowerCase() === nextSlug
+    ) {
+      throw new CmsValidationError(
+        'A post with this category and slug already exists.',
+        {
+          code: 'DUPLICATE_POST_CATEGORY_URL',
+        }
+      )
+    }
+  }
+}
+
 function normalizeDuplicateError(error) {
   if (error?.code === '23505') {
     throw new CmsValidationError('Post slug already exists for this website.', {
@@ -77,6 +111,7 @@ async function withRevalidation(result, event) {
 
 export async function createPostForWebsite(websiteId, payload) {
   await assertPostReferences(websiteId, payload)
+  await assertUniquePostContent(websiteId, payload)
 
   try {
     const result = await createPost(websiteId, payload)
@@ -93,6 +128,7 @@ export async function createPostForWebsite(websiteId, payload) {
 
 export async function updatePostForWebsite(websiteId, postId, payload) {
   await assertPostReferences(websiteId, payload)
+  await assertUniquePostContent(websiteId, payload, postId)
 
   try {
     const result = await updatePost(websiteId, postId, payload)

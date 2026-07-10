@@ -33,6 +33,15 @@ Note: older entries below record the path taken during implementation. Any older
 
 ## Latest UI Corrections
 
+- Pages and Posts editor links now render orange, bold, and underlined in the shared Tiptap content styling.
+- Pages and Posts editor heading controls include H1, H2, H3, and H4, with heading styles centralized in `styles/globals.css`.
+- Pages and Posts editor content areas now use a fixed 600px editing height with internal scrolling.
+- Pages and Posts now require Feature Image, SEO title, Meta description, and Author before save.
+- Pages and Posts Focus keyphrase accepts 1 to 3 comma-separated keyphrases.
+- Posts now store `focus_keyphrase` through a setup/provisioning migration and expose `focusKeyphrase` through admin/public serializers.
+- Pages block duplicate titles within the selected website across custom pages and fixed template content.
+- Posts block duplicate titles and duplicate category-based URLs within the selected website.
+- Authors now select images through a `Select author image` dialog with a scrollable media list, and table Edit fills the top `Edit Author` form instead of opening inline table inputs.
 - Posts now mirror the current Pages list behavior: automatic search, `Add Post` in the toolbar row, bulk permanent delete, `Meta title` before `Author`, and row `View` before `Delete`.
 - The Posts Feature Image selector now uses the same `Select feature image` dialog pattern as Pages, with a scrollable media list capped around 500px.
 - Posts continue to use the shared Tiptap editor, so the latest Add Media popup, Small/Medium/Large image presets, image resizing, and fixed Code mode apply to both Pages and Posts.
@@ -271,7 +280,7 @@ Note: older entries below record the path taken during implementation. Any older
 - Media search now sits in a centered row above the bulk-action toolbar.
 - Categories, Authors, and Redirects no longer render duplicate table footer headers, and their table body text now uses normal black styling.
 - Template Content is now presented as a WordPress-style Pages screen: a table of fixed pages first, then an Edit Page view after clicking a title.
-- Template pages now support `focus_keyphrase` and optional same-website `author_id`; the editor shows Focus keyphrase, SEO title, Meta description, and Author below the content box.
+- Template pages now support `focus_keyphrase` and required same-website `author_id`; the editor shows Focus keyphrase, SEO title, Meta description, and Author below the content box.
 - Pages table now includes an `Actions` column with Edit, Trash/Restore, and View.
 - Page editor toolbar buttons, Add Media, and Visual/Code tabs now perform visible editor actions instead of acting as static controls.
 - Page editor now labels the URL field as `Slug`, shows `Feature Image` instead of `Open Graph image`, and prevents `Add Page` from opening an existing page when all fixed pages already exist.
@@ -313,6 +322,10 @@ git diff --check -- features app docs test supabase
 ```
 
 ## Supabase Migrations To Remember
+
+For post focus keyphrases, run the setup/provisioning migration:
+
+- `setup-provisioning/supabase/migrations/202607100001_post_focus_keyphrase.sql`
 
 For quiz fixes, the important migrations are:
 

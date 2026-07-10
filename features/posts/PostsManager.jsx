@@ -21,6 +21,7 @@ const emptyForm = {
   categoryId: '',
   featuredImageId: '',
   bodyHtml: '',
+  focusKeyphrase: '',
   seoTitle: '',
   metaDescription: '',
   canonicalUrl: '',
@@ -37,6 +38,7 @@ const allowedEditorTags = new Set([
   'COLGROUP',
   'DIV',
   'EM',
+  'H1',
   'H2',
   'H3',
   'H4',
@@ -74,6 +76,7 @@ const allowedEditorAttributes = {
   DIV: new Set(['style']),
   P: new Set(['style']),
   BLOCKQUOTE: new Set(['style']),
+  H1: new Set(['style']),
   H2: new Set(['style']),
   H3: new Set(['style']),
   H4: new Set(['style']),
@@ -247,7 +250,7 @@ function blocksToEditorHtml(blocks) {
         case 'paragraph':
           return `<p>${escapeHtml(block.text)}</p>`
         case 'heading': {
-          const level = [2, 3, 4].includes(Number(block.level))
+          const level = [1, 2, 3, 4].includes(Number(block.level))
             ? Number(block.level)
             : 2
           return `<h${level}>${escapeHtml(block.text)}</h${level}>`
@@ -294,6 +297,7 @@ function toForm(post) {
     categoryId: post.categoryId || '',
     featuredImageId: post.featuredImageId || '',
     bodyHtml: post.bodyHtml || blocksToEditorHtml(post.bodyBlocks),
+    focusKeyphrase: post.focusKeyphrase || '',
     seoTitle: post.seoTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
@@ -339,6 +343,7 @@ function postMatchesSearch(post, query, authorsById, categoriesById) {
     post.title,
     post.slug,
     post.excerpt,
+    post.focusKeyphrase,
     post.seoTitle,
     authorName,
     categoryName,
@@ -353,6 +358,24 @@ function postMatchesSearch(post, query, authorsById, categoriesById) {
 function formatPostPath(categorySlug, postSlug) {
   if (!categorySlug || !postSlug) return ''
   return `/${categorySlug}/${postSlug}`
+}
+
+function normalizeTitle(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function validateFocusKeyphraseInput(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+
+  const parts = text.split(',').map((part) => part.trim())
+  if (parts.some((part) => !part)) return 'Focus keyphrase entries cannot be empty.'
+  if (parts.length > 3) return 'Focus keyphrase supports up to 3 keywords.'
+  if (parts.some((part) => part.length > 60)) {
+    return 'Each focus keyphrase must be 60 characters or less.'
+  }
+
+  return ''
 }
 
 export default function PostsManager({ websiteId, selectedWebsite = null }) {
@@ -504,6 +527,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
       featuredImageId: form.featuredImageId || null,
       bodyHtml: form.bodyHtml,
       bodyBlocks: [],
+      focusKeyphrase: form.focusKeyphrase || null,
       seoTitle: form.seoTitle || null,
       metaDescription: form.metaDescription || null,
       canonicalUrl: form.canonicalUrl || null,
@@ -517,6 +541,29 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
     if (!form.title.trim()) return 'Title is required.'
     if (!form.authorId) return 'Author is required.'
     if (!form.categoryId) return 'Category is required.'
+    if (!form.featuredImageId) return 'Feature Image is required.'
+    if (!form.seoTitle.trim()) return 'SEO title is required.'
+    if (!form.metaDescription.trim()) return 'Meta description is required.'
+
+    const focusError = validateFocusKeyphraseInput(form.focusKeyphrase)
+    if (focusError) return focusError
+
+    const nextTitle = normalizeTitle(form.title)
+    const nextSlug = normalizeSlug(form.slug, form.title)
+    const duplicatePost = posts.find((post) => {
+      if (selectedId && post.id === selectedId) return false
+      return normalizeTitle(post.title) === nextTitle
+    })
+    if (duplicatePost) return 'A post with this title already exists.'
+
+    const duplicateCategoryUrl = posts.find((post) => {
+      if (selectedId && post.id === selectedId) return false
+      return post.categoryId === form.categoryId && post.slug === nextSlug
+    })
+    if (duplicateCategoryUrl) {
+      return 'A post with this category and slug already exists.'
+    }
+
     return ''
   }
 
@@ -925,6 +972,24 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
               <h3 className="text-[1rem] font-semibold text-[#1f2330]">SEO</h3>
             </div>
             <div className="grid gap-4 p-4 md:grid-cols-2">
+              <label className="block text-[13px] font-medium text-[#1f2330]">
+                Focus keyphrase
+                <input
+                  type="text"
+                  value={form.focusKeyphrase}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      focusKeyphrase: event.target.value,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                  placeholder="keyword one, keyword two"
+                />
+                <span className="mt-1 block text-[12px] font-normal text-[#50575e]">
+                  Add 1 to 3 comma-separated keyphrases.
+                </span>
+              </label>
               <label className="block text-[13px] font-medium text-[#1f2330]">
                 SEO title
                 <input

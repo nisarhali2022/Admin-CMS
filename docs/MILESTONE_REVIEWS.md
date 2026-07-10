@@ -17,6 +17,7 @@ Older review entries intentionally remain as historical records. When they menti
 - `Milestone 13 Correction: Post Required Field Validation`
 - `Milestone 13 Correction: Documentation Alignment For Latest CMS Contracts`
 - `Milestone 13 Correction: Media Bulk Delete And Auto Search`
+- `Milestone 13 Correction: Pages Posts Editor And Authors Validation`
 
 Current active behavior:
 
@@ -28,6 +29,11 @@ Current active behavior:
 - Active CMS workflows are publish-only with permanent delete after confirmation.
 - Pages keep public `View` actions while still omitting Draft, Trash, Restore, Move to Trash, and Unpublish.
 - Media Library search filters automatically while typing; bulk delete is UI-level batching over the existing safe per-item permanent delete endpoint; the `Usage` action remains available.
+- Pages and Posts require Feature Image, SEO title, Meta description, and Author before save.
+- Pages and Posts Focus keyphrase accepts 1 to 3 comma-separated keyphrases.
+- Posts now include `cms_posts.focus_keyphrase` / `focusKeyphrase`.
+- Pages block duplicate same-website titles across custom pages and fixed template content; Posts block duplicate same-website titles and duplicate category-based URLs.
+- Authors table editing now fills the top form card, and author image selection uses a dialog picker.
 
 ## Review Entry Template
 
@@ -2382,5 +2388,59 @@ Use this structure for every completed milestone:
   - `npm.cmd run build`
   - `git diff --check -- features docs test`
 - Known caveats:
-  - Posts still do not expose Focus keyphrase because the current Posts schema/API does not include that field.
+  - Superseded by `Milestone 13 Correction: Pages Posts Editor And Authors Validation`: Posts now expose Focus keyphrase through `cms_posts.focus_keyphrase` / `focusKeyphrase`.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Pages Posts Editor And Authors Validation
+
+- Status: Complete
+- Date completed: 2026-07-10
+- Milestone goal: Strengthen shared Pages/Posts editor behavior, require key SEO/media fields before save, add 1-3 keyphrase support to Posts, prevent duplicate content, and move Authors image/edit workflows into cleaner dialog/top-form patterns.
+- What was implemented:
+  - Styled shared editor links as orange, bold, and underlined through centralized `.wp-admin-interface .prose-content` CSS.
+  - Added H1 to the shared Tiptap heading dropdown and made H1-H4 bold in the editor/content styles.
+  - Set Visual and Code editor areas to a fixed 600px height with internal scrolling.
+  - Added client-side and backend validation requiring Feature Image, SEO title, Meta description, and Author for Pages and Posts saves.
+  - Added Focus keyphrase validation for 1 to 3 comma-separated keyphrases.
+  - Added `cms_posts.focus_keyphrase` through setup/provisioning migration `202607100001_post_focus_keyphrase.sql`.
+  - Updated post repository/serializer/service contracts to accept and return `focusKeyphrase`.
+  - Added duplicate title checks for Pages across custom pages and fixed template content.
+  - Added duplicate title and duplicate category-based URL checks for Posts.
+  - Replaced the Authors image dropdown with a `Select author image` dialog that scrolls after about 500px.
+  - Changed Authors table editing so clicking Edit fills the top card as `Edit Author`; inline table edit fields were removed.
+- Files/modules changed:
+  - `components/admin/RichTextEditor.jsx`
+  - `styles/globals.css`
+  - `features/template-content/TemplateContentManager.jsx`
+  - `features/posts/PostsManager.jsx`
+  - `features/authors/AuthorsManager.jsx`
+  - `packages/cms-core/cms/validators/taxonomy.js`
+  - `packages/cms-core/cms/validators/pages.js`
+  - `packages/cms-core/cms/validators/posts.js`
+  - `packages/cms-core/cms/validators/templateContent.js`
+  - `packages/cms-core/cms/services/pages.js`
+  - `packages/cms-core/cms/services/posts.js`
+  - `packages/cms-core/cms/services/templateContent.js`
+  - `packages/cms-core/cms/repositories/posts.js`
+  - `packages/cms-core/cms/serializers/posts.js`
+  - `setup-provisioning/supabase/migrations/202607100001_post_focus_keyphrase.sql`
+  - docs and tests
+- Inputs/outputs added or changed:
+  - Post save payloads may include `focusKeyphrase`.
+  - Public post SEO output now includes `focusKeyphrase`.
+  - Pages/Posts saves return clear validation messages for missing Feature Image, SEO title, Meta description, Author, excess focus keyphrases, duplicate titles, and duplicate category URLs.
+- Security and architecture checks:
+  - Service-side validation mirrors the UI requirements so API calls cannot bypass required SEO/media/author fields.
+  - Focus keyphrase stays a single text field, not a new table.
+  - Author image selection uses already loaded website-scoped media and does not add upload/delete behavior inside the dialog.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `npm.cmd --workspace setup-provisioning run build`
+  - `git diff --check -- components features packages setup-provisioning styles docs test`
+- Known caveats:
+  - The new `cms_posts.focus_keyphrase` migration must be run in Supabase before relying on post focus keyphrases in the live database.
+- Follow-up items:
+  - Run `setup-provisioning/supabase/migrations/202607100001_post_focus_keyphrase.sql` in Supabase before relying on post focus keyphrases in the live database.
 - Readiness for next milestone: Ready.

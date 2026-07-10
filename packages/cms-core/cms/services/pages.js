@@ -1,7 +1,8 @@
 import { CmsValidationError } from '../http/errors.js'
 import { getAuthor } from '../repositories/authors.js'
 import { getMedia } from '../repositories/media.js'
-import { createPage, hardDeletePage, updatePage } from '../repositories/pages.js'
+import { listTemplateContent } from '../repositories/templateContent.js'
+import { createPage, hardDeletePage, listPages, updatePage } from '../repositories/pages.js'
 import { triggerRevalidation } from './revalidation.js'
 
 async function assertAuthorBelongsToWebsite(websiteId, authorId) {
@@ -37,6 +38,35 @@ async function assertPageReferences(websiteId, payload) {
   await assertMediaBelongsToWebsite(websiteId, payload.featuredImageId)
 }
 
+function normalizeTitle(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+async function assertUniquePageTitle(websiteId, title, currentPageId = null) {
+  const [pages, templates] = await Promise.all([
+    listPages(websiteId),
+    listTemplateContent(websiteId),
+  ])
+  const nextTitle = normalizeTitle(title)
+
+  for (const page of pages) {
+    if (currentPageId && page.id === currentPageId) continue
+    if (normalizeTitle(page.title) === nextTitle) {
+      throw new CmsValidationError('A page with this title already exists.', {
+        code: 'DUPLICATE_PAGE_TITLE',
+      })
+    }
+  }
+
+  for (const template of templates) {
+    if (normalizeTitle(template.title) === nextTitle) {
+      throw new CmsValidationError('A page with this title already exists.', {
+        code: 'DUPLICATE_PAGE_TITLE',
+      })
+    }
+  }
+}
+
 function normalizeDuplicateError(error) {
   if (error?.code === '23505') {
     throw new CmsValidationError('Page path already exists for this website.', {
@@ -54,6 +84,7 @@ async function withRevalidation(result, event) {
 
 export async function createPageForWebsite(websiteId, payload) {
   await assertPageReferences(websiteId, payload)
+  await assertUniquePageTitle(websiteId, payload.title)
 
   try {
     const result = await createPage(websiteId, payload)
@@ -71,6 +102,7 @@ export async function createPageForWebsite(websiteId, payload) {
 
 export async function updatePageForWebsite(websiteId, pageId, payload) {
   await assertPageReferences(websiteId, payload)
+  await assertUniquePageTitle(websiteId, payload.title, pageId)
 
   try {
     const result = await updatePage(websiteId, pageId, payload)
