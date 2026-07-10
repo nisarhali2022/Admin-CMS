@@ -69,7 +69,7 @@ All admin pages use `AdminShell` and require the admin session before showing th
 
 | Route | Purpose | Main UI module |
 | --- | --- | --- |
-| `/admin` | Empty dashboard landing page | `features/dashboard/DashboardWorkspace.jsx` |
+| `/admin` | Selected-website dashboard with content counts and shared CMS Storage usage | `features/dashboard/DashboardWorkspace.jsx` |
 | `/admin/media` | Website-scoped media library | `features/media/MediaWorkspace.jsx` |
 | `/admin/content` | Fixed template/page content | `features/template-content/TemplateContentWorkspace.jsx` |
 | `/admin/posts` | Blog posts | `features/posts/PostsWorkspace.jsx` |

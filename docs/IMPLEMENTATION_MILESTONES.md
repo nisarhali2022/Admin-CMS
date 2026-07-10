@@ -761,6 +761,7 @@ Build:
 - Run full automated checks.
 - Run manual admin and public website regression flows.
 - Verify security boundaries for Supabase service-role access, Supabase Storage mutations, revalidation, and website scoping.
+- Verify Dashboard selected-website metrics and shared `cms-media` Supabase Storage usage.
 - Update docs if implementation changes any contract.
 - Remove temporary scaffold code only after real admin shell/pages replace it.
 - Replace the temporary all-in-one milestone workspace with separate admin pages or navigable sections for websites, media, template content, posts, categories, authors, redirects, settings, and quiz.
@@ -795,3 +796,5 @@ Exit tests:
 - Cross-website content, author, media, redirect, and settings access is blocked.
 - Setup project provisioning/import, media, revalidation, public rendering, and quiz regression flows pass.
 - Admin UI no longer depends on one long page for all website-scoped resources.
+- Dashboard storage usage route requires admin auth and shows safe aggregate storage numbers only.
+- Missing or invalid `SUPABASE_STORAGE_QUOTA_BYTES` shows the quota-not-configured state.

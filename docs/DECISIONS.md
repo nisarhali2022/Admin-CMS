@@ -60,6 +60,8 @@ This file records decisions that should not be re-decided during implementation 
 - Permanent media delete checks references before deleting the object.
 - Unused media delete removes the Supabase Storage object, then hard deletes the metadata row.
 - If Supabase Storage deletion fails, the media row stays in place and the admin sees an error.
+- Dashboard shared storage usage is allowed to list the `cms-media` bucket only through an authenticated server route.
+- Dashboard remaining storage is an estimate from `SUPABASE_STORAGE_QUOTA_BYTES`, not an official billing/quota source.
 
 ## Access And Security Decisions
 
@@ -69,6 +71,7 @@ This file records decisions that should not be re-decided during implementation 
 - Public websites use Supabase anon key with RLS.
 - Public websites read through public read-only RPCs/views, not admin APIs.
 - Admin app uses Supabase service role only inside server route handlers after admin session validation.
+- Admin Dashboard may expose aggregate Supabase Storage usage numbers, but never raw storage credentials or service-role access.
 - No public writes are allowed.
 - Revalidation webhook secrets are stored encrypted with a server-only CMS encryption key.
 - Multi-user roles are deferred.

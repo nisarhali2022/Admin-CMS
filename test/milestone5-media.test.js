@@ -6,6 +6,8 @@ import sharp from 'sharp'
 import { MAX_IMAGE_WIDTH, optimizeImageToWebp } from 'cms-core/storage/imageOptimizer'
 import {
   MEDIA_CACHE_CONTROL_SECONDS,
+  getCmsStorageUsage,
+  getConfiguredStorageQuotaBytes,
   getPublicMediaUrl,
   uploadPublicMediaObject,
 } from 'cms-core/storage/supabaseStorage'
@@ -141,6 +143,78 @@ test('storage helper builds public URLs and uploads immutable WebP objects', asy
   assert.equal(calls[0].options.headers['cache-control'], MEDIA_CACHE_CONTROL_SECONDS)
   assert.match(calls[0].options.headers['Cache-Control'], /immutable/)
   assert.equal(calls[0].options.headers['x-upsert'], 'false')
+})
+
+test('storage usage helper totals cms-media objects against configured quota', async () => {
+  setValidEnv()
+  process.env.SUPABASE_STORAGE_QUOTA_BYTES = '4096'
+
+  const entriesByPrefix = {
+    websites: [{ id: null, name: 'site-a' }],
+    'websites/site-a': [{ id: null, name: 'media' }],
+    'websites/site-a/media': [{ id: null, name: '2026' }],
+    'websites/site-a/media/2026': [{ id: null, name: '07' }],
+    'websites/site-a/media/2026/07': [
+      { id: 'file-a', name: 'a.webp', metadata: { size: 1024 } },
+      { id: 'file-b', name: 'b.webp', metadata: { size: 2048 } },
+      { id: 'file-c', name: 'c.webp', metadata: { size: 'bad-size' } },
+    ],
+  }
+
+  global.fetch = async (url, options = {}) => {
+    assert.match(String(url), /\/storage\/v1\/object\/list\/cms-media$/)
+    assert.equal(options.method, 'POST')
+    assert.equal(options.headers.Authorization, 'Bearer service-role-key')
+
+    const body = JSON.parse(options.body)
+    return Response.json(entriesByPrefix[body.prefix] || [])
+  }
+
+  const usage = await getCmsStorageUsage()
+
+  assert.equal(getConfiguredStorageQuotaBytes(), 4096)
+  assert.equal(usage.bucket, 'cms-media')
+  assert.equal(usage.objectCount, 3)
+  assert.equal(usage.usedBytes, 3072)
+  assert.equal(usage.quotaBytes, 4096)
+  assert.equal(usage.quotaConfigured, true)
+  assert.equal(usage.remainingBytes, 1024)
+  assert.equal(usage.overQuotaBytes, 0)
+  assert.equal(usage.usagePercent, 75)
+})
+
+test('storage usage helper handles missing and over-quota configuration safely', async () => {
+  setValidEnv()
+
+  global.fetch = async () =>
+    Response.json([{ id: 'file-a', name: 'a.webp', metadata: { size: 2048 } }])
+
+  delete process.env.SUPABASE_STORAGE_QUOTA_BYTES
+  const unconfigured = await getCmsStorageUsage()
+
+  assert.equal(getConfiguredStorageQuotaBytes(), null)
+  assert.equal(unconfigured.objectCount, 1)
+  assert.equal(unconfigured.usedBytes, 2048)
+  assert.equal(unconfigured.quotaConfigured, false)
+  assert.equal(unconfigured.remainingBytes, null)
+  assert.equal(unconfigured.usagePercent, null)
+
+  process.env.SUPABASE_STORAGE_QUOTA_BYTES = '1024'
+  const overQuota = await getCmsStorageUsage()
+
+  assert.equal(overQuota.quotaConfigured, true)
+  assert.equal(overQuota.remainingBytes, 0)
+  assert.equal(overQuota.overQuotaBytes, 1024)
+  assert.equal(overQuota.usagePercent, 100)
+})
+
+test('storage usage route is admin-only and returns aggregate storage data', async () => {
+  const route = await readFile('app/api/cms/storage/usage/route.js', 'utf8')
+
+  assert.match(route, /requireAdminSessionResponse/)
+  assert.match(route, /getCmsStorageUsage/)
+  assert.match(route, /cmsJson\(\{ storage:/)
+  assert.doesNotMatch(route, /SUPABASE_SERVICE_ROLE_KEY/)
 })
 
 test('media usage migration checks all planned reference locations', async () => {

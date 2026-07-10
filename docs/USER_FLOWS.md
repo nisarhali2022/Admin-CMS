@@ -27,6 +27,23 @@ Expected behavior:
 - normal CMS menu pages do not show website management cards
 - quiz remains available without selected website context
 
+## Dashboard
+
+1. Admin selects a website from the header dropdown.
+2. Admin opens `/admin`.
+3. Dashboard loads selected-website counts for pages, posts, images, and selected-website image storage.
+4. Dashboard also loads shared `cms-media` Supabase Storage usage across all websites.
+5. Admin sees total media files, used storage, remaining configured storage, and a usage bar.
+
+Expected behavior:
+
+- Dashboard metrics are read-only.
+- selected-website image storage is scoped to the selected website's `cms_media` rows
+- shared CMS Storage usage is bucket-level across all managed websites
+- remaining storage is an estimate from `SUPABASE_STORAGE_QUOTA_BYTES`
+- if the quota env value is missing or invalid, Dashboard shows `Quota not configured`
+- public websites never list Supabase Storage objects
+
 ## Website Management
 
 Website management lives in `setup-provisioning/`, not in the main Admin CMS.

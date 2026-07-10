@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, Search } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
 import { Button } from '@/components/ui/button'
 
@@ -44,7 +44,6 @@ export default function CategoriesManager({ websiteId }) {
   const [countsFailed, setCountsFailed] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [editing, setEditing] = useState({})
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -199,11 +198,6 @@ export default function CategoriesManager({ websiteId }) {
     })
   }
 
-  function submitSearch(event) {
-    event.preventDefault()
-    setSearchQuery(searchInput.trim())
-  }
-
   return (
     <section className="category-taxonomy-screen space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -224,50 +218,48 @@ export default function CategoriesManager({ websiteId }) {
 
       <MessageAlert message={message} />
 
-      <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,40%)_minmax(0,60%)]">
         <form
           onSubmit={createCategory}
           className="space-y-5 border border-[#c3c4c7] bg-white p-4"
         >
           <h3 className="text-[1rem] font-semibold text-[#1f2330]">Add Category</h3>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="block font-medium text-[#1f2330]" htmlFor="category-name">
-                Name
-              </label>
-              <input
-                id="category-name"
-                type="text"
-                value={form.name}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, name: event.target.value }))
-                }
-                className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-              />
-              <p className="text-[0.85rem] leading-5 text-[#596171]">
-                The name is how it appears on your site.
-              </p>
-            </div>
+          <div className="space-y-2">
+            <label className="block font-medium text-[#1f2330]" htmlFor="category-name">
+              Name
+            </label>
+            <input
+              id="category-name"
+              type="text"
+              value={form.name}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, name: event.target.value }))
+              }
+              className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+            />
+            <p className="text-[0.85rem] leading-5 text-[#596171]">
+              The name is how it appears on your site.
+            </p>
+          </div>
 
-            <div className="space-y-2">
-              <label className="block font-medium text-[#1f2330]" htmlFor="category-slug">
-                Slug
-              </label>
-              <input
-                id="category-slug"
-                type="text"
-                value={form.slug}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, slug: event.target.value }))
-                }
-                className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-              />
-              <p className="text-[0.85rem] leading-5 text-[#596171]">
-                The slug is the URL-friendly version of the name. It is usually all
-                lowercase and contains only letters, numbers, and hyphens.
-              </p>
-            </div>
+          <div className="space-y-2">
+            <label className="block font-medium text-[#1f2330]" htmlFor="category-slug">
+              Slug
+            </label>
+            <input
+              id="category-slug"
+              type="text"
+              value={form.slug}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, slug: event.target.value }))
+              }
+              className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+            />
+            <p className="text-[0.85rem] leading-5 text-[#596171]">
+              The slug is the URL-friendly version of the name. It is usually all
+              lowercase and contains only letters, numbers, and hyphens.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -298,25 +290,16 @@ export default function CategoriesManager({ websiteId }) {
         </form>
 
         <div className="min-w-0 space-y-3">
-          <form
-            onSubmit={submitSearch}
-            className="flex flex-wrap items-center justify-end gap-2"
-          >
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <input
               type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="w-full max-w-xs rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               aria-label="Search categories"
+              placeholder="Search categories"
             />
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1 rounded-[3px] border border-[#3858e9] bg-white px-4 py-2 font-semibold text-[#3858e9] hover:bg-[#f0f3ff]"
-            >
-              <Search className="h-3.5 w-3.5" />
-              Search Categories
-            </button>
-          </form>
+          </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div />
@@ -330,7 +313,6 @@ export default function CategoriesManager({ websiteId }) {
               <thead>
                 <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
                   <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Description</th>
                   <th className="px-3 py-2 font-medium">Slug</th>
                   <th className="w-20 px-3 py-2 text-right font-medium">Count</th>
                   <th className="w-40 px-3 py-2 font-medium">Actions</th>
@@ -340,7 +322,6 @@ export default function CategoriesManager({ websiteId }) {
                 {filteredCategories.map((category) => {
                   const draft = editing[category.id]
                   const isEditing = Boolean(draft)
-                  const description = category.description || '-'
                   const count = countsFailed ? '-' : postCounts[category.id] || 0
 
                   return (
@@ -362,31 +343,26 @@ export default function CategoriesManager({ websiteId }) {
                               }
                               className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
                             />
+                            <textarea
+                              value={draft.description}
+                              onChange={(event) =>
+                                setEditing((current) => ({
+                                  ...current,
+                                  [category.id]: {
+                                    ...draft,
+                                    description: event.target.value,
+                                  },
+                                }))
+                              }
+                              rows={3}
+                              aria-label={`Description for ${category.name}`}
+                              className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+                            />
                           </div>
                         ) : (
                           <div className="space-y-1">
                             <p className="font-normal text-[#1f2330]">{category.name}</p>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-[#1f2330]">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={draft.description}
-                            onChange={(event) =>
-                              setEditing((current) => ({
-                                ...current,
-                                [category.id]: {
-                                  ...draft,
-                                  description: event.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full rounded-none border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                          />
-                        ) : (
-                          description
                         )}
                       </td>
                       <td className="px-3 py-3 text-[#1f2330]">
@@ -452,7 +428,7 @@ export default function CategoriesManager({ websiteId }) {
                 })}
                 {filteredCategories.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-[#596171]">
+                    <td colSpan={4} className="px-3 py-8 text-center text-[#596171]">
                       No categories found.
                     </td>
                   </tr>

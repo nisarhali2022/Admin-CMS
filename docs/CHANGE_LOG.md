@@ -33,6 +33,10 @@ Note: older entries below record the path taken during implementation. Any older
 
 ## Latest UI Corrections
 
+- Categories now use a desktop 40% / 60% management layout with the Add Category form on the left and the category table/search area on the right.
+- Categories search now filters automatically while typing, and the table shows Name, Slug, Count, and Actions without a Description column.
+- Dashboard is now website-scoped and shows selected-website metrics for pages, posts, media image count, and total optimized image storage, with simple built-in chart visuals.
+- Dashboard now also shows shared Supabase Storage usage for the `cms-media` bucket, including total media files, used storage, configured remaining storage, and an estimated usage bar.
 - Pages and Posts editor links now render orange, bold, and underlined in the shared Tiptap content styling.
 - Pages and Posts editor heading controls include H1, H2, H3, and H4, with heading styles centralized in `styles/globals.css`.
 - Pages and Posts editor content areas now use a fixed 600px editing height with internal scrolling.
@@ -123,7 +127,7 @@ Note: older entries below record the path taken during implementation. Any older
 - Quiz link was removed from the left sidebar.
 - Quiz is now linked from the top header.
 - Add Website is a standalone header page at `/admin/add-website`.
-- `/admin` is a simple empty Dashboard landing page.
+- `/admin` is now a selected-website Dashboard with content metrics and shared CMS Storage usage.
 - Website creation, selection/editing details, activation, and deactivation live only on `/admin/add-website`.
 - WordPress import now lives inside Website Workspace on `/admin/add-website`, after a website is selected.
 - Normal website-scoped CMS menu pages render only their resource UI and no longer show the repeated website workspace, website list, Add Website card, or Selected Website card.

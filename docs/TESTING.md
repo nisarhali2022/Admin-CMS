@@ -131,6 +131,12 @@ Test:
 - Media Library bulk `Delete selected` calls the existing media delete endpoint for each selected row
 - Media Library bulk delete clears selection, reloads media, and reports success/failure counts
 - Media Library keeps the `Usage` action visible and usage results render in the Actions cell
+- Dashboard storage usage endpoint requires admin authentication
+- Dashboard storage usage endpoint lists only the shared `cms-media` bucket through server-only service-role code
+- Dashboard storage usage returns object count, used bytes, configured quota, remaining bytes, over-quota bytes, and usage percentage
+- Missing or invalid `SUPABASE_STORAGE_QUOTA_BYTES` returns a safe `Quota not configured` dashboard state
+- Over-quota usage clamps remaining storage to zero and shows an over-quota warning
+- service-role credentials never appear in Dashboard browser code or API responses
 - public websites receive media URLs from Supabase data and never upload, delete, or list Supabase Storage objects
 - public template/post reads return resolved image objects, not unresolved `mediaId` values
 - public image objects include URL, alt text, caption, width, and height when available

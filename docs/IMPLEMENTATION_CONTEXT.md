@@ -139,6 +139,16 @@ Delete helper behavior:
 - return a structured success/error result
 - never allow public websites or browser code to upload, delete, or list Supabase Storage objects
 
+Storage usage helper behavior:
+
+- list objects only from the configured `cms-media` bucket
+- list through server-only service-role credentials
+- count objects and sum object metadata size
+- read optional `SUPABASE_STORAGE_QUOTA_BYTES`
+- return `quotaConfigured: false` when quota is missing or invalid
+- return `remainingBytes` and `usagePercent` only from the configured quota estimate
+- never expose service-role credentials or storage list responses directly to client code
+
 Admin media permanent delete must check references first. If unused, delete the Supabase Storage object first, then hard-delete the `cms_media` row. If object deletion fails, keep the media row and surface the error.
 
 Media Library UI rule:

@@ -252,6 +252,39 @@ Behavior:
 - the Media Library bulk delete UI does not use a separate bulk API; it calls the same `DELETE /api/cms/media/:id?websiteId=...` route for each selected item so reference checks remain centralized
 - `GET /api/cms/media/:id/usage?websiteId=...` remains available for the Media table `Usage` action
 
+## Admin Storage Usage
+
+Route:
+
+- `GET /api/cms/storage/usage`
+
+Behavior:
+
+- requires a valid admin session
+- lists objects in the shared Supabase Storage `cms-media` bucket through server-only service-role code
+- returns usage across all managed websites, not only the selected website
+- never exposes the service-role key or raw storage credentials to browser code
+- uses `SUPABASE_STORAGE_QUOTA_BYTES` to estimate remaining storage when configured
+- returns `quotaConfigured: false` and `remainingBytes: null` when no valid quota is configured
+- clamps remaining storage to `0` and returns `overQuotaBytes` when used storage exceeds the configured quota
+
+Response:
+
+```json
+{
+  "storage": {
+    "bucket": "cms-media",
+    "objectCount": 128,
+    "usedBytes": 524288000,
+    "quotaBytes": 1073741824,
+    "quotaConfigured": true,
+    "remainingBytes": 549453824,
+    "overQuotaBytes": 0,
+    "usagePercent": 49
+  }
+}
+```
+
 ## Admin Categories
 
 Routes:

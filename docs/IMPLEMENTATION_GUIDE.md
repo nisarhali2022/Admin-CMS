@@ -151,6 +151,14 @@ Media:
 - Permanent delete checks usage before deleting the Supabase Storage object.
 - If Supabase Storage deletion fails during permanent delete, keep the metadata row and show an error.
 
+Dashboard storage usage:
+
+- Use `GET /api/cms/storage/usage` for shared `cms-media` bucket usage.
+- Keep storage listing server-only behind admin session validation.
+- Return aggregate object count and byte totals only.
+- Use `SUPABASE_STORAGE_QUOTA_BYTES` only as a configured estimate for remaining storage.
+- Do not treat the Dashboard estimate as Supabase billing truth.
+
 Scheduling:
 
 - Template content and posts do not support future scheduling in v1.

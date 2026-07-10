@@ -532,7 +532,7 @@ V1 admin features:
 
 - Login.
 - Website selector.
-- Dashboard for selected website.
+- Dashboard for selected website, plus shared `cms-media` Supabase Storage usage using configured quota estimates.
 - Template Content Management for fixed pages.
 - Posts CRUD with shared Tiptap visual editor, sanitized `body_html`, and legacy `body_blocks` fallback.
 - Authors CRUD.

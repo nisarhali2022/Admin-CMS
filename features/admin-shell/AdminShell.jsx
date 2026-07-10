@@ -251,7 +251,12 @@ export default function AdminShell({ authenticated, children }) {
 
         <main className="px-4 py-6 sm:px-6">
           <section className="mx-auto min-w-0 max-w-[104rem]">
-          {children || <DashboardWorkspace />}
+          {children || (
+            <DashboardWorkspace
+              websiteId={websiteId}
+              selectedWebsite={selectedWebsite}
+            />
+          )}
           </section>
         </main>
       </div>

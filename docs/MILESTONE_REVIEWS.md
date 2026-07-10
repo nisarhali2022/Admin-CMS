@@ -900,7 +900,7 @@ Use this structure for every completed milestone:
 - Date completed: 2026-07-05
 - Milestone goal: Simplify the admin dashboard and keep website management UI isolated to the Add Website page.
 - What was implemented:
-  - Changed `/admin` into an empty Dashboard page with only the title.
+  - Changed `/admin` into an empty Dashboard page with only the title. This was later superseded by the selected-website Dashboard metrics and CMS Storage usage corrections.
   - Removed the Admin button from the authenticated top header.
   - Removed the header `Website selected` badge and dropdown ` (selected)` suffix.
   - Changed the header title to use the current page title instead of the selected website name.
@@ -2443,4 +2443,75 @@ Use this structure for every completed milestone:
   - The new `cms_posts.focus_keyphrase` migration must be run in Supabase before relying on post focus keyphrases in the live database.
 - Follow-up items:
   - Run `setup-provisioning/supabase/migrations/202607100001_post_focus_keyphrase.sql` in Supabase before relying on post focus keyphrases in the live database.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Categories Layout And Dashboard Metrics
+
+- Status: Complete
+- Date completed: 2026-07-11
+- Milestone goal: Align Categories with the requested 40% / 60% WordPress-style layout and make Dashboard useful for the selected website.
+- What was implemented:
+  - Changed Categories to a desktop two-column layout with Add Category at 40% width and the table/search area at 60% width.
+  - Kept category Name, Slug, and Description fields as separate full-width rows in the add form.
+  - Removed Description from the category table while preserving description editing inside edit mode.
+  - Changed category search to filter automatically while typing and removed the Search Categories button.
+  - Changed Dashboard from an empty placeholder into selected-website metric cards for pages, posts, images, and total image storage.
+  - Added simple CSS-based dashboard chart visuals without adding a chart dependency.
+- Files/modules changed:
+  - `features/categories/CategoriesManager.jsx`
+  - `features/dashboard/DashboardWorkspace.jsx`
+  - `features/admin-shell/AdminShell.jsx`
+  - `test/milestone13-final-hardening.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - Dashboard now reads existing CMS APIs for the selected website: pages, template content, posts, and media.
+  - No API response shape, database schema, Supabase Storage, or public website contract changed.
+- Security and architecture checks:
+  - Dashboard remains read-only and website-scoped through the existing `websiteId` query parameter.
+  - Categories keep existing create/update/delete API behavior.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- features docs test`
+- Known caveats:
+  - Dashboard metrics are lightweight client-side summaries over already exposed admin APIs, not cached analytics.
+- Follow-up items:
+  - None.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Dashboard Supabase Storage Usage
+
+- Status: Complete
+- Date completed: 2026-07-11
+- Milestone goal: Show Supabase Storage usage on the Dashboard without exposing storage listing or service-role access to browser/public code.
+- What was implemented:
+  - Added a server-only storage usage helper for the shared `cms-media` bucket.
+  - Added authenticated `GET /api/cms/storage/usage`.
+  - Added a Dashboard `CMS Storage` panel showing total media files, used storage, remaining configured storage, and a usage progress bar.
+  - Added `SUPABASE_STORAGE_QUOTA_BYTES` to the environment template.
+  - Documented that remaining storage is an estimate based on configured quota because Supabase storage quota is organization-level.
+- Files/modules changed:
+  - `packages/cms-core/storage/supabaseStorage.js`
+  - `app/api/cms/storage/usage/route.js`
+  - `features/dashboard/DashboardWorkspace.jsx`
+  - `.env.example`
+  - docs and tests
+- Inputs/outputs added or changed:
+  - `GET /api/cms/storage/usage` returns `bucket`, `objectCount`, `usedBytes`, `quotaBytes`, `quotaConfigured`, `remainingBytes`, `overQuotaBytes`, and `usagePercent`.
+  - Dashboard keeps selected-website page/post/image metrics and adds shared bucket-level storage usage.
+- Security and architecture checks:
+  - Storage object listing is performed only in an authenticated server route.
+  - Browser code receives aggregate numbers only, not service-role credentials or raw storage credentials.
+  - Public websites still receive only public image URLs and never list/upload/delete Supabase Storage objects.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check -- app features packages docs test .env.example`
+- Known caveats:
+  - Remaining storage is an estimate from `SUPABASE_STORAGE_QUOTA_BYTES`; official usage should still be checked in Supabase Organization -> Usage.
+- Follow-up items:
+  - Configure `SUPABASE_STORAGE_QUOTA_BYTES` in each deployed admin CMS environment.
 - Readiness for next milestone: Ready.

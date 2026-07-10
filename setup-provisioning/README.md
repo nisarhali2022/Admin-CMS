@@ -29,6 +29,8 @@ CMS_ENCRYPTION_KEY=
 
 Public websites still use only public-safe Supabase anon credentials.
 
+The main Admin CMS may also configure `SUPABASE_STORAGE_QUOTA_BYTES` so its Dashboard can estimate remaining shared `cms-media` bucket storage. That value is not required for setup/provisioning migrations or WordPress import.
+
 ## Workflow
 
 1. Run/apply migrations from this setup project.

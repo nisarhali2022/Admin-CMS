@@ -32,6 +32,7 @@ ADMIN_SECRET=
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 CMS_ENCRYPTION_KEY=
+SUPABASE_STORAGE_QUOTA_BYTES=1073741824
 ```
 
 Public websites:
@@ -50,6 +51,7 @@ Notes:
 - Admin CMS `.env` stores shared system configuration and secrets only.
 - Adding a website must not require editing the admin CMS `.env`.
 - Milestone 1 must add server-side environment validation for required admin CMS variables.
+- `SUPABASE_STORAGE_QUOTA_BYTES` is optional but recommended for the Dashboard storage estimate. Use the quota that matches the Supabase plan, for example `1073741824` for about 1 GB or `107374182400` for about 100 GB.
 
 ## Supabase Storage Setup
 
@@ -75,6 +77,7 @@ Bucket configuration:
 - Use Supabase Storage generated public URLs in v1.
 - Do not use signed URLs for public website images in v1.
 - Do not add separate Supabase Storage environment variables in v1; use the existing Supabase URL and service-role key on the admin server.
+- `SUPABASE_STORAGE_QUOTA_BYTES` is not a storage credential. It is only a manually configured quota number used to estimate remaining storage in the Dashboard.
 
 Rules:
 
@@ -117,6 +120,7 @@ ADMIN_SECRET=
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 CMS_ENCRYPTION_KEY=
+SUPABASE_STORAGE_QUOTA_BYTES=1073741824
 ```
 
 Public website environment variables:
@@ -211,6 +215,19 @@ Local `.env` should include only development keys. Do not commit secrets.
 8. Add public revalidation endpoints.
 9. Add websites through the setup/provisioning app, which writes database records.
 10. Run tests and manual checks.
+
+## Dashboard Storage Usage
+
+The Dashboard can show shared `cms-media` Supabase Storage usage across all managed websites:
+
+- total media files
+- used storage
+- remaining configured storage
+- usage percentage
+
+The admin CMS calculates used storage by listing objects in the public `cms-media` bucket through a server-only route that uses the service-role key. Browser code and public websites never receive service-role credentials and never list Supabase Storage objects.
+
+Remaining storage is an estimate based on `SUPABASE_STORAGE_QUOTA_BYTES`. Supabase applies storage quota at the organization level, so official usage should still be checked in Supabase Organization -> Usage.
 
 ## Security Checklist
 

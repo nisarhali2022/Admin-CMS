@@ -132,6 +132,29 @@ Permanent media delete checks all references first. If the media is unused, dele
 
 The Media Library can select multiple rows and bulk delete them, but this is only UI-level batching. The browser calls the normal media delete endpoint for each selected item, so every item still goes through the same reference checks and storage-delete ordering. Media search filters automatically while typing over the currently loaded website media rows. The `Usage` action remains available for manual reference inspection.
 
+## Dashboard Storage Usage Flow
+
+```mermaid
+sequenceDiagram
+  participant A as Admin Dashboard
+  participant R as Storage Usage Route
+  participant Storage as Supabase Storage
+  participant Env as Admin Environment
+
+  A->>R: GET /api/cms/storage/usage
+  R->>R: Validate admin session
+  R->>Storage: List cms-media objects with service role
+  R->>Env: Read SUPABASE_STORAGE_QUOTA_BYTES
+  R-->>A: Return object count, used bytes, quota, remaining bytes
+```
+
+Rules:
+
+- Storage usage is shared across the `cms-media` bucket for all websites.
+- Selected-website Dashboard image storage still comes from website-scoped `cms_media` rows.
+- The shared CMS Storage panel uses a configured quota estimate; official Supabase organization usage remains the billing source of truth.
+- Public websites and browser code never receive storage listing access or the service-role key.
+
 ## Public Image Resolution Flow
 
 ```mermaid

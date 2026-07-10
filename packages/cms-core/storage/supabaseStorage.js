@@ -2,6 +2,7 @@ import { getSupabaseAdminConfig } from '../supabase/adminRest.js'
 
 export const CMS_MEDIA_BUCKET = 'cms-media'
 export const MEDIA_CACHE_CONTROL_SECONDS = '31536000'
+const STORAGE_LIST_LIMIT = 1000
 
 export class StorageError extends Error {
   constructor(message, { status = 500, details } = {}) {
@@ -24,6 +25,110 @@ function getStorageHeaders(extraHeaders = {}) {
     apikey: supabaseServiceRoleKey,
     Authorization: `Bearer ${supabaseServiceRoleKey}`,
     ...extraHeaders,
+  }
+}
+
+function getStorageListUrl() {
+  return `${getStorageBaseUrl()}/object/list/${CMS_MEDIA_BUCKET}`
+}
+
+async function listStorageEntries(prefix) {
+  const entries = []
+  let offset = 0
+
+  while (true) {
+    const response = await fetch(getStorageListUrl(), {
+      method: 'POST',
+      headers: getStorageHeaders({
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify({
+        prefix,
+        limit: STORAGE_LIST_LIMIT,
+        offset,
+        sortBy: { column: 'name', order: 'asc' },
+      }),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => '')
+      throw new StorageError('Unable to list Supabase Storage objects.', {
+        status: response.status,
+        details,
+      })
+    }
+
+    const batch = await response.json().catch(() => [])
+    if (!Array.isArray(batch) || batch.length === 0) break
+
+    entries.push(...batch)
+    if (batch.length < STORAGE_LIST_LIMIT) break
+    offset += STORAGE_LIST_LIMIT
+  }
+
+  return entries
+}
+
+function joinStoragePath(prefix, name) {
+  return prefix ? `${prefix}/${name}` : name
+}
+
+async function listAllMediaObjects() {
+  const queue = ['websites']
+  const files = []
+
+  while (queue.length > 0) {
+    const prefix = queue.shift()
+    const entries = await listStorageEntries(prefix)
+
+    for (const entry of entries) {
+      const path = joinStoragePath(prefix, entry.name)
+
+      if (entry?.id) {
+        files.push({ ...entry, path })
+      } else if (entry?.name) {
+        queue.push(path)
+      }
+    }
+  }
+
+  return files
+}
+
+export function getConfiguredStorageQuotaBytes(source = process.env) {
+  const rawValue = typeof source.SUPABASE_STORAGE_QUOTA_BYTES === 'string'
+    ? source.SUPABASE_STORAGE_QUOTA_BYTES.trim()
+    : ''
+
+  if (!/^\d+$/.test(rawValue)) return null
+
+  const quotaBytes = Number(rawValue)
+  return Number.isSafeInteger(quotaBytes) && quotaBytes > 0 ? quotaBytes : null
+}
+
+export async function getCmsStorageUsage() {
+  const files = await listAllMediaObjects()
+  const usedBytes = files.reduce((total, file) => {
+    const size = Number(file?.metadata?.size)
+    return total + (Number.isFinite(size) && size > 0 ? size : 0)
+  }, 0)
+  const quotaBytes = getConfiguredStorageQuotaBytes()
+  const quotaConfigured = quotaBytes !== null
+  const remainingBytes = quotaConfigured ? Math.max(quotaBytes - usedBytes, 0) : null
+  const overQuotaBytes = quotaConfigured ? Math.max(usedBytes - quotaBytes, 0) : 0
+
+  return {
+    bucket: CMS_MEDIA_BUCKET,
+    objectCount: files.length,
+    usedBytes,
+    quotaBytes,
+    quotaConfigured,
+    remainingBytes,
+    overQuotaBytes,
+    usagePercent: quotaConfigured
+      ? Math.min(100, Math.round((usedBytes / quotaBytes) * 100))
+      : null,
   }
 }
 

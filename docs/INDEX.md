@@ -68,6 +68,7 @@ Read the docs in this order:
 - Admin writes happen through server route handlers only.
 - Supabase service-role key must never reach public websites or browser code.
 - Media uses one Supabase Storage bucket with `websites/{website_id}/...` storage path prefixes.
+- Dashboard shared storage usage lists `cms-media` only through an authenticated server route and uses `SUPABASE_STORAGE_QUOTA_BYTES` as an estimate.
 - Tags, audit events, shared media, page builder, public draft preview tokens, draft/unpublish/trash/restore workflows, and revisions are not included in v1.
 
 ## Update Rule
