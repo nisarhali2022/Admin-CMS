@@ -62,8 +62,18 @@ Behavior:
 - add website
 - edit website name/domain/status
 - deactivate website
+- `DELETE /api/cms/websites/:id` for permanent deletion of an inactive website
 - create required default rows in `cms_websites`, `cms_website_domains`, and `cms_site_settings`
 - run WordPress import and import reset/retry
+
+Website deletion behavior:
+
+- requires the admin session and an existing inactive website;
+- deletes all objects under `websites/{website_id}/` in the `cms-media` bucket before database cleanup;
+- calls `cms_admin_delete_website(uuid)` to delete website-scoped rows in one transaction;
+- deletes posts, pages, templates, authors, categories, media metadata, redirects, import jobs, settings, domains, and finally the website;
+- never deletes `cms_global_quiz`;
+- returns a retryable error if Storage or database cleanup fails.
 
 ## Admin Template Content
 

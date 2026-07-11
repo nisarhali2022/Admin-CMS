@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Globe2, Plus, RefreshCw, Save } from 'lucide-react'
+import { Globe2, Plus, RefreshCw, Save, Trash2 } from 'lucide-react'
 import {
   AdminPanel,
   EmptyState,
@@ -172,6 +172,40 @@ export default function WebsiteSectionShell({
       await loadWebsites()
       notifyWebsitesUpdated()
       selectWebsite(result.website.id)
+    } catch {
+      setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteSelectedWebsite() {
+    if (!selectedWebsite || selectedWebsite.isActive) return
+
+    const confirmed = window.confirm(
+      `Permanently delete ${selectedWebsite.name}? This will remove all of its pages, posts, authors, categories, media, redirects, settings, imports, and Storage files. This cannot be undone.`,
+    )
+
+    if (!confirmed) return
+
+    setSaving(true)
+    setMessage('')
+
+    try {
+      const response = await fetch(`/api/cms/websites/${selectedWebsite.id}`, {
+        method: 'DELETE',
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setMessage(getApiMessage(result, 'Unable to delete website.'))
+        return
+      }
+
+      await loadWebsites()
+      notifyWebsitesUpdated()
+      setMessage('Website and all related data were permanently deleted.')
+      router.push(sectionPath)
     } catch {
       setMessage('Unable to reach the CMS server. Restart the dev server and try again.')
     } finally {
@@ -366,6 +400,18 @@ export default function WebsiteSectionShell({
                   Deactivate
                 </Button>
               </div>
+              {!selectedWebsite.isActive ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={deleteSelectedWebsite}
+                  disabled={saving}
+                  className="w-full"
+                >
+                  <Trash2 />
+                  {saving ? 'Deleting...' : 'Delete website permanently'}
+                </Button>
+              ) : null}
             </form>
           </AdminPanel>
         ) : null}

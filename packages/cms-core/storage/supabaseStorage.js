@@ -74,8 +74,8 @@ function joinStoragePath(prefix, name) {
   return prefix ? `${prefix}/${name}` : name
 }
 
-async function listAllMediaObjects() {
-  const queue = ['websites']
+async function listMediaObjectsUnderPrefix(prefix) {
+  const queue = [prefix]
   const files = []
 
   while (queue.length > 0) {
@@ -94,6 +94,10 @@ async function listAllMediaObjects() {
   }
 
   return files
+}
+
+async function listAllMediaObjects() {
+  return listMediaObjectsUnderPrefix('websites')
 }
 
 export function getConfiguredStorageQuotaBytes(source = process.env) {
@@ -204,4 +208,36 @@ export async function deleteMediaObject(storagePath) {
   }
 
   return { deleted: true, storagePath }
+}
+
+export async function deleteMediaObjectsForWebsite(websiteId) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(websiteId || ''))) {
+    throw new StorageError('Invalid website storage prefix.', { status: 400 })
+  }
+
+  const storagePaths = (await listMediaObjectsUnderPrefix(`websites/${websiteId}`))
+    .map((entry) => entry.path)
+
+  if (storagePaths.length === 0) {
+    return { deleted: true, websiteId, objectCount: 0 }
+  }
+
+  const response = await fetch(`${getStorageBaseUrl()}/object/${CMS_MEDIA_BUCKET}`, {
+    method: 'DELETE',
+    headers: getStorageHeaders({
+      'Content-Type': 'application/json',
+    }),
+    body: JSON.stringify({ prefixes: storagePaths }),
+    cache: 'no-store',
+  })
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => '')
+    throw new StorageError('Unable to delete website media from Supabase Storage.', {
+      status: response.status,
+      details,
+    })
+  }
+
+  return { deleted: true, websiteId, objectCount: storagePaths.length }
 }

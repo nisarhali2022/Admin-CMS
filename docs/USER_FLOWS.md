@@ -81,7 +81,9 @@ Rules:
 
 - website data is stored in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables
 - media for the website uses the shared Supabase Storage bucket under `websites/{website_id}/media/...`
-- permanent website delete is not available in v1
+- only inactive websites can be permanently deleted
+- deleting a website removes all related rows and Storage objects under its website prefix after confirmation
+- global quiz data is preserved
 
 ## WordPress Import
 

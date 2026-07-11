@@ -36,7 +36,10 @@ Test:
 - adding a website requires no admin CMS `.env` change
 - website deactivation hides public content
 - deactivation keeps associated resources
-- permanent website delete is not available in v1
+- inactive website deletion removes website-scoped rows and Storage objects
+- active website deletion is rejected
+- website deletion does not remove `cms_global_quiz`
+- Storage cleanup failure prevents database cleanup
 
 Main CMS test:
 

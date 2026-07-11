@@ -49,3 +49,9 @@ export async function deactivateWebsite(websiteId) {
 
   return serializeWebsite(row)
 }
+
+export async function deleteWebsiteDatabaseRecords(websiteId) {
+  return supabaseAdminRpc('cms_admin_delete_website', {
+    input_website_id: websiteId,
+  })
+}

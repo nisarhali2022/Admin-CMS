@@ -84,7 +84,7 @@ Website removal behavior:
 - Removal means deactivate first.
 - Deactivation hides/disables the website for public reads.
 - Deactivation keeps all associated template content, posts, media, categories, redirects, and settings.
-- Permanent website deletion is not included in v1.
+- Permanent website deletion is available only in `setup-provisioning/` for inactive websites. It removes all related website rows and the website's Supabase Storage objects after confirmation.
 
 ## Data Model
 
@@ -582,7 +582,7 @@ Author permanent delete rules:
 
 Website deletion is different:
 
-- Websites are deactivated, not trashed or permanently deleted, in v1.
+- Websites can be permanently deleted only from `setup-provisioning/` after they are inactive. The setup project removes website-scoped rows and `websites/{website_id}/` Storage objects, while global quiz data remains untouched.
 
 ## Backup And Export
 

@@ -3,6 +3,7 @@ import {
   getWebsite,
   updateWebsite,
 } from 'cms-core/cms/repositories/websites'
+import { permanentlyDeleteWebsite } from 'cms-core/cms/services/websites'
 import {
   assertWebsiteId,
   validateUpdateWebsitePayload,
@@ -47,6 +48,18 @@ export async function PATCH(request, context) {
     const website = await updateWebsite(websiteId, payload)
 
     return cmsJson({ website })
+  } catch (error) {
+    return cmsErrorResponse(error)
+  }
+}
+
+export async function DELETE(_request, context) {
+  const unauthorized = await requireAdminSessionResponse()
+  if (unauthorized) return unauthorized
+
+  try {
+    const result = await permanentlyDeleteWebsite(await getWebsiteId(context))
+    return cmsJson(result)
   } catch (error) {
     return cmsErrorResponse(error)
   }

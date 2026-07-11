@@ -40,8 +40,9 @@ This file records decisions that should not be re-decided during implementation 
 - V1 UI shows one primary domain field.
 - Keep `cms_website_domains` so aliases can be supported later.
 - Public websites resolve their `website_id` by domain.
-- Website removal means deactivate, not permanent delete.
+- Website removal means deactivation for normal lifecycle changes; permanent deletion is also available from `setup-provisioning/` only after the website is inactive.
 - Deactivation hides public content but keeps associated resources.
+- Permanent deletion removes all website-scoped database rows and Storage objects under `websites/{website_id}/` after confirmation. The global quiz is preserved.
 - Adding a website is managed through admin/database records, not by editing the admin CMS `.env`.
 - Website data is stored in `cms_websites`, `cms_website_domains`, `cms_site_settings`, and related website-scoped tables.
 - AdSense Active/Inactive state, publisher ID, auto-ads preference, and optional `ads.txt` content are stored per website in site settings, not `.env`.

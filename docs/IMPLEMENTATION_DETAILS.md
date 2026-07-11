@@ -486,7 +486,7 @@ git diff --check -- docs app lib features test setup-provisioning supabase packa
 Before production use, manually verify:
 
 - Login with valid and invalid `ADMIN_SECRET`.
-- Website create/edit/activate/deactivate in `setup-provisioning/`.
+- Website create/edit/activate/deactivate/permanent deletion in `setup-provisioning/`. Permanent deletion is inactive-only and removes the website Storage prefix plus all website-scoped database rows.
 - Website selection in the main Admin CMS header.
 - Navigation between admin sections keeps selected website.
 - Media upload creates WebP image and public URL.

@@ -227,7 +227,7 @@ Interactions:
 
 Constraints:
 
-- Do not implement permanent website delete.
+- Permanent website delete is implemented only for inactive websites; it must remove the website's Storage prefix before transactional database cleanup.
 - Do not implement domain alias UI beyond one primary domain field.
 - Do not create website-specific Supabase Storage buckets.
 - Do not expose website create/edit/deactivate mutations from the main CMS.

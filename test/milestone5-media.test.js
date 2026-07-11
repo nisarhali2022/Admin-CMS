@@ -6,6 +6,7 @@ import sharp from 'sharp'
 import { MAX_IMAGE_WIDTH, optimizeImageToWebp } from 'cms-core/storage/imageOptimizer'
 import {
   MEDIA_CACHE_CONTROL_SECONDS,
+  deleteMediaObjectsForWebsite,
   getCmsStorageUsage,
   getConfiguredStorageQuotaBytes,
   getPublicMediaUrl,
@@ -143,6 +144,49 @@ test('storage helper builds public URLs and uploads immutable WebP objects', asy
   assert.equal(calls[0].options.headers['cache-control'], MEDIA_CACHE_CONTROL_SECONDS)
   assert.match(calls[0].options.headers['Cache-Control'], /immutable/)
   assert.equal(calls[0].options.headers['x-upsert'], 'false')
+})
+
+test('storage helper deletes only objects under the selected website prefix', async () => {
+  setValidEnv()
+  const calls = []
+  const websiteId = '11111111-1111-4111-8111-111111111111'
+  const storagePaths = [
+    `websites/${websiteId}/media/2026/07/a.webp`,
+    `websites/${websiteId}/media/2026/07/b.webp`,
+  ]
+
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options })
+
+    if (String(url).includes('/object/list/cms-media')) {
+      const body = JSON.parse(options.body)
+      if (body.prefix === `websites/${websiteId}`) {
+        return Response.json([{ id: null, name: 'media' }])
+      }
+      if (body.prefix === `websites/${websiteId}/media`) {
+        return Response.json([{ id: null, name: '2026' }])
+      }
+      if (body.prefix === `websites/${websiteId}/media/2026`) {
+        return Response.json([{ id: null, name: '07' }])
+      }
+      if (body.prefix === `websites/${websiteId}/media/2026/07`) {
+        return Response.json([
+          { id: 'file-a', name: 'a.webp' },
+          { id: 'file-b', name: 'b.webp' },
+        ])
+      }
+    }
+
+    return Response.json({})
+  }
+
+  const result = await deleteMediaObjectsForWebsite(websiteId)
+
+  assert.equal(result.objectCount, 2)
+  const deleteCall = calls.find((call) => call.options.method === 'DELETE')
+  assert.ok(deleteCall)
+  assert.deepEqual(JSON.parse(deleteCall.options.body), { prefixes: storagePaths })
+  assert.equal(deleteCall.options.headers.Authorization, 'Bearer service-role-key')
 })
 
 test('storage usage helper totals cms-media objects against configured quota', async () => {

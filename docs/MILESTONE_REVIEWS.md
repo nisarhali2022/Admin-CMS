@@ -257,7 +257,7 @@ Use this structure for every completed milestone:
 - Known caveats:
   - Automated tests mock service-role REST/RPC calls; real end-to-end website CRUD should be exercised through the admin UI with the Supabase project.
   - Only one primary domain is managed in v1. Domain aliases remain out of scope.
-  - Permanent website delete remains unavailable in v1 by design.
+  - At the time of this milestone, permanent website delete remained unavailable in v1 by design. This historical decision was superseded by the later website deletion correction.
 - Follow-up items:
   - Milestone 5 media routes must require a selected `websiteId`.
   - Media object paths must use `websites/{website_id}/media/...` under the shared `cms-media` bucket.
@@ -1014,6 +1014,26 @@ Use this structure for every completed milestone:
 - Follow-up items:
   - Adjust individual feature-page spacing only if manual QA finds crowding after the shared style change.
 - Readiness for next milestone: Ready.
+
+## Website Deletion Correction
+
+- Status: Complete
+- Date completed: 2026-07-11
+- Goal: Add safe permanent website deletion to the setup/provisioning Website Workspace.
+- Implemented:
+  - Added inactive-only `DELETE /api/cms/websites/:id`.
+  - Added Storage-prefix cleanup for `websites/{website_id}/` in the shared `cms-media` bucket.
+  - Added transactional `cms_admin_delete_website(uuid)` cleanup for all website-scoped tables.
+  - Preserved `cms_global_quiz` because quiz data is global.
+  - Added confirmation, workspace refresh, and selection clearing after successful deletion.
+- Validation:
+  - `npm.cmd test` passed.
+  - `npm.cmd run lint` passed.
+  - `npm.cmd --workspace setup-provisioning run build` passed.
+- Caveats:
+  - The migration must be applied in Supabase before the Delete action is used.
+  - Storage cleanup happens before database cleanup; failed cleanup returns a retryable error.
+- Readiness: Ready for manual inactive-website deletion testing after applying the migration.
 
 ## Milestone 13 Correction: WordPress-Style Category Page
 

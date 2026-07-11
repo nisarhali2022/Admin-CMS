@@ -132,6 +132,10 @@ Permanent media delete checks all references first. If the media is unused, dele
 
 The Media Library can select multiple rows and bulk delete them, but this is only UI-level batching. The browser calls the normal media delete endpoint for each selected item, so every item still goes through the same reference checks and storage-delete ordering. Media search filters automatically while typing over the currently loaded website media rows. The `Usage` action remains available for manual reference inspection.
 
+## Website Deletion Flow
+
+Website deletion belongs only to `setup-provisioning/` and is available after the website is inactive. The setup server lists and deletes all Storage objects under `websites/{website_id}/`, then calls the transactional database cleanup function. The function deletes website-scoped child rows before deleting the website row. If Storage cleanup fails, database cleanup does not run; if database cleanup fails afterward, the inactive website remains retryable. `cms_global_quiz` is global and is never deleted by this flow.
+
 ## Dashboard Storage Usage Flow
 
 ```mermaid

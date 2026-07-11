@@ -5,12 +5,14 @@ This folder is the setup/provisioning project for the shared Supabase CMS databa
 It owns:
 
 - Supabase migrations in `setup-provisioning/supabase/migrations`.
-- Website creation, editing, and deactivation UI/API.
+- Website creation, editing, deactivation, and permanent deletion of inactive websites UI/API.
 - Required default website setup rows:
   - `cms_websites`
   - `cms_website_domains`
   - `cms_site_settings`
 - WordPress import, import progress, reset, and retry flows.
+
+Permanent website deletion requires confirmation, removes all website-scoped database rows and Storage objects under `websites/{website_id}/`, and never deletes the global quiz.
 
 The main Admin CMS is now a schema consumer. It reads existing websites for the header dropdown and manages website-scoped content after a website has already been provisioned here.
 

@@ -150,6 +150,12 @@ websites/{website_id}/media/...
 
 The admin CMS `.env` keeps shared system values such as Supabase keys, `ADMIN_SECRET`, and `CMS_ENCRYPTION_KEY`. The setup/provisioning app uses the same Supabase project and server-only service-role access. Public websites may still need their own deployment environment variables once, but adding a new website should not require changing the main CMS deployment environment.
 
+To remove a website, first deactivate it in the setup/provisioning app. The Website Workspace then exposes `Delete website permanently`. This removes all website-scoped rows and all Storage objects under `websites/{website_id}/`; it does not remove the global quiz. Run the new deletion migration before using this action:
+
+```text
+setup-provisioning/supabase/migrations/202607110001_delete_website.sql
+```
+
 AdSense is also website-level database configuration. Do not add AdSense publisher IDs or Active/Inactive state to `.env`; store them in `cms_site_settings.adsense_settings` so admins can change them without redeploying code.
 
 ## WordPress Import Credentials

@@ -9,9 +9,11 @@ import {
 } from 'cms-core/cms/validators/websites'
 import {
   createWebsite,
+  deleteWebsiteDatabaseRecords,
   listWebsites,
   updateWebsite,
 } from 'cms-core/cms/repositories/websites'
+import { permanentlyDeleteWebsite } from 'cms-core/cms/services/websites'
 
 const migrationDir = 'setup-provisioning/supabase/migrations'
 const originalFetch = global.fetch
@@ -70,6 +72,71 @@ test('website management migration adds transactional admin website functions', 
   assert.match(sql, /create or replace function public\.cms_admin_deactivate_website/)
   assert.match(sql, /grant execute on function public\.cms_admin_create_website\(text, text\) to service_role/)
   assert.doesNotMatch(sql, /grant execute[\s\S]+to anon/)
+})
+
+test('website deletion migration removes scoped rows before the website and preserves global quiz', async () => {
+  const sql = await readMigration('delete_website')
+
+  assert.match(sql, /create or replace function public\.cms_admin_delete_website\(input_website_id uuid\)/)
+  assert.match(sql, /if target_website\.is_active then/)
+  assert.match(sql, /delete from public\.cms_posts/)
+  assert.match(sql, /delete from public\.cms_pages/)
+  assert.match(sql, /delete from public\.cms_template_content/)
+  assert.match(sql, /delete from public\.cms_authors/)
+  assert.match(sql, /delete from public\.cms_categories/)
+  assert.match(sql, /delete from public\.cms_media/)
+  assert.match(sql, /delete from public\.cms_redirects/)
+  assert.match(sql, /delete from public\.cms_import_jobs/)
+  assert.match(sql, /delete from public\.cms_site_settings/)
+  assert.match(sql, /delete from public\.cms_website_domains/)
+  assert.match(sql, /delete from public\.cms_websites/)
+  assert.doesNotMatch(sql, /delete from public\.cms_global_quiz/)
+  assert.match(sql, /grant execute on function public\.cms_admin_delete_website\(uuid\) to service_role/)
+})
+
+test('website deletion service rejects active websites before storage cleanup', async () => {
+  setValidEnv()
+  const calls = []
+
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options })
+    return Response.json([{
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Active Site',
+      slug: 'active-site',
+      primary_domain: 'active.example.com',
+      is_active: true,
+      created_at: '2026-07-03T00:00:00.000Z',
+      updated_at: '2026-07-03T00:00:00.000Z',
+    }])
+  }
+
+  await assert.rejects(
+    () => permanentlyDeleteWebsite('11111111-1111-4111-8111-111111111111'),
+    /Only inactive websites can be permanently deleted/,
+  )
+  assert.equal(calls.length, 1)
+  assert.ok(calls[0].url.includes('/rest/v1/cms_websites?'))
+})
+
+test('website deletion route and workspace expose destructive action only in setup project', async () => {
+  const route = await readFile(
+    'setup-provisioning/app/api/cms/websites/[id]/route.js',
+    'utf8',
+  )
+  const workspace = await readFile(
+    'setup-provisioning/features/websites/WebsiteSectionShell.jsx',
+    'utf8',
+  )
+
+  assert.match(route, /export async function DELETE/)
+  assert.match(route, /permanentlyDeleteWebsite/)
+  assert.match(workspace, /method: 'DELETE'/)
+  assert.match(workspace, /window\.confirm/)
+  assert.match(workspace, /!selectedWebsite\.isActive/)
+  assert.match(workspace, /Delete website permanently/)
+  const mainRoute = await readFile('app/api/cms/websites/[id]/route.js', 'utf8')
+  assert.doesNotMatch(mainRoute, /export async function DELETE/)
 })
 
 test('website repository uses server-only Supabase service-role requests', async () => {
@@ -132,5 +199,23 @@ test('website repository uses server-only Supabase service-role requests', async
   assert.deepEqual(JSON.parse(calls[1].options.body), {
     input_name: 'Example Site',
     input_primary_domain: 'example.com',
+  })
+})
+
+test('website database delete uses the server-only service-role RPC', async () => {
+  setValidEnv()
+  const calls = []
+
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options })
+    return Response.json({ deleted: true, websiteId: '11111111-1111-4111-8111-111111111111' })
+  }
+
+  await deleteWebsiteDatabaseRecords('11111111-1111-4111-8111-111111111111')
+
+  assert.match(calls[0].url, /\/rest\/v1\/rpc\/cms_admin_delete_website$/)
+  assert.equal(calls[0].options.headers.apikey, 'service-role-key')
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    input_website_id: '11111111-1111-4111-8111-111111111111',
   })
 })

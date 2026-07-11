@@ -39,7 +39,7 @@ Behavior:
 
 - New websites start inactive.
 - Deactivation keeps associated resources.
-- Permanent website deletion is not included in v1.
+- Permanent website deletion is owned by `setup-provisioning/`, is allowed only for inactive websites, and removes all website-scoped rows plus website-owned Supabase Storage objects.
 
 ### `cms_website_domains`
 

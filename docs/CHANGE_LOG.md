@@ -314,6 +314,7 @@ Note: older entries below record the path taken during implementation. Any older
 - Post View/permalink and sitemap URLs now match the live WordPress-style structure `/{categorySlug}/{postSlug}` instead of `/blog/{postSlug}`. `/blog` remains available as an archive/list page path.
 - Add Post validation now reports clear required-field messages for Title, Author, and Category instead of the generic media ID error. Category is required for new saves because it is part of the public post URL.
 - WordPress import now creates or selects an `Uncategorized` fallback category for imported posts that have no WordPress category.
+- Setup Website Workspace now supports permanent deletion of inactive websites after confirmation. The flow deletes website-scoped database records and `websites/{website_id}/` Supabase Storage objects while preserving the global quiz.
 
 ## Validation Completed
 

@@ -151,6 +151,14 @@ Storage usage helper behavior:
 
 Admin media permanent delete must check references first. If unused, delete the Supabase Storage object first, then hard-delete the `cms_media` row. If object deletion fails, keep the media row and surface the error.
 
+Website provisioning delete pattern:
+
+- `setup-provisioning` verifies the website is inactive;
+- the server deletes Storage objects under `websites/{website_id}/`;
+- the server calls the `cms_admin_delete_website` RPC for atomic child-row and website deletion;
+- `cms_global_quiz` is never included because it is global;
+- failures are surfaced as retryable errors and never silently treated as success.
+
 Media Library UI rule:
 
 - Keep media search automatic from input changes; no submit button is required.
