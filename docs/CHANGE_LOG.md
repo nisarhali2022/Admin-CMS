@@ -46,6 +46,7 @@ Note: older entries below record the path taken during implementation. Any older
 - Pages block duplicate titles within the selected website across custom pages and fixed template content.
 - Posts block duplicate titles and duplicate category-based URLs within the selected website.
 - Authors now select images through a `Select author image` dialog with a scrollable media list, and table Edit fills the top `Edit Author` form instead of opening inline table inputs.
+- Authors table no longer shows the Bio column; Bio remains available in the add/edit form.
 - Posts now mirror the current Pages list behavior: automatic search, `Add Post` in the toolbar row, bulk permanent delete, `Meta title` before `Author`, and row `View` before `Delete`.
 - The Posts Feature Image selector now uses the same `Select feature image` dialog pattern as Pages, with a scrollable media list capped around 500px.
 - Posts continue to use the shared Tiptap editor, so the latest Add Media popup, Small/Medium/Large image presets, image resizing, and fixed Code mode apply to both Pages and Posts.

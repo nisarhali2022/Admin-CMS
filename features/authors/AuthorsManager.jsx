@@ -498,11 +498,10 @@ export default function AuthorsManager({ websiteId }) {
           </div>
 
           <div className="overflow-x-auto border border-[#c3c4c7] bg-white">
-            <table className="w-full min-w-[58rem] text-left text-[#1f2330]">
+            <table className="w-full min-w-[50rem] text-left text-[#1f2330]">
               <thead>
                 <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
                   <th className="px-3 py-2 font-medium">Author</th>
-                  <th className="px-3 py-2 font-medium">Bio</th>
                   <th className="px-3 py-2 font-medium">Slug</th>
                   <th className="w-24 px-3 py-2 font-medium">Status</th>
                   <th className="w-20 px-3 py-2 text-right font-medium">Count</th>
@@ -512,7 +511,6 @@ export default function AuthorsManager({ websiteId }) {
               <tbody>
                 {filteredAuthors.map((author) => {
                   const avatarImage = getAvatarImage(author)
-                  const bio = author.bio || '-'
                   const count = countsFailed ? '-' : postCounts[author.id] || 0
 
                   return (
@@ -531,7 +529,6 @@ export default function AuthorsManager({ websiteId }) {
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-[#1f2330]">{bio}</td>
                       <td className="px-3 py-3 text-[#1f2330]">{author.slug}</td>
                       <td className="px-3 py-3">
                         <span
@@ -569,7 +566,7 @@ export default function AuthorsManager({ websiteId }) {
                 })}
                 {filteredAuthors.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-[#596171]">
+                    <td colSpan={5} className="px-3 py-8 text-center text-[#596171]">
                       No authors found.
                     </td>
                   </tr>
