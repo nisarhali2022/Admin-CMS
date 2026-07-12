@@ -71,3 +71,33 @@ test('cms media bucket migration creates the public Supabase Storage bucket', as
   assert.match(sql, /true/)
   assert.match(sql, /image\/webp/)
 })
+
+test('media filename migration accepts readable and legacy UUID paths', async () => {
+  const sql = await readMigration('media_storage_filename_paths')
+  assert.match(sql, /drop constraint if exists cms_media_storage_path_format/)
+  assert.match(sql, /A-Za-z0-9\]\[A-Za-z0-9_-\]\*\\\.webp/)
+  assert.match(sql, /notify pgrst, 'reload schema'/)
+
+  const pathPattern = /^websites\/[0-9a-f-]{36}\/media\/[0-9]{4}\/[0-9]{2}\/[A-Za-z0-9][A-Za-z0-9_-]*\.webp$/
+  const websiteId = '11111111-1111-4111-8111-111111111111'
+  const prefix = `websites/${websiteId}/media/2026/07/`
+
+  for (const filename of [
+    'photo.webp',
+    'BT-and-Verizon-Merge.webp',
+    'my_image-2.webp',
+    `${websiteId}.webp`,
+  ]) {
+    assert.match(`${prefix}${filename}`, pathPattern)
+  }
+
+  for (const filename of [
+    'photo.jpg',
+    '../photo.webp',
+    'my image.webp',
+    'photo!.webp',
+  ]) {
+    assert.doesNotMatch(`${prefix}${filename}`, pathPattern)
+  }
+  assert.doesNotMatch(`websites/${websiteId}/media/photo.webp`, pathPattern)
+})

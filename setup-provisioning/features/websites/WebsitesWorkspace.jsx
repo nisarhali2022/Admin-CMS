@@ -1,11 +1,42 @@
 'use client'
 
+import { useState } from 'react'
 import { Globe2 } from 'lucide-react'
 import { AdminPanel, StatusBadge } from '@/components/admin/admin-ui'
+import { Button } from '@/components/ui/button'
 import ImportManager from '@/features/import/ImportManager'
 import WebsiteSectionShell from '@/features/websites/WebsiteSectionShell'
 
 export default function WebsitesWorkspace() {
+  const [migratingMedia, setMigratingMedia] = useState(false)
+  const [mediaMigrationReport, setMediaMigrationReport] = useState(null)
+
+  async function migrateMediaFilenames(websiteId) {
+    if (!window.confirm('Migrate existing media to readable WordPress-style filenames?')) return
+
+    setMigratingMedia(true)
+    setMediaMigrationReport(null)
+
+    try {
+      const response = await fetch(
+        `/api/cms/media/migrate-filenames?websiteId=${websiteId}`,
+        { method: 'POST' },
+      )
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setMediaMigrationReport({ error: result.error || 'Unable to migrate media filenames.' })
+        return
+      }
+
+      setMediaMigrationReport(result)
+    } catch {
+      setMediaMigrationReport({ error: 'Unable to reach the setup server.' })
+    } finally {
+      setMigratingMedia(false)
+    }
+  }
+
   return (
     <WebsiteSectionShell
       sectionLabel="Websites"
@@ -35,6 +66,30 @@ export default function WebsitesWorkspace() {
               </div>
               <StatusBadge active={selectedWebsite.isActive} />
             </div>
+          </AdminPanel>
+
+          <AdminPanel
+            title="Media filenames"
+            description="Convert existing UUID media URLs to readable WordPress-style filenames. Media IDs and content references stay unchanged."
+          >
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => migrateMediaFilenames(selectedWebsite.id)}
+              disabled={migratingMedia}
+            >
+              {migratingMedia ? 'Migrating media...' : 'Migrate media filenames'}
+            </Button>
+            {mediaMigrationReport?.error ? (
+              <p className="mt-3 text-sm text-destructive">{mediaMigrationReport.error}</p>
+            ) : null}
+            {mediaMigrationReport && !mediaMigrationReport.error ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Migrated {mediaMigrationReport.migrated} of {mediaMigrationReport.total};{' '}
+                skipped {mediaMigrationReport.skipped}, failed {mediaMigrationReport.failed},
+                renamed for collisions {mediaMigrationReport.collisionRenamed}.
+              </p>
+            ) : null}
           </AdminPanel>
 
           <ImportManager website={selectedWebsite} />

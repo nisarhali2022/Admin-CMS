@@ -213,7 +213,7 @@ cms-media
 Object path pattern:
 
 ```text
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
+websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp
 ```
 
 Upload flow:
@@ -230,7 +230,7 @@ Important constraints:
 - Public websites never upload, delete, or list storage objects.
 - Admin browser never receives service-role credentials.
 - Existing public image objects are treated as immutable.
-- Replacing an image creates a new UUID storage path.
+- Replacing an image creates a new readable filename path with a numeric collision suffix.
 - Permanent delete checks references first.
 - If storage delete fails, the media metadata row is kept and an admin error is shown.
 
@@ -321,14 +321,23 @@ Behavior:
 - Creates/updates `cms_import_jobs`.
 - Fetches WordPress posts, pages, categories, users, and media.
 - Imports authors before posts when possible.
+- Normalizes WordPress user descriptions into website-scoped author bios, stripping markup and limiting the value to 2,000 characters.
 - Creates or reuses fallback author `Imported Author` if author data is missing.
 - Never imports posts without `author_id`.
 - Creates or reuses fallback category `Uncategorized` if category data is missing.
 - Maps known WordPress pages to template content.
 - Imports unmatched WordPress pages into `cms_pages` when safe, otherwise reports them as skipped.
 - Converts basic HTML to template content and either `body_html` or compatible fallback body blocks for posts.
+- Uses an import-only mapper for SEO and image fields: missing SEO values and featured images remain `null`, and present meta descriptions are capped at 300 characters.
+- Uses Yoast-first SEO mapping: Focus keyphrase comes from `cms_yoast.focusKeyphrase`; SEO title uses `cms_yoast.seoTitle`, then `yoast_head_json.title`, then the WordPress title; meta description uses `yoast_head_json.description`, then `cms_yoast.metaDescription`, then the WordPress excerpt.
+- The setup project includes `wordpress/cms-yoast-rest-bridge.php`, which exposes the Yoast raw fields needed for Focus keyphrase import.
+- Does not use the normal manual Page/Post required-field validators for imported SEO or featured-image fields; service-level ownership, duplicate, author, category, and inline-media checks still apply.
+- Fetches WordPress resource collections with automatic 100-item pagination, using response totals when available and short-batch termination otherwise.
+- Keeps the first successful REST route format for subsequent pages and enforces a maximum page safety limit.
 - Copies images into Supabase Storage.
 - Rewrites old WordPress image URLs to Supabase Storage public URLs where possible.
+- Preserves safe HTML in imported Posts and custom Pages, including links, tables, formatting, and supported embeds.
+- Rewrites links for the WordPress source or selected website domain to relative CMS paths; external links stay unchanged.
 - Clears temporary credentials after import success/failure.
 
 Reset behavior:
@@ -340,7 +349,7 @@ Reset behavior:
 Known limits:
 
 - Import is synchronous.
-- First 100 records per resource are handled in v1.
+- Resource collections are fetched automatically in 100-record pages until all available records are imported.
 - Complex WordPress builders, shortcodes, galleries, tables, embeds, and plugin SEO metadata may need future support.
 
 ## Public Website Integration

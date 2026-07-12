@@ -66,8 +66,10 @@ cms-media
 Storage path format:
 
 ```text
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
+websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp
 ```
+
+Apply the setup-provisioning migration `202607120001_media_storage_filename_paths.sql` before using readable filenames in an existing database. It updates only the storage-path check constraint and keeps legacy UUID paths valid.
 
 Bucket configuration:
 
@@ -87,7 +89,7 @@ Rules:
 - Public websites do not upload, delete, or list Supabase Storage objects.
 - Upload public WebP images with Supabase Storage `cacheControl: '31536000'`.
 - Treat Supabase Storage image objects as immutable public assets.
-- If image content changes, upload a new UUID storage path and update CMS references instead of overwriting an existing public URL.
+- If image content changes, upload a new readable filename path with a numeric collision suffix and update CMS references instead of overwriting an existing public URL.
 
 ## Vercel Setup
 
@@ -105,6 +107,10 @@ Setup/provisioning app:
 - Owns Supabase migrations, website creation/edit/deactivation, default setup rows, and WordPress import.
 - Uses the same Supabase service-role environment variables as the main CMS.
 - Create the `cms-media` Supabase Storage bucket before testing media uploads.
+
+### WordPress Yoast Bridge
+
+Before importing SEO fields, install `setup-provisioning/wordpress/cms-yoast-rest-bridge.php` as a small plugin on the WordPress source website. It exposes `cms_yoast.focusKeyphrase`, `cms_yoast.seoTitle`, and `cms_yoast.metaDescription` for published `posts` and `pages`. Yoast's standard `yoast_head_json.title` and `yoast_head_json.description` fields are used alongside the bridge values when available.
 
 Public websites:
 

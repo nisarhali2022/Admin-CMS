@@ -454,7 +454,7 @@ Media rules:
 - Supabase Storage paths must use this pattern:
 
 ```text
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
+websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp
 ```
 
 - Use `website_id` in Supabase Storage paths because it does not change when website slugs or domains change.
@@ -462,7 +462,7 @@ websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
 - Original filenames are stored only as metadata and are not trusted as unique object names.
 - Uploads are converted/compressed to WebP.
 - Public WebP uploads use Supabase Storage `cacheControl: '31536000'`.
-- Image objects are immutable; replacing image content creates a new UUID storage path and updates CMS references instead of overwriting an existing public URL.
+- Image objects are immutable; replacing image content creates a new readable filename path with a numeric collision suffix and updates CMS references instead of overwriting an existing public URL.
 - Imported WordPress images are copied to Supabase Storage.
 - Featured images and inline content images are copied.
 - Old WordPress image URLs are rewritten to Supabase Storage public URLs.
@@ -885,7 +885,7 @@ Required tests:
 - FAQ block schema generation.
 - Media upload and WebP optimization.
 - Supabase Storage metadata storage.
-- Supabase Storage path uses `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+- Supabase Storage path uses `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`.
 - Media picker only shows selected website media.
 - Cross-website media assignment is rejected.
 - Permanent media delete is blocked when media is still referenced.

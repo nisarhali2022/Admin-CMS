@@ -1033,7 +1033,136 @@ Use this structure for every completed milestone:
 - Caveats:
   - The migration must be applied in Supabase before the Delete action is used.
   - Storage cleanup happens before database cleanup; failed cleanup returns a retryable error.
+
+## Milestone 13 Correction: Import-Only Relaxed SEO And Image Requirements
+
+- Status: Complete
+- Date completed: 2026-07-11
+- Supersedes: the earlier `WordPress Import Required-Field Normalization` entry above for featured-image behavior.
+- Milestone goal: Import source content without applying manual CMS requirements that are not present in WordPress data.
+- What was implemented:
+  - WordPress import now uses direct import payload mapping for Pages, Posts, and Template Content instead of the strict manual-save validators for SEO and featured-image fields.
+  - Missing `seoTitle`, `metaDescription`, and featured images remain `null` during import.
+  - Present imported meta descriptions are decoded and truncated to 300 characters.
+  - The unrelated fallback-image behavior was removed.
+  - Normal manual Page/Post saves remain strict.
+  - Author and category fallbacks remain `Imported Author` and `Uncategorized`.
+  - WordPress collections now paginate automatically in 100-item batches during one import job.
+  - The first successful REST route is reused for later pages, with response-header and short-batch termination plus a safety limit.
+- Files/modules changed:
+  - `packages/cms-core/cms/services/import.js`
+  - `test/milestone10-wordpress-import.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/API_CONTRACTS.md`
+  - `docs/USER_FLOWS.md`
+  - `docs/IMPLEMENTATION_DETAILS.md`
+- Security and architecture checks:
+  - Service-level website ownership, duplicate, author, category, and inline-media reference checks remain active.
+  - WordPress credentials remain temporary and server-only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `git diff --check -- packages test docs setup-provisioning`
+- Follow-up items:
+  - Reset the previous partial import and run a fresh import for the inactive website after pagination changes.
+- Readiness for next milestone: Ready.
 - Readiness: Ready for manual inactive-website deletion testing after applying the migration.
+
+## Milestone 13 Correction: WordPress-Style Media Filenames
+
+- Status: Complete
+- Date completed: 2026-07-12
+- Milestone goal: Make Supabase Storage URLs readable like WordPress while preserving immutable objects and website isolation.
+- What was implemented:
+  - Future uploads and WordPress imports use sanitized original filenames with `.webp` output and numeric collision suffixes.
+  - Added the corrective storage constraint migration required by existing databases before readable filenames can be saved.
+  - Added a setup-only migration service and protected route for existing UUID-named media.
+  - Migration copies objects, updates only `storage_path` and `public_url`, triggers website revalidation, and removes old objects after successful metadata updates.
+  - Failed migrations keep the original row/object; repeated runs skip already-readable paths.
+- Files/modules changed:
+  - `packages/cms-core/cms/services/media.js`
+  - `packages/cms-core/cms/services/mediaFilenameMigration.js`
+  - `packages/cms-core/storage/supabaseStorage.js`
+  - `setup-provisioning/app/api/cms/media/migrate-filenames/route.js`
+  - `setup-provisioning/features/websites/WebsitesWorkspace.jsx`
+  - docs and tests
+- Security and architecture checks:
+  - Storage migration is admin-authenticated and server-only.
+  - Media IDs and content references remain unchanged.
+  - Service-role credentials never reach the browser.
+- Follow-up items:
+  - Apply `202607120001_media_storage_filename_paths.sql` to existing Supabase projects before uploading new media.
+  - Run the migration once from the setup workspace and review its report.
+- Readiness for next milestone: Ready.
+
+## WordPress Import REST Diagnostics Correction
+
+## Milestone 13 Correction: Yoast SEO Import Fields
+
+- Status: Complete
+- Date completed: 2026-07-13
+- Milestone goal: Preserve the WordPress source site's Yoast Focus keyphrase, SEO title, and meta description during migration.
+- What was implemented:
+  - Added `setup-provisioning/wordpress/cms-yoast-rest-bridge.php` for the Yoast raw fields not reliably exposed by the normal REST response.
+  - Added Yoast-first normalization for Focus keyphrase, SEO title, and meta description across fixed pages, custom pages, and posts.
+  - Added safe fallback precedence to generated `yoast_head_json` values and then WordPress title/excerpt values.
+  - Added import report SEO source counters and a warning when the bridge is unavailable.
+- Security and architecture checks:
+  - The bridge exposes only public SEO metadata and no credentials.
+  - Existing manual CMS validation and public response contracts remain unchanged.
+- Follow-up items:
+  - Install the bridge on the WordPress source, reset the previous import, and import again.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: WordPress Author Bios
+
+- Status: Complete
+- Date completed: 2026-07-13
+- Milestone goal: Preserve WordPress author profile descriptions in `cms_authors.bio`.
+- What was implemented:
+  - Normalized WordPress user descriptions by removing markup, decoding entities, and limiting bios to 2,000 characters.
+  - Passed normalized bios into imported website-scoped authors while keeping fallback authors empty.
+- Tests and validation:
+  - Added normalization and end-to-end author insert coverage.
+- Follow-up items:
+  - Reset and rerun the inactive website import so existing author rows receive bios.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: Imported Content Links
+
+- Status: Complete
+- Date completed: 2026-07-13
+- Milestone goal: Preserve clickable imported links instead of converting WordPress content to plain text.
+- What was implemented:
+  - Added server-side safe HTML sanitization for imported Posts and custom Pages.
+  - Stored rich Post content in `body_html` while preserving legacy body blocks as fallback.
+  - Rewrote internal source/website links to relative CMS paths and retained external links.
+  - Rewrote imported inline image URLs to Supabase URLs with `data-media-id` references.
+- Tests and validation:
+  - Added coverage for links, unsafe URLs, query/hash preservation, custom Pages, and media mapping.
+- Follow-up items:
+  - Reset and rerun the inactive website import to update existing imported content.
+- Readiness for next milestone: Ready.
+
+## WordPress Import REST Diagnostics Correction
+
+- Status: Complete
+- Date completed: 2026-07-11
+- Goal: Prevent WordPress imports from falsely succeeding with zero imported records.
+- Implemented:
+  - Added retry support for WordPress `?rest_route=/wp/v2/...` endpoints.
+  - Added response/status/non-JSON diagnostics.
+  - Main posts/pages/media endpoint failures now fail the import instead of becoming empty arrays.
+  - Partial endpoint failures are recorded in the import report.
+- Validation: `npm.cmd test` passed with 77 tests; `npm.cmd run lint` passed.
+- Readiness: Ready to retry the `teleanswertoday.pk` import after restarting setup-provisioning.
+
+## Import Progress Refresh Correction
+
+- Status: Complete
+- Date completed: 2026-07-11
+- Correction: The Website Workspace progress card now renders only for queued/running imports or the current request. Completed and failed jobs remain in the report history without showing a stale progress bar after refresh.
+- Validation: Static regression coverage added in `milestone13-final-hardening.test.js`.
 
 ## Milestone 13 Correction: WordPress-Style Category Page
 
@@ -2534,4 +2663,37 @@ Use this structure for every completed milestone:
   - Remaining storage is an estimate from `SUPABASE_STORAGE_QUOTA_BYTES`; official usage should still be checked in Supabase Organization -> Usage.
 - Follow-up items:
   - Configure `SUPABASE_STORAGE_QUOTA_BYTES` in each deployed admin CMS environment.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 Correction: WordPress Import Required-Field Normalization
+
+- Status: Complete
+- Date completed: 2026-07-11
+- Milestone goal: Prevent valid WordPress content from being skipped solely because imported SEO text or featured-image data does not match the CMS editor contract.
+- What was implemented:
+  - WordPress import decodes and truncates imported meta descriptions to 300 characters.
+  - WordPress import supplies a deterministic imported-media fallback when a published page or post has no featured image.
+  - Normal admin saves remain strict: Feature Image, SEO title, Meta description, and Author are still required.
+  - The earlier null-credentials failure was also fixed so public WordPress REST endpoints can be imported without application-password credentials.
+- Files/modules changed:
+  - `packages/cms-core/cms/services/import.js`
+  - `packages/cms-core/cms/services/wordpress.js`
+  - `test/milestone10-wordpress-import.test.js`
+  - `docs/CHANGE_LOG.md`
+  - `docs/MILESTONE_REVIEWS.md`
+- Inputs/outputs added or changed:
+  - Import reports now show fewer validation-only skips; genuinely unavailable records remain reported.
+  - No database schema or public API shape changed.
+- Security and architecture checks:
+  - Fallback media is scoped to the importing website.
+  - Imported values still pass the existing validators before persistence.
+  - WordPress credentials remain temporary and server-only.
+- Tests and validation run:
+  - `npm.cmd test`
+  - `npm.cmd run lint`
+  - `git diff --check -- packages test docs setup-provisioning`
+- Known caveats:
+  - A fallback image is used only when WordPress provides no usable featured image; failed image downloads remain visible in the import report.
+- Follow-up items:
+  - Re-run the import reset/retry flow for the affected inactive website, then start a fresh import to replace the earlier partial result.
 - Readiness for next milestone: Ready.

@@ -20,6 +20,37 @@ This file records the major product, architecture, schema, UI, and documentation
 - New post saves require both Author and Category. WordPress import falls back to `Imported Author` and `Uncategorized` when source data is missing.
 - Active CMS behavior is publish-only and permanent-delete only; draft, trash, restore, move-to-trash, and unpublish workflows are removed from the active product.
 
+## WordPress Import-Only Field Rules
+
+- WordPress import no longer requires SEO title, meta description, or featured image fields.
+- Missing imported images remain empty instead of receiving an unrelated fallback image.
+- Imported meta descriptions are decoded and capped at 300 characters when present; missing descriptions remain `null`.
+- Normal manual Page and Post saves remain strict and keep their existing required-field validation.
+- WordPress REST collections now paginate automatically in 100-item batches, so one import action fetches all posts, pages, categories, users, and media records.
+- The importer uses `X-WP-TotalPages` when available and otherwise stops after a short final batch, with a bounded safety limit for malformed endpoints.
+
+## WordPress-Style Media Filenames
+
+- New uploads and WordPress imports now store readable sanitized filenames as optimized `.webp` object names.
+- Same-month filename collisions receive numeric suffixes such as `image-2.webp`; existing objects are never overwritten.
+- Added a setup-only migration action for existing UUID media objects, preserving media IDs and content references while updating Storage paths and public URLs.
+- Added the corrective `202607120001_media_storage_filename_paths.sql` migration so existing Supabase projects accept both legacy UUID filenames and new readable filenames.
+
+## Yoast SEO Import
+
+- Added the WordPress CMS Yoast REST Bridge for Focus keyphrase, SEO title, and raw meta description values.
+- WordPress imports now prefer Yoast SEO metadata and report the source used for imported SEO fields.
+- Missing bridge data safely falls back to generated Yoast head metadata, then WordPress title/excerpt values.
+
+## WordPress Author Bios
+
+- WordPress user descriptions are now imported into website-scoped author bios after safe HTML cleanup and 2,000-character truncation.
+
+## Imported Content Links
+
+- WordPress imports now preserve safe rich HTML in Posts and custom Pages instead of reducing links to plain text.
+- Internal WordPress/source-domain links become relative CMS paths, external links remain intact, and imported inline images use Supabase Storage URLs with media IDs.
+
 ## Documentation Alignment: Latest Post And Import Contracts
 
 - Normalized docs around Tiptap `body_html` as the preferred post body and `body_blocks` as legacy/import fallback.
@@ -78,6 +109,13 @@ Note: older entries below record the path taken during implementation. Any older
   - WordPress import jobs
 - Quiz is intentionally excluded from website scoping.
 - The selected website is preserved across website-scoped admin pages through `websiteId`.
+
+## WordPress Import Requirement Normalization
+
+- Kept strict required SEO and feature-image validation for normal Pages and Posts saves.
+- Updated WordPress import to trim decoded meta descriptions to the CMS 300-character limit instead of skipping otherwise valid content.
+- Updated import to use a deterministic successfully imported media fallback when a WordPress page or post has no featured image, so imported content still satisfies the required feature-image contract.
+- The import report continues to list genuinely unavailable or failed records in `skippedItems`.
 
 ## Quiz Changes
 
@@ -152,7 +190,7 @@ Note: older entries below record the path taken during implementation. Any older
 - Supabase Storage is now the only v1 media backend.
 - Recommended bucket name is `cms-media`.
 - Media files are stored under website-scoped paths:
-  - `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`
+  - `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`
 - Public images are stored as WebP.
 - `cms_media` stores:
   - `storage_path`
@@ -314,6 +352,8 @@ Note: older entries below record the path taken during implementation. Any older
 - Post View/permalink and sitemap URLs now match the live WordPress-style structure `/{categorySlug}/{postSlug}` instead of `/blog/{postSlug}`. `/blog` remains available as an archive/list page path.
 - Add Post validation now reports clear required-field messages for Title, Author, and Category instead of the generic media ID error. Category is required for new saves because it is part of the public post URL.
 - WordPress import now creates or selects an `Uncategorized` fallback category for imported posts that have no WordPress category.
+- WordPress import now retries the alternate `?rest_route=/wp/v2/...` endpoint and reports REST/API failures instead of marking an all-zero import as successful.
+- Completed or failed import jobs no longer render a stale progress bar after the Website Workspace is refreshed; their detailed report remains available below.
 - Setup Website Workspace now supports permanent deletion of inactive websites after confirmation. The flow deletes website-scoped database records and `websites/{website_id}/` Supabase Storage objects while preserving the global quiz.
 
 ## Validation Completed

@@ -295,12 +295,13 @@ Stores media metadata. File bytes live in Supabase Storage.
 Supabase Storage path format:
 
 ```text
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
+websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp
 ```
 
 Constraints and indexes:
 
 - unique `storage_path`
+- `storage_path` must use `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`, where the filename contains only letters, numbers, hyphens, or underscores; legacy UUID filenames remain valid.
 - index `(website_id, source)`
 
 Behavior:
@@ -309,7 +310,7 @@ Behavior:
 - No shared/global media library.
 - Public WebP uploads use Supabase Storage `cacheControl: '31536000'`.
 - V1 stores one optimized public WebP object per media row; thumbnail/object variants are deferred unless matching metadata fields are added later.
-- Media objects are immutable public assets; image replacement creates a new UUID storage path and updates CMS references.
+- Media objects are immutable public assets; image replacement creates a new readable filename path with a numeric collision suffix and updates CMS references.
 - Do not overwrite an existing public image URL.
 - Delete checks references first.
 - If references exist, delete is blocked.

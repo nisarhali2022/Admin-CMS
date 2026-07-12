@@ -96,12 +96,30 @@ Rules:
 7. Setup app imports known pages into template content.
 8. Setup app imports posts into the preferred `body_html` format when practical, or keeps compatible `body_blocks` fallback data when needed.
 9. Setup app imports categories and authors where available.
-10. Setup app copies images to Supabase Storage.
-11. Setup app rewrites inline image URLs.
-12. Setup app tracks progress in `cms_import_jobs.report.progress`.
-13. Admin sees the progress bar update while import is running.
-14. Setup app deletes any temporary WordPress credentials after success or failure.
-15. Setup app shows import report.
+10. Setup app imports each WordPress user's description into the author bio field after safe cleanup.
+11. Setup app copies images to Supabase Storage.
+12. Setup app rewrites inline image URLs.
+13. Setup app keeps safe Post/custom-Page HTML, including links, and converts internal WordPress links to relative CMS paths.
+14. Setup app tracks progress in `cms_import_jobs.report.progress`.
+15. Admin sees the progress bar update while import is running.
+16. Setup app deletes any temporary WordPress credentials after success or failure.
+17. Setup app shows import report.
+
+Import field rules:
+
+- install the CMS Yoast REST Bridge on the WordPress source before importing SEO fields
+- import Focus keyphrase from `cms_yoast.focusKeyphrase`
+- import SEO title from `cms_yoast.seoTitle`, then `yoast_head_json.title`, then the WordPress title
+- import meta description from `yoast_head_json.description`, then `cms_yoast.metaDescription`, then the WordPress excerpt
+- missing SEO title, meta description, and featured image do not block import
+- missing images remain empty
+- present meta descriptions are decoded and limited to 300 characters
+- normal manual CMS saves keep their stricter required-field rules
+- imported posts still receive `Imported Author` and `Uncategorized` fallbacks when source data is unavailable
+- pagination is automatic inside one import job; the admin does not manually start a separate import for each batch
+- each resource type is fetched in batches of 100 until all pages are complete
+- reset the previous partial import before retrying after pagination or import-mapping changes
+- reset and rerun the import after installing the Yoast bridge so existing records receive the Yoast values
 
 Blocked states:
 

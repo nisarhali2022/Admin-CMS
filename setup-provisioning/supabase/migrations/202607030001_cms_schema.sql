@@ -84,7 +84,7 @@ create table public.cms_media (
   deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint cms_media_storage_path_format check (storage_path ~ '^websites/[0-9a-f-]{36}/media/[0-9]{4}/[0-9]{2}/[0-9a-f-]{36}\.webp$'),
+  constraint cms_media_storage_path_format check (storage_path ~ '^websites/[0-9a-f-]{36}/media/[0-9]{4}/[0-9]{2}/[A-Za-z0-9][A-Za-z0-9_-]*\.webp$'),
   constraint cms_media_source_check check (source in ('upload', 'wordpress_import')),
   constraint cms_media_dimensions_positive check ((width is null or width > 0) and (height is null or height > 0)),
   constraint cms_media_file_size_positive check (file_size is null or file_size > 0),

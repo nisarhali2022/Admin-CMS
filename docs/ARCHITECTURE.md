@@ -180,9 +180,9 @@ sequenceDiagram
 
 Rules:
 
-- Admin upload stores optimized WebP files in Supabase Storage under `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+- Admin upload stores optimized WebP files in Supabase Storage under `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`.
 - Uploaded public WebP images use Supabase Storage `cacheControl: '31536000'`.
-- Supabase Storage image objects are immutable; replacing image content creates a new UUID storage path and updates CMS references.
+- Supabase Storage image objects are immutable; replacing image content creates a new readable filename path with a numeric collision suffix when needed and updates CMS references.
 - `cms_media` stores the website-scoped metadata, public URL, alt text, caption, dimensions, and Supabase Storage path.
 - Template/post JSON stores `mediaId` as the stable internal reference.
 - Public RPCs resolve `mediaId` references for the resolved `website_id` before returning data.

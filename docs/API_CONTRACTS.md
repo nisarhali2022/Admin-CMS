@@ -250,9 +250,9 @@ Behavior:
 
 - validate file type and size
 - convert/compress to WebP with server-side `sharp`
-- upload to `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`
+- upload to `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`
 - upload with Supabase Storage `cacheControl: '31536000'`
-- treat uploaded image objects as immutable; replacing image content creates a new UUID storage path and updates CMS references
+- treat uploaded image objects as immutable; replacing image content creates a new readable filename path with a numeric collision suffix and updates CMS references
 - save metadata row
 - media picker returns only selected website media
 - delete checks usage
@@ -393,21 +393,34 @@ Behavior:
 - write progress to `report.progress` with `phase`, `label`, `current`, `total`, and `percent`
 - support public WordPress REST import without credentials when the source site allows it
 - support optional WordPress username and application password for protected REST data
+- fetch each WordPress resource type automatically across `page`/`per_page=100` batches until all records are received
+- use `X-WP-TotalPages` when supplied and fall back to short-batch termination when pagination headers are unavailable
+- select the first successful REST endpoint format for the remaining pages of that resource type
 - never require OAuth client ID/client secret for v1 WordPress import
 - never store WordPress import credentials in `.env`
 - if a background import must persist credentials temporarily, encrypt them with `CMS_ENCRYPTION_KEY` and delete them after success or failure
 - never include WordPress credentials in import reports, logs, public responses, or error messages
 - import published posts, known page templates, custom pages, categories, authors, and images
+- prefer Yoast SEO values for imported Focus keyphrase, SEO title, and meta description when the WordPress REST response contains `cms_yoast` and `yoast_head_json`
+- use precedence `cms_yoast.focusKeyphrase -> null`, `cms_yoast.seoTitle -> yoast_head_json.title -> WordPress title`, and `yoast_head_json.description -> cms_yoast.metaDescription -> WordPress excerpt`
+- use import-only relaxed SEO/image mapping: missing `seoTitle`, `metaDescription`, and feature images are stored as `null`
+- truncate a present imported meta description to 300 characters after decoding it
+- do not apply the normal manual-save requirement for SEO fields or featured images during import
 - create/select website-scoped authors for posts
+- import WordPress user `description` into author `bio` after HTML/entity cleanup and a 2,000-character limit
 - use fallback author `Imported Author` when WordPress author data is unavailable
 - never import a post without `author_id`
 - create/select fallback category `Uncategorized` when WordPress post category data is unavailable
 - copy images to Supabase Storage
 - rewrite old image URLs
-- convert post content to `bodyHtml` where practical, with compatible `bodyBlocks` fallback when needed
+- preserve safe imported HTML in Post `bodyHtml` and custom Page `bodyText`
+- rewrite internal WordPress/source-domain links to relative CMS paths while preserving external links
+- rewrite imported inline image URLs to Supabase Storage URLs with `data-media-id`
+- keep compatible `bodyBlocks` as fallback for imported posts
 - import WordPress pages that do not map to known fixed templates as custom pages
 - record unmatched/skipped pages and skipped items in report
 - failed reset clears only the inactive website's scoped rows and Supabase Storage objects
+- include `seoSources`, `yoastBridgeDetected`, and a warning when the Yoast REST bridge was not available
 
 ## Admin Global Quiz API
 

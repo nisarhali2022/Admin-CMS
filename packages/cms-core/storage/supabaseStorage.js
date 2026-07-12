@@ -74,7 +74,7 @@ function joinStoragePath(prefix, name) {
   return prefix ? `${prefix}/${name}` : name
 }
 
-async function listMediaObjectsUnderPrefix(prefix) {
+export async function listMediaObjectsUnderPrefix(prefix) {
   const queue = [prefix]
   const files = []
 
@@ -155,6 +155,29 @@ export function getPublicMediaUrl(storagePath) {
   return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${CMS_MEDIA_BUCKET}/${storagePath}`
 }
 
+export async function downloadMediaObject(storagePath) {
+  assertValidStoragePath(storagePath)
+
+  const response = await fetch(
+    `${getStorageBaseUrl()}/object/${CMS_MEDIA_BUCKET}/${storagePath}`,
+    {
+      method: 'GET',
+      headers: getStorageHeaders(),
+      cache: 'no-store',
+    }
+  )
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => '')
+    throw new StorageError('Unable to download media from Supabase Storage.', {
+      status: response.status,
+      details,
+    })
+  }
+
+  return Buffer.from(await response.arrayBuffer())
+}
+
 export async function uploadPublicMediaObject({ storagePath, bytes }) {
   assertValidStoragePath(storagePath)
 
@@ -165,7 +188,6 @@ export async function uploadPublicMediaObject({ storagePath, bytes }) {
       headers: getStorageHeaders({
         'Content-Type': 'image/webp',
         'Cache-Control': `public, max-age=${MEDIA_CACHE_CONTROL_SECONDS}, immutable`,
-        'cache-control': MEDIA_CACHE_CONTROL_SECONDS,
         'x-upsert': 'false',
       }),
       body: bytes,

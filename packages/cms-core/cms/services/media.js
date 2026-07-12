@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { CmsValidationError } from '../http/errors.js'
 import {
   createMedia,
@@ -10,14 +9,86 @@ import { getWebsite } from '../repositories/websites.js'
 import { optimizeImageToWebp } from '../../storage/imageOptimizer.js'
 import {
   deleteMediaObject,
-  getPublicMediaUrl,
+  listMediaObjectsUnderPrefix,
   uploadPublicMediaObject,
 } from '../../storage/supabaseStorage.js'
 
-export function getMediaStoragePath(websiteId, now = new Date()) {
+function getMediaStoragePrefix(websiteId, now = new Date()) {
   const year = String(now.getUTCFullYear())
   const month = String(now.getUTCMonth() + 1).padStart(2, '0')
-  return `websites/${websiteId}/media/${year}/${month}/${randomUUID()}.webp`
+  return `websites/${websiteId}/media/${year}/${month}`
+}
+
+export function getReadableMediaFilename(filename) {
+  const rawName = typeof filename === 'string' ? filename.trim() : ''
+  const basename = rawName.split(/[\\/]/).pop() || 'upload'
+  const withoutExtension = basename.replace(/\.[^.]+$/, '')
+  const safeBase = withoutExtension
+    .replace(/[^A-Za-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-_]+|[-_]+$/g, '')
+
+  return `${safeBase || 'upload'}.webp`
+}
+
+export function getMediaStoragePath(
+  websiteId,
+  originalFilename = 'upload',
+  now = new Date(),
+  usedPaths = new Set()
+) {
+  const prefix = getMediaStoragePrefix(websiteId, now)
+  const readableFilename = getReadableMediaFilename(originalFilename)
+  const extensionIndex = readableFilename.lastIndexOf('.webp')
+  const base = readableFilename.slice(0, extensionIndex)
+  let candidate = readableFilename
+  let suffix = 2
+
+  while (usedPaths.has(`${prefix}/${candidate}`)) {
+    candidate = `${base}-${suffix}.webp`
+    suffix += 1
+  }
+
+  return `${prefix}/${candidate}`
+}
+
+export function isReadableMediaStoragePath(storagePath) {
+  const filename = String(storagePath || '').split('/').pop() || ''
+  return Boolean(filename) && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.webp$/i.test(filename)
+}
+
+function isStorageNameCollision(error) {
+  return (
+    [400, 409].includes(error?.status) &&
+    /already exists|duplicate|exists/i.test(String(error?.details || error?.message || ''))
+  )
+}
+
+async function uploadOptimizedMediaObject({ websiteId, originalFilename, bytes, now }) {
+  const prefix = getMediaStoragePrefix(websiteId, now)
+  const entries = await listMediaObjectsUnderPrefix(prefix)
+  const usedPaths = new Set(entries.map((entry) => entry.path))
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const storagePath = getMediaStoragePath(
+      websiteId,
+      originalFilename,
+      now,
+      usedPaths
+    )
+
+    try {
+      const uploaded = await uploadPublicMediaObject({ storagePath, bytes })
+      return { ...uploaded, storagePath }
+    } catch (error) {
+      if (!isStorageNameCollision(error)) throw error
+      usedPaths.add(storagePath)
+    }
+  }
+
+  throw new CmsValidationError('Unable to allocate a unique media filename.', {
+    code: 'MEDIA_FILENAME_COLLISION_LIMIT',
+  })
 }
 
 function getOriginalFilename(file) {
@@ -46,13 +117,12 @@ export async function uploadMedia({ websiteId, file, altText, caption }) {
 
   const originalFilename = getOriginalFilename(file)
   const optimized = await optimizeImageToWebp(file)
-  const storagePath = getMediaStoragePath(websiteId)
-  const publicUrl = getPublicMediaUrl(storagePath)
-
-  await uploadPublicMediaObject({
-    storagePath,
+  const uploaded = await uploadOptimizedMediaObject({
+    websiteId,
+    originalFilename,
     bytes: optimized.bytes,
   })
+  const { storagePath, publicUrl } = uploaded
 
   try {
     return await createMedia({
@@ -111,13 +181,12 @@ export async function uploadImportedMedia({
     arrayBuffer: async () => bytes,
   }
   const optimized = await optimizeImageToWebp(file)
-  const storagePath = getMediaStoragePath(websiteId)
-  const publicUrl = getPublicMediaUrl(storagePath)
-
-  await uploadPublicMediaObject({
-    storagePath,
+  const uploaded = await uploadOptimizedMediaObject({
+    websiteId,
+    originalFilename: filename,
     bytes: optimized.bytes,
   })
+  const { storagePath, publicUrl } = uploaded
 
   try {
     return await createMedia({

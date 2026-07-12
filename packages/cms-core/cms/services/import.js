@@ -16,9 +16,6 @@ import { createPostForWebsite } from './posts.js'
 import { createTemplateContentForWebsite } from './templateContent.js'
 import { validateAuthorPayload } from '../validators/authors.js'
 import { validateCategoryPayload } from '../validators/categories.js'
-import { validatePagePayload } from '../validators/pages.js'
-import { validatePostPayload } from '../validators/posts.js'
-import { validateTemplateContentPayload } from '../validators/templateContent.js'
 import { deleteMediaObject } from '../../storage/supabaseStorage.js'
 import { supabaseAdminRequest } from '../../supabase/adminRest.js'
 import {
@@ -26,7 +23,12 @@ import {
   getEmbeddedFeaturedMedia,
   getMediaSourceUrl,
   normalizeWordPressItem,
+  normalizeWordPressUser,
 } from './wordpress.js'
+import {
+  normalizeImportedMediaUrl,
+  sanitizeImportedContentHtml,
+} from './importHtml.js'
 
 const FALLBACK_AUTHOR_NAME = 'Imported Author'
 const FALLBACK_CATEGORY_NAME = 'Uncategorized'
@@ -50,6 +52,10 @@ function normalizeSlug(value, fallback = 'item') {
     .replace(/^-+|-+$/g, '') || fallback
 }
 
+function normalizeImportedPath(value, fallbackTitle) {
+  return `/${normalizeSlug(value || fallbackTitle, 'page')}`
+}
+
 function stripHtml(value) {
   return String(value || '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -67,6 +73,32 @@ function decodeHtml(value) {
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
+}
+
+function importedMetaDescription(value) {
+  const text = decodeHtml(value)
+  return text ? text.slice(0, 300).trim() : null
+}
+
+function importedFocusKeyphrase(value) {
+  const parts = String(value || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part.slice(0, 60))
+
+  return parts.length ? parts.join(', ').slice(0, 180).trim() : null
+}
+
+function recordSeoSources(report, item) {
+  report.seoSources.records += 1
+  if (item.yoastBridgeProvided) report.yoastBridgeDetected = true
+
+  for (const field of ['focusKeyphrase', 'seoTitle', 'metaDescription']) {
+    const source = item.seoSources?.[field] || 'missing'
+    report.seoSources[field][source] = (report.seoSources[field][source] || 0) + 1
+  }
 }
 
 function extractImageUrls(html) {
@@ -90,7 +122,9 @@ function htmlToBodyBlocks(html, mediaByUrl) {
 
   for (const part of parts) {
     const imageUrl = extractImageUrls(part)[0]
-    const media = imageUrl ? mediaByUrl.get(imageUrl) : null
+    const media = imageUrl
+      ? mediaByUrl.get(imageUrl) || mediaByUrl.get(normalizeImportedMediaUrl(imageUrl))
+      : null
     if (media) {
       blocks.push({
         type: 'image',
@@ -172,6 +206,14 @@ function createReport() {
     skippedItems: [],
     failedMedia: [],
     errors: [],
+    warnings: [],
+    yoastBridgeDetected: false,
+    seoSources: {
+      records: 0,
+      focusKeyphrase: { yoast: 0, missing: 0 },
+      seoTitle: { yoast: 0, yoast_head_json: 0, wordpress: 0, missing: 0 },
+      metaDescription: { yoast: 0, yoast_head_json: 0, wordpress: 0, missing: 0 },
+    },
   }
 }
 
@@ -210,7 +252,7 @@ async function assertInactiveWebsite(websiteId) {
   return website
 }
 
-async function getOrCreateAuthor(websiteId, name, map, report) {
+async function getOrCreateAuthor(websiteId, name, map, report, bio = null) {
   const authorName = name || FALLBACK_AUTHOR_NAME
   const slug = normalizeSlug(authorName, 'imported-author')
   if (map.has(slug)) return map.get(slug)
@@ -221,7 +263,7 @@ async function getOrCreateAuthor(websiteId, name, map, report) {
       validateAuthorPayload({
         name: authorName,
         slug,
-        bio: null,
+        bio: bio || null,
         avatarImageId: null,
         isActive: true,
       })
@@ -273,7 +315,9 @@ async function getOrCreateCategory(websiteId, item, map, report) {
 
 async function importMediaUrl(websiteId, sourceUrl, mediaByUrl, report) {
   if (!sourceUrl) return null
+  const normalizedSourceUrl = normalizeImportedMediaUrl(sourceUrl)
   if (mediaByUrl.has(sourceUrl)) return mediaByUrl.get(sourceUrl)
+  if (mediaByUrl.has(normalizedSourceUrl)) return mediaByUrl.get(normalizedSourceUrl)
 
   try {
     const media = await uploadImportedMedia({
@@ -283,6 +327,7 @@ async function importMediaUrl(websiteId, sourceUrl, mediaByUrl, report) {
       caption: null,
     })
     mediaByUrl.set(sourceUrl, media)
+    mediaByUrl.set(normalizedSourceUrl, media)
     report.counts.media += 1
     return media
   } catch (error) {
@@ -334,7 +379,7 @@ export async function resetWordPressImportForWebsite(websiteId) {
 }
 
 export async function importWordPressForWebsite(websiteId, payload) {
-  await assertInactiveWebsite(websiteId)
+  const website = await assertInactiveWebsite(websiteId)
   if (!payload.confirmInactiveImport) {
     throw new CmsValidationError('Confirm inactive website import before continuing.', {
       code: 'IMPORT_CONFIRMATION_REQUIRED',
@@ -375,6 +420,7 @@ export async function importWordPressForWebsite(websiteId, payload) {
       baseUrl: payload.wordpressBaseUrl,
       credentials,
     })
+    report.errors.push(...(data.errors || []))
     const authorsById = new Map()
     const authorBySlug = new Map()
     const categoryById = new Map()
@@ -388,12 +434,14 @@ export async function importWordPressForWebsite(websiteId, payload) {
       current: 0,
       total: data.users.length,
     })
-    for (const [index, user] of data.users.entries()) {
+    for (const [index, rawUser] of data.users.entries()) {
+      const user = normalizeWordPressUser(rawUser)
       const author = await getOrCreateAuthor(
         websiteId,
         user.name || user.slug,
         authorBySlug,
-        report
+        report,
+        user.bio
       )
       authorsById.set(user.id, author)
       await updateProgress({
@@ -447,6 +495,7 @@ export async function importWordPressForWebsite(websiteId, payload) {
       total: normalizedPages.length,
     })
     for (const [index, page] of normalizedPages.entries()) {
+      recordSeoSources(report, page)
       if (page.status !== 'publish') {
         report.skippedItems.push({
           type: 'page',
@@ -472,6 +521,9 @@ export async function importWordPressForWebsite(websiteId, payload) {
         const featuredMedia =
           mediaByWpId.get(page.featuredMediaId) ||
           (await importMediaUrl(websiteId, featuredSource, mediaByUrl, report))
+        for (const imageUrl of extractImageUrls(page.contentHtml)) {
+          await importMediaUrl(websiteId, imageUrl, mediaByUrl, report)
+        }
         const author =
           authorsById.get(page.authorId) ||
           (await getOrCreateAuthor(websiteId, FALLBACK_AUTHOR_NAME, authorBySlug, report))
@@ -479,19 +531,24 @@ export async function importWordPressForWebsite(websiteId, payload) {
         try {
           await createPageForWebsite(
             websiteId,
-            validatePagePayload({
+            {
               title: page.title || `Imported Page ${page.id}`,
-              path: page.slug || normalizeSlug(page.title, `page-${page.id}`),
-              bodyText: stripHtml(page.contentHtml),
-              focusKeyphrase: null,
-              seoTitle: page.title || null,
-              metaDescription: page.excerpt || null,
+              path: normalizeImportedPath(page.slug, page.title || `page-${page.id}`),
+              bodyText: sanitizeImportedContentHtml({
+                html: page.contentHtml,
+                wordpressBaseUrl: payload.wordpressBaseUrl,
+                primaryDomain: website.primaryDomain,
+                mediaByUrl,
+              }),
+              focusKeyphrase: importedFocusKeyphrase(page.focusKeyphrase),
+              seoTitle: page.seoTitle,
+              metaDescription: importedMetaDescription(page.metaDescription),
               authorId: author.id,
               canonicalUrl: null,
               robotsMeta: null,
               featuredImageId: featuredMedia?.id || null,
               sitemapInclude: true,
-            })
+            }
           )
           report.counts.pages += 1
         } catch (error) {
@@ -508,21 +565,27 @@ export async function importWordPressForWebsite(websiteId, payload) {
         continue
       }
 
+      const author =
+        authorsById.get(page.authorId) ||
+        (await getOrCreateAuthor(websiteId, FALLBACK_AUTHOR_NAME, authorBySlug, report))
+
       try {
         await createTemplateContentForWebsite(
           websiteId,
-          validateTemplateContentPayload({
+          {
             templateKey,
             path: TEMPLATE_CONTENT_SCHEMAS[templateKey].defaultPath,
             title: page.title || TEMPLATE_CONTENT_SCHEMAS[templateKey].defaultTitle,
             contentData: buildTemplateContentData(templateKey, page),
-            seoTitle: page.title || null,
-            metaDescription: page.excerpt || null,
+            focusKeyphrase: importedFocusKeyphrase(page.focusKeyphrase),
+            seoTitle: page.seoTitle,
+            metaDescription: importedMetaDescription(page.metaDescription),
+            authorId: author.id,
             canonicalUrl: null,
             robotsMeta: null,
             ogImageId: null,
             sitemapInclude: true,
-          })
+          }
         )
         report.counts.pages += 1
       } catch (error) {
@@ -545,6 +608,7 @@ export async function importWordPressForWebsite(websiteId, payload) {
     })
     for (const [index, rawPost] of data.posts.entries()) {
       const post = normalizeWordPressItem(rawPost)
+      recordSeoSources(report, post)
       if (post.status !== 'publish') {
         report.skippedItems.push({
           type: 'post',
@@ -593,23 +657,31 @@ export async function importWordPressForWebsite(websiteId, payload) {
             ))
 
       try {
+        const bodyHtml = sanitizeImportedContentHtml({
+          html: post.contentHtml,
+          wordpressBaseUrl: payload.wordpressBaseUrl,
+          primaryDomain: website.primaryDomain,
+          mediaByUrl,
+        })
         await createPostForWebsite(
           websiteId,
-          validatePostPayload({
+          {
             title: post.title || `Imported Post ${post.id}`,
             slug: post.slug || normalizeSlug(post.title, `post-${post.id}`),
             excerpt: post.excerpt || null,
             authorId: author.id,
             categoryId: category.id,
             featuredImageId: featuredMedia?.id || null,
+            bodyHtml,
             bodyBlocks: htmlToBodyBlocks(post.contentHtml, mediaByUrl),
-            seoTitle: post.title || null,
-            metaDescription: post.excerpt || null,
+            focusKeyphrase: importedFocusKeyphrase(post.focusKeyphrase),
+            seoTitle: post.seoTitle,
+            metaDescription: importedMetaDescription(post.metaDescription),
             canonicalUrl: null,
             robotsMeta: null,
             ogImageId: featuredMedia?.id || null,
             sitemapInclude: true,
-          })
+          }
         )
         report.counts.posts += 1
       } catch (error) {
@@ -621,6 +693,13 @@ export async function importWordPressForWebsite(websiteId, payload) {
         label: 'Importing posts',
         current: index + 1,
         total: data.posts.length,
+      })
+    }
+
+    if (report.seoSources.records > 0 && !report.yoastBridgeDetected) {
+      report.warnings.push({
+        code: 'YOAST_REST_BRIDGE_MISSING',
+        message: 'Yoast Focus keyphrases were unavailable. Install the CMS Yoast REST Bridge on the WordPress source site and retry the import.',
       })
     }
 

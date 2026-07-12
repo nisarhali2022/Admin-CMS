@@ -26,7 +26,7 @@ function ImportProgress({ job, importing }) {
   const status = job?.status || (importing ? 'running' : null)
   const showIndeterminate = importing && percent === null
 
-  if (!importing && !progress) return null
+  if (!importing && !job) return null
 
   return (
     <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
@@ -69,9 +69,7 @@ export default function ImportManager({ website }) {
   const [message, setMessage] = useState('')
   const activeImportJob = useMemo(
     () =>
-      jobs.find((job) => job.status === 'running' || job.status === 'queued') ||
-      jobs[0] ||
-      null,
+      jobs.find((job) => job.status === 'running' || job.status === 'queued') || null,
     [jobs],
   )
 

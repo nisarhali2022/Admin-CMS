@@ -36,6 +36,16 @@ test('setup project owns website workspace and import onboarding', async () => {
   assert.match(workspace, /ImportManager/)
 })
 
+test('completed import jobs do not render a stale progress card after refresh', async () => {
+  const importManager = await readFile(
+    'setup-provisioning/features/import/ImportManager.jsx',
+    'utf8',
+  )
+
+  assert.match(importManager, /jobs\.find\(\(job\) => job\.status === 'running' \|\| job\.status === 'queued'\) \|\| null/)
+  assert.match(importManager, /if \(!importing && !job\) return null/)
+})
+
 test('media upload resets a stable form reference after async upload', async () => {
   const mediaLibrary = await readFile('features/media/MediaLibrary.jsx', 'utf8')
 

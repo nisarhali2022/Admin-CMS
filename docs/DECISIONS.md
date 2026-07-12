@@ -52,8 +52,9 @@ This file records decisions that should not be re-decided during implementation 
 - Use Supabase Storage as the v1 CMS media backend.
 - Use one Supabase Storage bucket for all CMS media.
 - Separate website media by immutable `website_id` prefix.
-- Supabase Storage path pattern is `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
-- Use original filenames only as metadata.
+- Supabase Storage path pattern is `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`.
+- Use sanitized original filenames in object paths and preserve the original filename in metadata.
+- Resolve same-month filename collisions with `-2`, `-3`, and later numeric suffixes.
 - No shared or global media library in v1.
 - Media picker only shows selected website media.
 - Cross-website media selection is blocked.

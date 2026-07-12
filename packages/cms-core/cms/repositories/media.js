@@ -66,6 +66,29 @@ export async function updateMediaMetadata(websiteId, mediaId, payload) {
   return serializeMedia(rows?.[0])
 }
 
+export async function updateMediaStorageLocation(
+  websiteId,
+  mediaId,
+  { storagePath, publicUrl }
+) {
+  const rows = await supabaseAdminRequest(
+    `cms_media?website_id=eq.${encodeURIComponent(websiteId)}&id=eq.${encodeURIComponent(mediaId)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: {
+        storage_path: storagePath,
+        public_url: publicUrl,
+      },
+    }
+  )
+
+  return serializeMedia(rows?.[0])
+}
+
 export async function hardDeleteMediaRow(websiteId, mediaId) {
   await supabaseAdminRequest(
     `cms_media?website_id=eq.${encodeURIComponent(websiteId)}&id=eq.${encodeURIComponent(mediaId)}`,

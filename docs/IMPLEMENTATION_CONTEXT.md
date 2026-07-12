@@ -108,7 +108,7 @@ cms-media
 Object path pattern:
 
 ```text
-websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp
+websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp
 ```
 
 Upload helper input:
@@ -123,7 +123,7 @@ Upload helper behavior:
 
 - validate accepted image MIME type and size before optimization
 - convert/compress to WebP with the server-side `sharp` dependency
-- create a new UUID storage path
+- create a new sanitized filename storage path with a numeric suffix when needed
 - upload with `cacheControl: '31536000'`
 - never overwrite an existing public storage path
 - return `storagePath`, `publicUrl`, `width`, `height`, `mimeType`, and optimized `fileSize`

@@ -260,7 +260,7 @@ Build:
 - Build media upload through server route handlers.
 - Add Supabase Storage helpers under `lib/storage/`.
 - Convert/compress uploads to WebP with the server-side `sharp` dependency.
-- Store objects under `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`.
+- Store objects under `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`.
 - Upload public WebP images with Supabase Storage `cacheControl: '31536000'`.
 - Save metadata, public URL, alt text, caption, dimensions, MIME type, file size, source, and storage path in `cms_media`.
 - Build media picker filtered by selected website.
@@ -295,7 +295,7 @@ Constraints:
 - No shared/global media library.
 - No direct browser writes to Supabase Storage.
 - Public websites must not upload, delete, or list Supabase Storage objects.
-- Do not overwrite existing public image URLs; image replacement creates a new UUID storage path.
+- Do not overwrite existing public image URLs; image replacement creates a new readable filename path with a numeric collision suffix.
 
 Exit tests:
 

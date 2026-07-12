@@ -13,6 +13,11 @@ import {
   uploadPublicMediaObject,
 } from 'cms-core/storage/supabaseStorage'
 import { uploadMedia } from 'cms-core/cms/services/media'
+import {
+  getMediaStoragePath,
+  getReadableMediaFilename,
+  isReadableMediaStoragePath,
+} from 'cms-core/cms/services/media'
 
 const migrationDir = 'setup-provisioning/supabase/migrations'
 const originalFetch = global.fetch
@@ -141,9 +146,52 @@ test('storage helper builds public URLs and uploads immutable WebP objects', asy
   assert.match(calls[0].url, /\/storage\/v1\/object\/cms-media\/websites\//)
   assert.equal(calls[0].options.method, 'PUT')
   assert.equal(calls[0].options.headers['Content-Type'], 'image/webp')
-  assert.equal(calls[0].options.headers['cache-control'], MEDIA_CACHE_CONTROL_SECONDS)
-  assert.match(calls[0].options.headers['Cache-Control'], /immutable/)
+  assert.equal(
+    calls[0].options.headers['Cache-Control'],
+    `public, max-age=${MEDIA_CACHE_CONTROL_SECONDS}, immutable`
+  )
+  assert.equal(calls[0].options.headers['cache-control'], undefined)
   assert.equal(calls[0].options.headers['x-upsert'], 'false')
+})
+
+test('media storage paths preserve readable filenames and add numeric collision suffixes', () => {
+  const websiteId = '11111111-1111-4111-8111-111111111111'
+  const date = new Date('2026-07-12T00:00:00.000Z')
+  const first = getMediaStoragePath(websiteId, 'BT-and-Verizon-Merge.webp', date)
+  const second = getMediaStoragePath(
+    websiteId,
+    'BT-and-Verizon-Merge.webp',
+    date,
+    new Set([first])
+  )
+
+  assert.equal(getReadableMediaFilename('BT-and-Verizon-Merge.webp'), 'BT-and-Verizon-Merge.webp')
+  assert.equal(getReadableMediaFilename('my image.jpg'), 'my-image.webp')
+  assert.match(first, /\/BT-and-Verizon-Merge\.webp$/)
+  assert.match(second, /\/BT-and-Verizon-Merge-2\.webp$/)
+  assert.equal(isReadableMediaStoragePath(first), true)
+  assert.equal(isReadableMediaStoragePath(
+    `websites/${websiteId}/media/2026/07/d5d55114-e7fb-48d4-8d8d-50e1ac7694fd.webp`
+  ), false)
+})
+
+test('media filename migration is setup-owned and updates paths without changing media IDs', async () => {
+  const service = await readFile(
+    'packages/cms-core/cms/services/mediaFilenameMigration.js',
+    'utf8'
+  )
+  const route = await readFile(
+    'setup-provisioning/app/api/cms/media/migrate-filenames/route.js',
+    'utf8'
+  )
+
+  assert.match(service, /listMedia\(websiteId\)/)
+  assert.match(service, /downloadMediaObject\(oldPath\)/)
+  assert.match(service, /updateMediaStorageLocation\(websiteId, item\.id/)
+  assert.match(service, /triggerRevalidation/)
+  assert.match(service, /isReadableMediaStoragePath\(item\.storagePath\)/)
+  assert.match(route, /requireAdminSessionResponse/)
+  assert.match(route, /migrateMediaFilenamesForWebsite/)
 })
 
 test('storage helper deletes only objects under the selected website prefix', async () => {
@@ -339,7 +387,9 @@ test('media upload service scopes storage path and creates cms_media metadata', 
     altText: 'Blue sample',
     caption: 'Sample caption',
   })
-  const uploadCall = calls.find((call) => call.url.includes('/storage/v1/object/'))
+  const uploadCall = calls.find(
+    (call) => call.url.includes('/storage/v1/object/') && call.options.method === 'PUT'
+  )
   const insertCall = calls.find((call) => call.url.endsWith('/rest/v1/cms_media'))
   const insertBody = JSON.parse(insertCall.options.body)
 

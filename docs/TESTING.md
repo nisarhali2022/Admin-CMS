@@ -118,9 +118,9 @@ Test:
 
 - image upload validates type and size
 - upload converts/compresses to WebP
-- Supabase Storage path uses `websites/{website_id}/media/{yyyy}/{mm}/{uuid}.webp`
+- Supabase Storage path uses `websites/{website_id}/media/{yyyy}/{mm}/{filename}.webp`
 - public WebP uploads include Supabase Storage `cacheControl: '31536000'`
-- image replacement creates a new UUID storage path instead of overwriting an existing public URL
+- image replacement creates a new readable filename path with a numeric collision suffix instead of overwriting an existing public URL
 - Supabase Storage public URLs stay cacheable for immutable public assets
 - media metadata row stores website ID, storage path, public URL, alt text, dimensions, MIME type, file size, and source
 - media picker only shows selected website media
