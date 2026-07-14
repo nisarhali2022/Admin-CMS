@@ -220,7 +220,6 @@ Stores blog posts per website.
 | `author_id` | uuid | yes | references `cms_authors(id)` |
 | `title` | text | yes | post title |
 | `slug` | text | yes | URL-safe |
-| `excerpt` | text | no | summary |
 | `featured_image_id` | uuid | no | references `cms_media(id)` |
 | `body_html` | text | no | preferred Tiptap editor HTML for new edits |
 | `body_blocks` | jsonb | yes | legacy/import fallback structured blocks array |

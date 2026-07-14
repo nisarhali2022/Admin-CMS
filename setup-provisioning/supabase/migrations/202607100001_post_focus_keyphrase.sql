@@ -11,7 +11,6 @@ as $$
   select jsonb_build_object(
     'title', p.title,
     'slug', p.slug,
-    'excerpt', p.excerpt,
     'publishedAt', p.published_at,
     'author', jsonb_build_object(
       'name', a.name,

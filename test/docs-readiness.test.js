@@ -34,3 +34,12 @@ test('milestone reviews are part of the documentation flow', async () => {
   assert.match(milestones, /Do not report the milestone as complete/)
   assert.match(reviews, /Milestone 1: Foundation And Admin Session/)
 })
+
+test('frontend migration guide is part of the public integration documentation flow', async () => {
+  await access('docs/FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md')
+  const index = await readFile('docs/INDEX.md', 'utf8')
+  const publicIntegration = await readFile('docs/public-site-integration/README.md', 'utf8')
+
+  assert.match(index, /FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION\.md/)
+  assert.match(publicIntegration, /Frontend WordPress-to-Supabase Migration/)
+})

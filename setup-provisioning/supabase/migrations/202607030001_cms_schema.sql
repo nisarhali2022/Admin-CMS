@@ -170,7 +170,6 @@ create table public.cms_posts (
   author_id uuid not null,
   title text not null,
   slug text not null,
-  excerpt text,
   featured_image_id uuid,
   body_blocks jsonb not null default '[]'::jsonb,
   seo_title text,

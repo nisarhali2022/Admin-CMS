@@ -329,7 +329,7 @@ Behavior:
 - Imports unmatched WordPress pages into `cms_pages` when safe, otherwise reports them as skipped.
 - Converts basic HTML to template content and either `body_html` or compatible fallback body blocks for posts.
 - Uses an import-only mapper for SEO and image fields: missing SEO values and featured images remain `null`, and present meta descriptions are capped at 300 characters.
-- Uses Yoast-first SEO mapping: Focus keyphrase comes from `cms_yoast.focusKeyphrase`; SEO title uses `cms_yoast.seoTitle`, then `yoast_head_json.title`, then the WordPress title; meta description uses `yoast_head_json.description`, then `cms_yoast.metaDescription`, then the WordPress excerpt.
+- Uses Yoast-first SEO mapping: Focus keyphrase comes from `cms_yoast.focusKeyphrase`; SEO title uses `cms_yoast.seoTitle`, then `yoast_head_json.title`, then the WordPress title; meta description uses Yoast values and remains empty when no Yoast description is available. WordPress excerpts are not stored or used as post metadata.
 - The setup project includes `wordpress/cms-yoast-rest-bridge.php`, which exposes the Yoast raw fields needed for Focus keyphrase import.
 - Does not use the normal manual Page/Post required-field validators for imported SEO or featured-image fields; service-level ownership, duplicate, author, category, and inline-media checks still apply.
 - Fetches WordPress resource collections with automatic 100-item pagination, using response totals when available and short-batch termination otherwise.

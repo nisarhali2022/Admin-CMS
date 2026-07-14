@@ -12,7 +12,6 @@ export function serializePost(row) {
     authorId: row.authorId || row.author_id,
     title: row.title,
     slug: row.slug,
-    excerpt: row.excerpt || null,
     featuredImageId: row.featuredImageId ?? row.featured_image_id ?? null,
     bodyHtml: row.bodyHtml ?? row.body_html ?? null,
     bodyBlocks: row.bodyBlocks || row.body_blocks || [],

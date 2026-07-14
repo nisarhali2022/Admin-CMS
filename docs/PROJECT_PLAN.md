@@ -161,7 +161,6 @@ Rules:
 - author ID
 - title
 - slug
-- excerpt
 - publish date
 - required category ID
 - featured image ID
@@ -416,7 +415,7 @@ Post import mapping:
 SEO import:
 
 - Try Yoast/RankMath metadata if exposed by the WordPress REST API.
-- Fall back to WordPress title, excerpt, slug, content, and featured image fields.
+- Use Yoast SEO values when exposed; otherwise leave missing imported SEO fields empty.
 
 Failed import behavior:
 

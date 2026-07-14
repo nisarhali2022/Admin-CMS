@@ -77,7 +77,7 @@ Test:
 - sitemap include flag is respected
 - Pages list search filters automatically without a Search Pages submit button
 - Pages list supports checkbox selection and bulk permanent delete through existing page/template delete endpoints
-- Pages table displays Meta title before Author
+- Pages table displays Focus keyphrase, SEO title, and Meta description before Author
 - Add Page creates a custom page row and does not replace fixed template content
 
 ## Blog Posts
@@ -236,7 +236,7 @@ Test:
 - inline images copy to Supabase Storage
 - old inline image URLs rewrite to Supabase Storage public URLs
 - Yoast/RankMath SEO imports when available
-- fallback SEO uses WordPress title/excerpt/featured image
+- missing imported SEO values remain empty when Yoast data is unavailable
 - import report includes imported, skipped, unmatched, failed media, and errors
 - failed import reset clears only inactive website scoped rows
 - failed import reset deletes only that inactive website's Supabase Storage objects

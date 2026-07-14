@@ -18,6 +18,12 @@ This file records the major product, architecture, schema, UI, and documentation
 - New post edits use sanitized Tiptap `body_html`; legacy `body_blocks` are fallback/import compatibility only.
 - Individual public post URLs use `/{categorySlug}/{postSlug}`. `/blog` is the archive/list page only.
 - New post saves require both Author and Category. WordPress import falls back to `Imported Author` and `Uncategorized` when source data is missing.
+- Category editing now uses the top Add/Edit Category form; table rows remain display-only.
+- Pages and Posts now show Focus keyphrase, SEO title, and Meta description as separate table columns, and Author is managed in the right editor settings card.
+- Page, Post, and shared Tiptap image dialogs now support automatic media search. Image presets are labeled `S`, `M`, and `L` while retaining 300px, 600px, and full-width behavior.
+- Removed the CMS post `excerpt` field from the active UI, API, public RPCs, database schema, and import metadata fallback. Yoast metadata remains the supported SEO source.
+- Pages and Posts editors now stack Focus keyphrase, SEO title, and Meta description vertically, place Feature Image in its own settings row, and show only SEO title in their list tables.
+- Added `FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md`, the reusable direct-cutover guide for replacing WordPress REST reads in a public Next.js website with Supabase public RPC reads.
 - Active CMS behavior is publish-only and permanent-delete only; draft, trash, restore, move-to-trash, and unpublish workflows are removed from the active product.
 
 ## WordPress Import-Only Field Rules
@@ -40,7 +46,7 @@ This file records the major product, architecture, schema, UI, and documentation
 
 - Added the WordPress CMS Yoast REST Bridge for Focus keyphrase, SEO title, and raw meta description values.
 - WordPress imports now prefer Yoast SEO metadata and report the source used for imported SEO fields.
-- Missing bridge data safely falls back to generated Yoast head metadata, then WordPress title/excerpt values.
+- Missing bridge data safely falls back to generated Yoast head metadata. The later post-excerpt removal correction supersedes the historical WordPress excerpt fallback.
 
 ## WordPress Author Bios
 

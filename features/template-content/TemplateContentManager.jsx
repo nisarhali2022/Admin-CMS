@@ -397,7 +397,9 @@ function pageMatchesSearch(page, query) {
   const haystack = [
     page.title,
     page.path,
+    page.focusKeyphrase,
     page.seoTitle,
+    page.metaDescription,
     page.templateKey,
     page.authorName,
   ]
@@ -468,6 +470,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
   const [screen, setScreen] = useState('list')
   const [editorMode, setEditorMode] = useState('visual')
   const [isFeatureImagePickerOpen, setIsFeatureImagePickerOpen] = useState(false)
+  const [mediaSearchQuery, setMediaSearchQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPageKeys, setSelectedPageKeys] = useState([])
   const [bulkAction, setBulkAction] = useState('')
@@ -490,6 +493,18 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
     [form.featuredImageId, media]
   )
 
+  const filteredMedia = useMemo(() => {
+    const query = mediaSearchQuery.trim().toLowerCase()
+    if (!query) return media
+    return media.filter((item) =>
+      [item.originalFilename, item.altText, item.caption, item.mimeType, item.storagePath]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    )
+  }, [media, mediaSearchQuery])
+
   const pageRows = useMemo(() => {
     const templateRows = templates.map((template) => {
       const author = template.authorId ? authorsById.get(template.authorId) : null
@@ -501,7 +516,9 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         templateKey: template.templateKey,
         title: template.title,
         path: template.path,
+        focusKeyphrase: template.focusKeyphrase || '',
         seoTitle: template.seoTitle || '',
+        metaDescription: template.metaDescription || '',
         publishedAt: template.publishedAt || null,
         updatedAt: template.updatedAt || template.createdAt || null,
         authorName: author?.name || '-',
@@ -519,7 +536,9 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         templateKey: 'custom',
         title: page.title,
         path: page.path,
+        focusKeyphrase: page.focusKeyphrase || '',
         seoTitle: page.seoTitle || '',
+        metaDescription: page.metaDescription || '',
         publishedAt: page.publishedAt || null,
         updatedAt: page.updatedAt || page.createdAt || null,
         authorName: author?.name || '-',
@@ -1013,7 +1032,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         </div>
 
         <div className="overflow-x-auto border border-[#c3c4c7] bg-white">
-          <table className="w-full min-w-[60rem] text-left text-[13px] text-[#1f2330]">
+          <table className="w-full min-w-[68rem] text-left text-[13px] text-[#1f2330]">
             <thead>
               <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
                 <th className="w-10 px-3 py-2 font-medium">
@@ -1025,7 +1044,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                   />
                 </th>
                 <th className="px-3 py-2 font-medium">Title</th>
-                <th className="w-56 px-3 py-2 font-medium">Meta title</th>
+                <th className="w-56 px-3 py-2 font-medium">SEO title</th>
                 <th className="w-48 px-3 py-2 font-medium">Author</th>
                 <th className="w-52 px-3 py-2 font-medium">Date</th>
                 <th className="w-44 px-3 py-2 font-medium">Actions</th>
@@ -1062,7 +1081,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                     ) : null}
                     <p className="mt-1 text-[#50575e]">{page.path}</p>
                   </td>
-                  <td className="px-3 py-4 text-[#1f2330]">{page.seoTitle || '-'}</td>
+                  <td className="break-words px-3 py-4 text-[#1f2330]">{page.seoTitle || '-'}</td>
                   <td className="px-3 py-4 text-[#005cbb]">{page.authorName}</td>
                   <td className="px-3 py-4">
                     <p className="text-[#50575e]">{formatDate(page.publishedAt || page.updatedAt)}</p>
@@ -1196,7 +1215,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
             <div className="border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
               <h3 className="text-[1rem] font-semibold text-[#1f2330]">SEO</h3>
             </div>
-            <div className="grid gap-4 p-4 md:grid-cols-2">
+            <div className="grid gap-4 p-4">
               <label className="block text-[13px] font-medium text-[#1f2330]">
                 Focus keyphrase
                 <input
@@ -1226,7 +1245,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                   className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
                 />
               </label>
-              <label className="block text-[13px] font-medium text-[#1f2330] md:col-span-2">
+              <label className="block text-[13px] font-medium text-[#1f2330]">
                 Meta description
                 <textarea
                   value={form.metaDescription}
@@ -1240,28 +1259,27 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                   className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
                 />
               </label>
-              <label className="block text-[13px] font-medium text-[#1f2330]">
-                Author
-                <select
-                  value={form.authorId}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, authorId: event.target.value }))
-                  }
-                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                >
-                  <option value="">Select author</option>
-                  {authors
-                    .map((author) => (
-                      <option key={author.id} value={author.id}>
-                        {author.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
             </div>
           </div>
 
           <div className="grid gap-4 border border-[#c3c4c7] bg-white p-4 md:grid-cols-2">
+            <label className="block text-[13px] font-medium text-[#1f2330]">
+              Author
+              <select
+                value={form.authorId}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, authorId: event.target.value }))
+                }
+                className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+              >
+                <option value="">Select author</option>
+                {authors.map((author) => (
+                  <option key={author.id} value={author.id}>
+                    {author.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="block text-[13px] font-medium text-[#1f2330]">
               Slug
               <input
@@ -1300,7 +1318,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                 <option value="noindex,nofollow">noindex,nofollow</option>
               </select>
             </label>
-            <div className="block text-[13px] font-medium text-[#1f2330]">
+            <div className="block text-[13px] font-medium text-[#1f2330] md:col-span-2">
               Feature Image
               <div className="mt-2 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-3">
                 {selectedFeatureImage ? (
@@ -1354,10 +1372,18 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                       Choose an image from this website&apos;s media library.
                     </DialogDescription>
                   </DialogHeader>
+                  <input
+                    type="search"
+                    value={mediaSearchQuery}
+                    onChange={(event) => setMediaSearchQuery(event.target.value)}
+                    placeholder="Search images"
+                    aria-label="Search feature images"
+                    className="w-full rounded-[3px] border border-[#8c8f94] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#3858e9]"
+                  />
                   <div className="max-h-[500px] overflow-y-auto pr-1">
-                    {media.length > 0 ? (
+                    {filteredMedia.length > 0 ? (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {media.map((item) => (
+                        {filteredMedia.map((item) => (
                           <button
                             key={item.id}
                             type="button"
@@ -1387,6 +1413,10 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                           </button>
                         ))}
                       </div>
+                    ) : media.length > 0 ? (
+                      <p className="text-[13px] font-normal text-[#50575e]">
+                        No images match your search.
+                      </p>
                     ) : (
                       <p className="text-[13px] font-normal text-[#50575e]">
                         Upload media first, then choose a feature image.

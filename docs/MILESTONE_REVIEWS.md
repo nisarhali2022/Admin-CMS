@@ -16,6 +16,7 @@ Older review entries intentionally remain as historical records. When they menti
 - `Milestone 13 Correction: Category-Based Post URLs`
 - `Milestone 13 Correction: Post Required Field Validation`
 - `Milestone 13 Correction: Documentation Alignment For Latest CMS Contracts`
+- `Milestone 13 Correction: Category, SEO Table, Media Search, And Excerpt Removal`
 - `Milestone 13 Correction: Media Bulk Delete And Auto Search`
 - `Milestone 13 Correction: Pages Posts Editor And Authors Validation`
 
@@ -34,6 +35,60 @@ Current active behavior:
 - Posts now include `cms_posts.focus_keyphrase` / `focusKeyphrase`.
 - Pages block duplicate same-website titles across custom pages and fixed template content; Posts block duplicate same-website titles and duplicate category-based URLs.
 - Authors table editing now fills the top form card, and author image selection uses a dialog picker.
+- The latest post contract correction removes `cms_posts.excerpt` and the WordPress excerpt SEO fallback. Historical entries mentioning excerpt-based post metadata remain for context but are superseded by this correction.
+- Pages and Posts now keep Focus keyphrase and Meta description in the editor only; their tables retain SEO title, Author, and the remaining content columns. Feature Image occupies its own full-width row in the settings card.
+- The documentation chain now includes `FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md` for the direct public-frontend cutover from WordPress REST to Supabase public RPCs.
+
+## Documentation Handoff: Frontend WordPress-To-Supabase Migration
+
+- Status: Complete
+- Date completed: 2026-07-14
+- Goal: Give each separate public Next.js website a complete, reusable path from WordPress REST reads to Supabase public RPC reads.
+- What was documented: source inventory, Supabase public client setup, domain resolution, caching/revalidation, route mapping, media rendering, metadata, redirects, quiz, sitemap/robots/ads.txt, direct cutover, rollback, and acceptance checks.
+- Files changed: `docs/FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md`, `docs/INDEX.md`, and `docs/public-site-integration/README.md`.
+- Security checks: public sites use anon credentials and public RPCs only; no service-role key, admin API, direct CMS table access, or public Storage listing is allowed.
+- Known caveat: current public RPCs fetch individual custom Pages/templates but do not list all of them, so sitemap coverage must use configured route inventory or future list RPCs.
+- Readiness: the guide is ready to apply when a visitor-facing Next.js repository is available.
+
+## Milestone 13 Correction: Pages And Posts SEO/Form Layout
+
+- Status: Complete
+- Date completed: 2026-07-13
+- Milestone goal: Simplify Pages and Posts list tables and make editor SEO/settings fields easier to scan.
+- What was implemented:
+  - Removed visible Focus keyphrase and Meta description columns from Pages and Posts tables.
+  - Kept SEO title visible in both tables and corrected empty-row column spans.
+  - Stacked Focus keyphrase, SEO title, and Meta description as separate rows in both SEO cards.
+  - Moved Feature Image into its own full-width row inside each settings card.
+- Files/modules changed: `features/template-content/TemplateContentManager.jsx`, `features/posts/PostsManager.jsx`, `test/milestone13-final-hardening.test.js`.
+- Inputs/outputs added or changed: no API or database changes; only list columns and editor layout changed.
+- Security and architecture checks: existing required SEO, author, category, and media validation remains unchanged; feature-image dialogs and website scoping remain unchanged.
+- Tests and validation run: pending final test, lint, build, and diff-check run for this correction.
+- Known caveats: Focus keyphrase and Meta description remain searchable in loaded rows even though they are no longer visible table columns.
+- Follow-up items: manually verify the two editor layouts at desktop and mobile widths.
+- Readiness for next milestone: Ready after validation passes.
+
+## Milestone 13 Correction: Category, SEO Table, Media Search, And Excerpt Removal
+
+- Status: Complete
+- Date completed: 2026-07-13
+- Milestone goal: Align category editing and Pages/Posts metadata presentation with the current admin workflow, add searchable media dialogs, shorten image preset labels, and remove the retired post excerpt contract.
+- Docs followed: `PROJECT_PLAN.md`, `DATA_MODEL.md`, `API_CONTRACTS.md`, `IMPLEMENTATION_DETAILS.md`, `TESTING.md`
+- What was implemented:
+  - Category editing now uses the top Add/Edit Category form; table rows remain display-only.
+  - Pages and Posts show Focus keyphrase, SEO title, and Meta description as separate table columns.
+  - Author selectors moved to the right settings card in both editors.
+  - Feature-image dialogs and the shared Tiptap image dialog support automatic website-scoped media search.
+  - Tiptap image presets are visibly labeled `S`, `M`, and `L`, retaining 300px, 600px, and full-width behavior.
+  - Removed `cms_posts.excerpt` from active post UI, validators, repositories, serializers, public RPC output/search, import payloads, and SEO fallback behavior.
+  - Added corrective migration `202607130001_remove_post_excerpt.sql` for existing Supabase projects and removed the column from the fresh schema contract.
+- Files/modules changed: category/page/post managers, `RichTextEditor`, post core contracts, WordPress/import mapping, setup migrations, tests, and docs.
+- Inputs/outputs added or changed: page/post list rows now expose three SEO values; media dialogs accept a live search query; post payloads no longer contain `excerpt`.
+- Security and architecture checks: media search remains selected-website scoped; public RPCs no longer expose excerpt data; service-role access remains server-only.
+- Tests and validation run: `npm.cmd test` passed with 90 tests; `npm.cmd run lint` passed.
+- Known caveats: the corrective Supabase migration must be applied manually before an existing database matches the new post contract; imported WordPress excerpts are no longer retained as post metadata.
+- Follow-up items: run the corrective migration, restart both apps, and verify Pages, Posts, category editing, and media dialogs manually.
+- Readiness for next milestone: Ready after the corrective migration is applied and the post list loads successfully.
 
 ## Review Entry Template
 

@@ -462,7 +462,7 @@ Files/modules:
 
 Inputs/outputs:
 
-- Input: title, slug, excerpt, author, category, featured image, Tiptap `bodyHtml`, optional legacy `bodyBlocks`, and SEO fields.
+- Input: title, slug, author, category, featured image, Tiptap `bodyHtml`, optional legacy `bodyBlocks`, and SEO fields.
 - Output: website-scoped post row.
 - Output: public post/list response with author data, `bodyHtml`, legacy `bodyBlocks`, and resolved image objects.
 - Output: FAQ data suitable for FAQ schema.

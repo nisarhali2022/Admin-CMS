@@ -17,8 +17,9 @@ Read the docs in this order:
 11. `MILESTONE_REVIEWS.md`
 12. `IMPLEMENTATION_DETAILS.md`
 13. `public-site-integration/README.md`
-14. `SETUP.md`
-15. `TESTING.md`
+14. `FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md`
+15. `SETUP.md`
+16. `TESTING.md`
 
 ## Document Ownership
 
@@ -47,6 +48,8 @@ Read the docs in this order:
 `IMPLEMENTATION_DETAILS.md` owns the current implemented file/module map, runtime flow, admin routes, storage behavior, caveats, and manual QA handoff after Milestones 1-13.
 
 `public-site-integration/README.md` owns the helper contracts and wiring notes for later public website repository integration.
+
+`FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md` owns the reusable direct-cutover process for replacing WordPress REST reads in a public Next.js website with Supabase public RPC reads.
 
 `SETUP.md` owns required project setup for Supabase, Supabase Storage, Vercel, environment variables, and local development.
 

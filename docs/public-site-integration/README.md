@@ -2,6 +2,8 @@
 
 Milestone 11 prepares the public-site integration without editing a separate public website repository yet.
 
+For the full WordPress REST to Supabase frontend cutover process, route mapping, caching, revalidation, SEO, public-file, and rollout checklist, read [Frontend WordPress-to-Supabase Migration](../FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md).
+
 The admin CMS remains a separate app. Public websites must use Supabase anon credentials and public RPCs only. They must never call `/api/cms/...`, use the Supabase service-role key, upload/delete/list storage objects, or read admin-only tables.
 
 ## Public Website Env

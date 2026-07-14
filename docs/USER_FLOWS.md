@@ -110,7 +110,7 @@ Import field rules:
 - install the CMS Yoast REST Bridge on the WordPress source before importing SEO fields
 - import Focus keyphrase from `cms_yoast.focusKeyphrase`
 - import SEO title from `cms_yoast.seoTitle`, then `yoast_head_json.title`, then the WordPress title
-- import meta description from `yoast_head_json.description`, then `cms_yoast.metaDescription`, then the WordPress excerpt
+- import meta description from Yoast values when available; otherwise leave it empty
 - missing SEO title, meta description, and featured image do not block import
 - missing images remain empty
 - present meta descriptions are decoded and limited to 300 characters

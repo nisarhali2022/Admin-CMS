@@ -85,7 +85,6 @@ function postRow(body) {
     author_id: body.author_id,
     title: body.title,
     slug: body.slug,
-    excerpt: body.excerpt,
     featured_image_id: body.featured_image_id,
     body_html: body.body_html,
     body_blocks: body.body_blocks,
@@ -106,7 +105,6 @@ function validPayload(overrides = {}) {
   return validatePostPayload({
     title: 'Summer Packages',
     slug: 'summer-packages',
-    excerpt: 'Latest offers',
     authorId,
     categoryId,
     featuredImageId,

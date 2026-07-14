@@ -224,7 +224,6 @@ function normalizePostFields(payload) {
   return {
     title,
     slug: normalizeSlug(payload?.slug, title),
-    excerpt: normalizeOptionalText(payload?.excerpt, 'excerpt', 500),
     authorId: assertRequiredReferenceId(payload?.authorId, 'authorId', 'Author'),
     categoryId: assertRequiredReferenceId(payload?.categoryId, 'categoryId', 'Category'),
     featuredImageId: assertRequiredReferenceId(

@@ -16,7 +16,6 @@ import {
 const emptyForm = {
   title: '',
   slug: '',
-  excerpt: '',
   authorId: '',
   categoryId: '',
   featuredImageId: '',
@@ -292,7 +291,6 @@ function toForm(post) {
   return {
     title: post.title || '',
     slug: post.slug || '',
-    excerpt: post.excerpt || '',
     authorId: post.authorId || '',
     categoryId: post.categoryId || '',
     featuredImageId: post.featuredImageId || '',
@@ -342,9 +340,9 @@ function postMatchesSearch(post, query, authorsById, categoriesById) {
   const haystack = [
     post.title,
     post.slug,
-    post.excerpt,
     post.focusKeyphrase,
     post.seoTitle,
+    post.metaDescription,
     authorName,
     categoryName,
   ]
@@ -388,6 +386,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
   const [screen, setScreen] = useState('list')
   const [editorMode, setEditorMode] = useState('visual')
   const [isFeatureImagePickerOpen, setIsFeatureImagePickerOpen] = useState(false)
+  const [mediaSearchQuery, setMediaSearchQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPostIds, setSelectedPostIds] = useState([])
   const [bulkAction, setBulkAction] = useState('')
@@ -426,6 +425,18 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
     () => media.find((item) => item.id === form.featuredImageId) || null,
     [form.featuredImageId, media]
   )
+
+  const filteredMedia = useMemo(() => {
+    const query = mediaSearchQuery.trim().toLowerCase()
+    if (!query) return media
+    return media.filter((item) =>
+      [item.originalFilename, item.altText, item.caption, item.mimeType, item.storagePath]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    )
+  }, [media, mediaSearchQuery])
 
   async function loadPosts() {
     if (!websiteId) return
@@ -521,7 +532,6 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
     return {
       title: form.title,
       slug: normalizeSlug(form.slug, form.title),
-      excerpt: form.excerpt || null,
       authorId: form.authorId,
       categoryId: form.categoryId || null,
       featuredImageId: form.featuredImageId || null,
@@ -769,7 +779,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
         </div>
 
         <div className="overflow-x-auto border border-[#c3c4c7] bg-white">
-          <table className="w-full min-w-[76rem] text-left text-[13px] text-[#1f2330]">
+          <table className="w-full min-w-[84rem] text-left text-[13px] text-[#1f2330]">
             <thead>
               <tr className="border-b border-[#c3c4c7] bg-white text-[#3858e9]">
                 <th className="w-10 px-3 py-2 font-medium">
@@ -781,7 +791,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                   />
                 </th>
                 <th className="px-3 py-2 font-medium">Title</th>
-                <th className="w-56 px-3 py-2 font-medium">Meta title</th>
+                <th className="w-56 px-3 py-2 font-medium">SEO title</th>
                 <th className="w-48 px-3 py-2 font-medium">Author</th>
                 <th className="w-48 px-3 py-2 font-medium">Category</th>
                 <th className="w-52 px-3 py-2 font-medium">Date</th>
@@ -829,7 +839,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                         {postPath || 'Category and slug required'}
                       </p>
                     </td>
-                    <td className="px-3 py-4 text-[#1f2330]">{post.seoTitle || '-'}</td>
+                    <td className="break-words px-3 py-4 text-[#1f2330]">{post.seoTitle || '-'}</td>
                     <td className="px-3 py-4 text-[#005cbb]">
                       {post.author?.name || authorsById.get(post.authorId)?.name || '-'}
                     </td>
@@ -865,7 +875,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
               })}
               {filteredPosts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-[#596171]">
+                  <td colSpan={8} className="px-3 py-8 text-center text-[#596171]">
                     No posts found.
                   </td>
                 </tr>
@@ -954,24 +964,12 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
           codeLabel="HTML post content"
         />
 
-        <label className="block text-[13px] font-medium text-[#1f2330]">
-          Excerpt
-          <textarea
-            value={form.excerpt}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, excerpt: event.target.value }))
-            }
-            rows={3}
-            className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-          />
-        </label>
-
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="border border-[#c3c4c7] bg-white">
             <div className="border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
               <h3 className="text-[1rem] font-semibold text-[#1f2330]">SEO</h3>
             </div>
-            <div className="grid gap-4 p-4 md:grid-cols-2">
+            <div className="grid gap-4 p-4">
               <label className="block text-[13px] font-medium text-[#1f2330]">
                 Focus keyphrase
                 <input
@@ -1002,23 +1000,6 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                 />
               </label>
               <label className="block text-[13px] font-medium text-[#1f2330]">
-                Author
-                <select
-                  value={form.authorId}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, authorId: event.target.value }))
-                  }
-                  className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
-                >
-                  <option value="">Select author</option>
-                  {authors.map((author) => (
-                    <option key={author.id} value={author.id}>
-                      {author.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-[13px] font-medium text-[#1f2330] md:col-span-2">
                 Meta description
                 <textarea
                   value={form.metaDescription}
@@ -1036,6 +1017,23 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
           </div>
 
           <div className="grid gap-4 border border-[#c3c4c7] bg-white p-4 md:grid-cols-2">
+            <label className="block text-[13px] font-medium text-[#1f2330]">
+              Author
+              <select
+                value={form.authorId}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, authorId: event.target.value }))
+                }
+                className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
+              >
+                <option value="">Select author</option>
+                {authors.map((author) => (
+                  <option key={author.id} value={author.id}>
+                    {author.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="block text-[13px] font-medium text-[#1f2330]">
               Slug
               <input
@@ -1091,7 +1089,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                 <option value="noindex,nofollow">noindex,nofollow</option>
               </select>
             </label>
-            <div className="block text-[13px] font-medium text-[#1f2330]">
+            <div className="block text-[13px] font-medium text-[#1f2330] md:col-span-2">
               Feature Image
               <div className="mt-2 rounded-[3px] border border-[#c3c4c7] bg-[#f6f7f7] p-3">
                 {selectedFeatureImage ? (
@@ -1148,10 +1146,18 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                       Choose an image from this website&apos;s media library.
                     </DialogDescription>
                   </DialogHeader>
+                  <input
+                    type="search"
+                    value={mediaSearchQuery}
+                    onChange={(event) => setMediaSearchQuery(event.target.value)}
+                    placeholder="Search images"
+                    aria-label="Search feature images"
+                    className="w-full rounded-[3px] border border-[#8c8f94] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#3858e9]"
+                  />
                   <div className="max-h-[500px] overflow-y-auto pr-1">
-                    {media.length > 0 ? (
+                    {filteredMedia.length > 0 ? (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {media.map((item) => (
+                        {filteredMedia.map((item) => (
                           <button
                             key={item.id}
                             type="button"
@@ -1184,6 +1190,10 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                           </button>
                         ))}
                       </div>
+                    ) : media.length > 0 ? (
+                      <p className="text-[13px] font-normal text-[#50575e]">
+                        No images match your search.
+                      </p>
                     ) : (
                       <p className="text-[13px] font-normal text-[#50575e]">
                         Upload media first, then choose a feature image.

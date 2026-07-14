@@ -200,7 +200,6 @@ Save payload:
 {
   "title": "Post title",
   "slug": "post-title",
-  "excerpt": "Short summary",
   "authorId": "uuid",
   "categoryId": "uuid",
   "featuredImageId": null,
@@ -402,7 +401,7 @@ Behavior:
 - never include WordPress credentials in import reports, logs, public responses, or error messages
 - import published posts, known page templates, custom pages, categories, authors, and images
 - prefer Yoast SEO values for imported Focus keyphrase, SEO title, and meta description when the WordPress REST response contains `cms_yoast` and `yoast_head_json`
-- use precedence `cms_yoast.focusKeyphrase -> null`, `cms_yoast.seoTitle -> yoast_head_json.title -> WordPress title`, and `yoast_head_json.description -> cms_yoast.metaDescription -> WordPress excerpt`
+- use precedence `cms_yoast.focusKeyphrase -> null`, `cms_yoast.seoTitle -> yoast_head_json.title -> WordPress title`, and Yoast meta-description values only; missing descriptions remain `null`
 - use import-only relaxed SEO/image mapping: missing `seoTitle`, `metaDescription`, and feature images are stored as `null`
 - truncate a present imported meta description to 300 characters after decoding it
 - do not apply the normal manual-save requirement for SEO fields or featured images during import
@@ -498,7 +497,6 @@ Public post result should include:
 
 - title
 - slug
-- excerpt
 - author name/slug/bio/avatar image object
 - category
 - featured image object

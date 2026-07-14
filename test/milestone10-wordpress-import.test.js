@@ -108,7 +108,6 @@ function postRow(body) {
     author_id: body.author_id,
     title: body.title,
     slug: body.slug,
-    excerpt: body.excerpt,
     featured_image_id: body.featured_image_id,
     body_blocks: body.body_blocks,
     seo_title: body.seo_title,
@@ -266,7 +265,7 @@ test('WordPress import relaxes SEO and feature-image requirements', async () => 
   assert.match(importer, /authorId: author\.id/)
 })
 
-test('WordPress normalization prioritizes Yoast SEO fields and keeps fallbacks', () => {
+test('WordPress normalization prioritizes Yoast SEO fields and leaves missing metadata empty', () => {
   const normalized = normalizeWordPressItem({
     id: 1,
     slug: 'yoast-page',
@@ -304,7 +303,8 @@ test('WordPress normalization prioritizes Yoast SEO fields and keeps fallbacks',
 
   assert.equal(fallback.focusKeyphrase, null)
   assert.equal(fallback.seoTitle, 'Fallback title')
-  assert.equal(fallback.metaDescription, 'Fallback excerpt')
+  assert.equal(fallback.metaDescription, null)
+  assert.equal(fallback.seoSources.metaDescription, 'missing')
 })
 
 test('WordPress user normalization imports a safe truncated bio', () => {

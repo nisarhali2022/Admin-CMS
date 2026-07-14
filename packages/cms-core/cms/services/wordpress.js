@@ -147,7 +147,6 @@ export function normalizeWordPressItem(item) {
     ? item.yoast_head_json
     : null
   const title = decodeHtml(stripRendered(item.title))
-  const excerpt = decodeHtml(stripRendered(item.excerpt))
   const bridgeSeoTitle = decodeHtml(cmsYoast?.seoTitle)
   const yoastSeoTitle = decodeHtml(yoastHead?.title)
   const yoastMetaDescription = decodeHtml(yoastHead?.description)
@@ -158,7 +157,6 @@ export function normalizeWordPressItem(item) {
     id: item.id,
     slug: item.slug,
     title,
-    excerpt,
     contentHtml: stripRendered(item.content),
     status: item.status,
     date: item.date_gmt || item.date,
@@ -167,7 +165,7 @@ export function normalizeWordPressItem(item) {
     featuredMediaId: item.featured_media || null,
     focusKeyphrase: focusKeyphrase || null,
     seoTitle: bridgeSeoTitle || yoastSeoTitle || title || null,
-    metaDescription: yoastMetaDescription || bridgeMetaDescription || excerpt || null,
+    metaDescription: yoastMetaDescription || bridgeMetaDescription || null,
     seoSources: {
       focusKeyphrase: focusKeyphrase ? 'yoast' : 'missing',
       seoTitle: bridgeSeoTitle
@@ -181,9 +179,7 @@ export function normalizeWordPressItem(item) {
         ? 'yoast_head_json'
         : bridgeMetaDescription
           ? 'yoast'
-          : excerpt
-            ? 'wordpress'
-            : 'missing',
+          : 'missing',
     },
     yoastBridgeProvided: Boolean(cmsYoast),
   }

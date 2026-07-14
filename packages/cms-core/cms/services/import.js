@@ -168,16 +168,16 @@ function buildTemplateContentData(templateKey, item) {
 
   if (templateKey === 'home') {
     defaults.heroTitle = item.title
-    defaults.heroText = item.excerpt || text
+    defaults.heroText = text
   } else if (templateKey === 'about') {
     defaults.introTitle = item.title
-    defaults.introText = item.excerpt || ''
+    defaults.introText = ''
     defaults.bodyText = text
   } else if (templateKey === 'contact') {
     defaults.contactIntro = text
   } else if (templateKey === 'packages') {
     defaults.introTitle = item.title
-    defaults.introText = item.excerpt || text
+    defaults.introText = text
   } else {
     defaults.bodyText = text
   }
@@ -212,7 +212,7 @@ function createReport() {
       records: 0,
       focusKeyphrase: { yoast: 0, missing: 0 },
       seoTitle: { yoast: 0, yoast_head_json: 0, wordpress: 0, missing: 0 },
-      metaDescription: { yoast: 0, yoast_head_json: 0, wordpress: 0, missing: 0 },
+      metaDescription: { yoast: 0, yoast_head_json: 0, missing: 0 },
     },
   }
 }
@@ -668,7 +668,6 @@ export async function importWordPressForWebsite(websiteId, payload) {
           {
             title: post.title || `Imported Post ${post.id}`,
             slug: post.slug || normalizeSlug(post.title, `post-${post.id}`),
-            excerpt: post.excerpt || null,
             authorId: author.id,
             categoryId: category.id,
             featuredImageId: featuredMedia?.id || null,

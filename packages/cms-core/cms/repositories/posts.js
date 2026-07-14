@@ -2,7 +2,7 @@ import { serializePost, serializePosts } from '../serializers/posts.js'
 import { supabaseAdminRequest } from '../../supabase/adminRest.js'
 
 const POST_SELECT =
-  'id,website_id,category_id,author_id,title,slug,excerpt,featured_image_id,body_html,body_blocks,focus_keyphrase,seo_title,meta_description,canonical_url,robots_meta,og_image_id,sitemap_include,published_at,created_at,updated_at'
+  'id,website_id,category_id,author_id,title,slug,featured_image_id,body_html,body_blocks,focus_keyphrase,seo_title,meta_description,canonical_url,robots_meta,og_image_id,sitemap_include,published_at,created_at,updated_at'
 
 function toDatabasePayload(payload) {
   return {
@@ -10,7 +10,6 @@ function toDatabasePayload(payload) {
     author_id: payload.authorId,
     title: payload.title,
     slug: payload.slug,
-    excerpt: payload.excerpt,
     featured_image_id: payload.featuredImageId,
     body_html: payload.bodyHtml,
     body_blocks: payload.bodyBlocks,

@@ -283,7 +283,6 @@ as $$
   select jsonb_build_object(
     'title', p.title,
     'slug', p.slug,
-    'excerpt', p.excerpt,
     'publishedAt', p.published_at,
     'author', jsonb_build_object(
       'name', a.name,
@@ -358,7 +357,6 @@ begin
       jsonb_build_object(
         'title', p.title,
         'slug', p.slug,
-        'excerpt', p.excerpt,
         'publishedAt', p.published_at,
         'author', jsonb_build_object(
           'name', a.name,
@@ -404,7 +402,6 @@ begin
       and (
         $3 is null
         or p.title ilike '%' || $3 || '%'
-        or coalesce(p.excerpt, '') ilike '%' || $3 || '%'
       )
     order by p.published_at desc nulls last, p.created_at desc
     limit safe_limit

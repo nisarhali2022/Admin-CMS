@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TiptapImage from '@tiptap/extension-image'
@@ -42,9 +42,9 @@ const toolbarButtonClass =
 const MIN_IMAGE_WIDTH = 120
 const MAX_IMAGE_WIDTH = 1200
 const IMAGE_SIZE_PRESETS = [
-  { label: 'Small', width: 300 },
-  { label: 'Medium', width: 600 },
-  { label: 'Large', width: null },
+  { label: 'S', accessibleLabel: 'Small image, 300 pixels', width: 300 },
+  { label: 'M', accessibleLabel: 'Medium image, 600 pixels', width: 600 },
+  { label: 'L', accessibleLabel: 'Large image, full width', width: null },
 ]
 
 function sanitizeImageWidth(value, maxWidth = MAX_IMAGE_WIDTH) {
@@ -53,8 +53,22 @@ function sanitizeImageWidth(value, maxWidth = MAX_IMAGE_WIDTH) {
   return Math.min(Math.max(number, MIN_IMAGE_WIDTH), maxWidth)
 }
 
-function getEditorImageMaxWidth(editor) {
-  const editorWidth = editor?.view?.dom?.clientWidth || MAX_IMAGE_WIDTH
+function getEditorView(editor) {
+  if (!editor || editor.isDestroyed) return null
+
+  try {
+    return editor.view || null
+  } catch {
+    return null
+  }
+}
+
+function getEditorImageMaxWidth(editor, container) {
+  const mountedEditorWidth = container?.isConnected
+    ? container.closest('.ProseMirror')?.clientWidth || container.parentElement?.clientWidth
+    : 0
+  const editorView = mountedEditorWidth ? null : getEditorView(editor)
+  const editorWidth = mountedEditorWidth || editorView?.dom?.clientWidth || MAX_IMAGE_WIDTH
   return Math.max(MIN_IMAGE_WIDTH, Math.min(MAX_IMAGE_WIDTH, editorWidth - 16))
 }
 
@@ -85,7 +99,7 @@ function createResizableImageNodeView({ node, editor, getPos }) {
       image.removeAttribute('data-media-id')
     }
 
-    const safeWidth = sanitizeImageWidth(width, getEditorImageMaxWidth(editor))
+    const safeWidth = sanitizeImageWidth(width, getEditorImageMaxWidth(editor, wrapper))
     if (safeWidth) {
       image.setAttribute('width', String(safeWidth))
       image.style.width = `${safeWidth}px`
@@ -98,12 +112,13 @@ function createResizableImageNodeView({ node, editor, getPos }) {
   }
 
   function updateImageWidth(width) {
-    const safeWidth = sanitizeImageWidth(width, getEditorImageMaxWidth(editor))
+    const safeWidth = sanitizeImageWidth(width, getEditorImageMaxWidth(editor, wrapper))
     const position = typeof getPos === 'function' ? getPos() : null
-    if (!safeWidth || typeof position !== 'number') return
+    const editorView = getEditorView(editor)
+    if (!safeWidth || typeof position !== 'number' || !editorView) return
 
-    editor.view.dispatch(
-      editor.view.state.tr.setNodeMarkup(position, undefined, {
+    editorView.dispatch(
+      editorView.state.tr.setNodeMarkup(position, undefined, {
         ...currentNode.attrs,
         width: safeWidth,
       })
@@ -126,7 +141,7 @@ function createResizableImageNodeView({ node, editor, getPos }) {
 
     function resize(moveEvent) {
       if (!isResizing) return
-      const maxWidth = getEditorImageMaxWidth(editor)
+      const maxWidth = getEditorImageMaxWidth(editor, wrapper)
       const nextWidth = sanitizeImageWidth(startWidth + moveEvent.clientX - startX, maxWidth)
       if (!nextWidth) return
       image.style.width = `${nextWidth}px`
@@ -212,7 +227,20 @@ export default function RichTextEditor({
   codeLabel = 'HTML content',
 }) {
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false)
+  const [mediaSearchQuery, setMediaSearchQuery] = useState('')
   const [codeDraft, setCodeDraft] = useState(value || '')
+
+  const filteredMedia = useMemo(() => {
+    const query = mediaSearchQuery.trim().toLowerCase()
+    if (!query) return media
+    return media.filter((item) =>
+      [item.originalFilename, item.altText, item.caption, item.mimeType, item.storagePath]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    )
+  }, [media, mediaSearchQuery])
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -579,13 +607,21 @@ export default function RichTextEditor({
               <DialogHeader>
                 <DialogTitle>Select image</DialogTitle>
                 <DialogDescription>
-                  Choose an image and insert it as small, medium, or full width.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="max-h-[500px] overflow-y-auto pr-1">
-                {media.length > 0 ? (
+                Choose an image and insert it as S, M, or L width.
+              </DialogDescription>
+            </DialogHeader>
+            <input
+              type="search"
+              value={mediaSearchQuery}
+              onChange={(event) => setMediaSearchQuery(event.target.value)}
+              placeholder="Search images"
+              aria-label="Search editor images"
+              className="w-full rounded-[3px] border border-[#8c8f94] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#3858e9]"
+            />
+            <div className="max-h-[500px] overflow-y-auto pr-1">
+                {filteredMedia.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {media.map((item) => (
+                    {filteredMedia.map((item) => (
                       <div
                         key={item.id}
                         className="rounded-[3px] border border-[#dcdcde] bg-white p-2"
@@ -613,13 +649,19 @@ export default function RichTextEditor({
                               onClick={() => insertMediaIntoContent(item, preset.width)}
                               className="rounded-[3px] border border-[#3858e9] bg-white px-2 py-1 text-[12px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
                             >
-                              {preset.label}
+                              <span aria-label={preset.accessibleLabel} title={preset.accessibleLabel}>
+                                {preset.label}
+                              </span>
                             </button>
                           ))}
                         </div>
                       </div>
                     ))}
                   </div>
+                ) : media.length > 0 ? (
+                  <p className="text-[13px] font-normal text-[#50575e]">
+                    No images match your search.
+                  </p>
                 ) : (
                   <p className="text-[13px] font-normal text-[#50575e]">
                     Upload media first, then use Add Media.
