@@ -14,6 +14,62 @@ npm run build
 
 If a command is not available yet, add it or document the gap in the implementation task.
 
+## Local SEO, Content Quality, And Redirect Lookup (2026-07-16)
+
+Apply `202607160001_local_seo_quality_and_redirect_lookup.sql` before checking exact redirects against Supabase.
+
+Test locally:
+
+- Apply `202607160002_home_visible_date_tokens.sql`, then confirm the Home H1 and daily quiz H2 both use `{date}` and show the same visible Karachi date. Before 6:00 PM PKT, Home metadata/schema/sitemap use that same date; from 6:00 PM to midnight they intentionally use tomorrow's SEO date.
+- Post, custom page, and fixed template metadata honors populated CMS canonical and robots fields, but remains safe when those fields are blank or invalid.
+- `/about`, `/contact`, and `/privacy` redirect permanently while page sitemap output contains only `/about-us`, `/contact-us`, and `/privacy-policy`.
+- `/telenor-quiz-today` and `/404-page` do not appear in a sitemap and use `noindex,follow` in CMS data.
+- An active `301` and `302` redirect, no-match result, trailing-slash request, API path, asset path, `robots.txt`, `ads.txt`, and sitemap routes behave correctly.
+- The CMS content-check panel displays advisory warnings but the Save button remains available.
+
+## WordPress-To-Supabase Cutover Regression
+
+Run in the Admin CMS repository:
+
+```powershell
+npm.cmd test
+npm.cmd run lint
+node --test test/docs-readiness.test.js
+```
+
+Run in the public frontend repository:
+
+```powershell
+npm.cmd test
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+rg -n -i "wordpress|wp-json|wp_admin" app components lib scripts package.json test next.config.js
+```
+
+Verify the public RPC suite with the anon key against an inactive and an active staging website: unknown/inactive domains return no data; pagination totals, author filtering, title/body search, category `postCount`, and `list_public_content_index` results match the approved baseline. Confirm a bad revalidation secret returns `401`, CMS redirects skip API/assets/sitemap/robots/ads routes, and the midnight job refreshes the date-aware homepage.
+
+## Recorded Migration Website Import
+
+On 2026-07-15, the migration website import completed with 107 posts, 7 pages, 7 categories, 1 author, and 137 image assets. The importer reported no errors or warnings, skipped the reserved `/blog` Page, and left two MP4 source assets for separate video handling.
+
+Before activating the migration website for localhost verification, confirm the imported counts against the WordPress baseline. After activation, verify homepage, blog, category, fixed/custom pages, search, posts, images, robots, sitemap, redirects, and ads.txt behavior.
+
+To seed the missing Home template, first temporarily deactivate the selected website in setup/provisioning, then run this from the Admin CMS repository:
+
+```powershell
+$env:CMS_SITE_DOMAIN='test.telenorquiztoday.com.pk'
+node --env-file=.env.local setup-provisioning/scripts/seed-telenor-home-content.mjs --apply
+```
+
+The script must report either `Home template created and seeded successfully.` or `Existing Home template content seeded successfully.` Re-activate the website, restart or refresh the frontend, and verify the root route shows the daily quiz but no previous hard-coded homepage text or optional sections. In the CMS Home template, confirm the visual editor is blank; required author, feature image, and SEO fields remain populated. Add one harmless Home field, confirm it appears after refresh, then clear it again.
+
+For the main homepage text, use the visual editor labelled `Start writing homepage content...`. It accepts up to 100,000 characters. Keep the existing heading that starts `Today Telenor Answer` in that content. After saving and refreshing the local root route, verify this exact order: the manual content through that heading, the current global Quiz CMS cards, six Latest News cards, then the rest of the unchanged manual content. Media inserted through the Home editor must also render from the selected CMS media record.
+
+When applying `202607150001_preserve_fixed_page_legacy_paths.sql`, verify that an imported `/contact-us` custom page is promoted to the Contact template, `/contact-us` returns HTTP 200 from the local frontend, and the page sitemap contains only one `/contact-us` entry.
+
+`202607150003_reconcile_publish_only_content.sql` was applied and locally verified on 2026-07-15. `/blog` renders imported cards, `/telenor/telenor-sms-packages` returns HTTP 200 with body content, and `/post-sitemap.xml` contains the blog archive plus 107 imported post URLs. All sitemap URLs use the configured test domain.
+
 ## Admin Auth
 
 Test:
@@ -272,6 +328,27 @@ Test:
 - quiz table does not store title, slug, description, visible date, SEO date, or page metadata
 - homepage/page SEO remains in website template/settings data
 
+## Homepage visual content and Table of Contents
+
+Test:
+
+- create or edit Home content with H1, H2, H3, H4, paragraphs, links, lists, images, and a table
+- confirm the public homepage uses the responsive heading hierarchy, 15px reading text, navy headings, orange links/list markers, and left-aligned rich text
+- confirm the collapsed Table of Contents appears after the manual introduction and before `Today Telenor Answer...`
+- expand the Table of Contents using mouse and keyboard; confirm every entry scrolls to the matching heading
+- confirm the manual `Today Telenor Answer...` heading is directly above the global daily quiz cards
+- confirm exactly one Latest News heading/grid appears after the quiz and contains six cards
+- confirm the imported legacy Latest News heading and Explore link are not shown a second time, while the Home editor content remains unchanged
+- run frontend checks: `npm.cmd test`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`
+
+## No legacy WordPress runtime
+
+Test:
+
+- run `npm.cmd test` and confirm the legacy-runtime guard passes
+- run `rg -n -i "wordpress|wp-json|wp_admin|wp-admin" app components lib scripts package.json test next.config.js`
+- confirm the audit returns no source matches; test construction intentionally avoids those literal terms so the command remains clean
+
 ## Manual Regression Checklist
 
 Before considering v1 ready:
@@ -288,3 +365,123 @@ Before considering v1 ready:
 - attempt cross-website author assignment and confirm rejection
 - deactivate one website and confirm public reads hide it
 - update global quiz and confirm it is not website-scoped
+
+## Local website-domain resolution
+
+Test with `CMS_SITE_DOMAIN` configured:
+
+- open both `http://localhost:3000` and `http://127.0.0.1:3000`
+- confirm each URL resolves the same configured Supabase website, Home content, quiz, posts, and redirect rules
+- confirm an actual custom/production host resolves from its request host rather than using `CMS_SITE_DOMAIN`
+- confirm IPv6 loopback (`[::1]`) and Vercel preview hosts use the configured development/preview domain
+
+## Local public-route smoke test
+
+Test with real imported data:
+
+- `/blog` shows imported posts and valid pagination
+- apply `202607170001_public_post_reading_time.sql`, then confirm article cards with different body lengths show their individual `N min read` labels instead of every card falling back to `1 min read`; inspect the public list RPC to confirm it returns `readingTimeMinutes` but not `bodyHtml`
+- on desktop and in the open mobile menu, confirm the link for the current Home, Blog, or category route has the filled selected-button style and `aria-current="page"`; a category article keeps its parent category selected
+- a category archive such as `/telenor` shows only its matching posts
+- a canonical post route such as `/telenor/telenor-sms-packages` renders its content
+- `/search?q=telenor` returns matching posts
+- `/author/{author-slug}` renders the author profile and matching posts
+- `/about-us` renders the fixed About template
+- an invalid page such as `/blog?page=999` returns 404
+- a wrong category/post combination permanently redirects to the canonical category path
+
+## robots, sitemaps, and ads.txt
+
+Test:
+
+- `/robots.txt` returns 200 and references `/sitemap_index.xml`
+- sitemap index and child sitemaps return valid XML and include public CMS content
+- when CMS AdSense is disabled, `/ads.txt` returns 404 even if an ads.txt value is retained in settings
+- when CMS AdSense is enabled and ads.txt text is configured, `/ads.txt` returns 200 with only that text
+
+## Local revalidation authorization
+
+Test:
+
+- POST to `/api/revalidate` with an invalid `x-cms-revalidation-secret`; confirm HTTP 401
+- set a non-empty `CMS_REVALIDATION_SECRET` in the frontend `.env.local` file; never use a browser-visible `NEXT_PUBLIC_*` variable
+- in the selected Admin CMS website's **Settings → Revalidation webhook**, save the matching secret and the local webhook URL
+- restart the frontend development server after changing its environment file
+- POST a valid revalidation payload from the Admin CMS and confirm the expected paths and cached CMS reads refresh
+
+Latest local result (2026-07-16): `test.telenorquiztoday.com.pk` saved `http://127.0.0.1:3000/api/revalidate` and its encrypted matching secret. Its CMS settings update called the frontend successfully with HTTP 200.
+
+## Global quiz revalidation
+
+After configuring an active website webhook, save a complete five-question
+global quiz and verify:
+
+- the quiz save succeeds even if one website webhook is unavailable;
+- every active website with a webhook receives `global_quiz.updated`;
+- the payload requests `/`, `/page-sitemap.xml`, and
+  `/sitemap_index.xml`;
+- the public Home updates immediately after a successful webhook response;
+- inactive websites receive no quiz revalidation request.
+
+## Current final-validation status
+
+- Frontend: tests (52), lint, and production build pass.
+- Admin CMS: tests (95), lint, and production build pass (75 seconds in the normal local environment).
+- `git diff --check` passes in both projects; the only output is Windows line-ending warnings.
+- A restricted validation sandbox can time out before compiling the Admin CMS, but this does not occur in the normal local build.
+
+## Homepage and sidebar post-display regression
+
+With at least 30 published posts available, refresh the local homepage several times and verify:
+
+- Latest News always contains exactly six unique cards from the newest 30 published posts. Cards 1 and 2 are the two newest posts; cards 3 through 6 are four unique random posts from the remaining pool.
+- Recent Posts contains exactly the five newest published posts in newest-first order.
+- Popular Posts contains exactly five unique cards, shares no post with Recent Posts, and is understood as a rotating recent-post list rather than analytics data.
+- `/blog`, `/telenor`, `/telecom`, `/global`, and `/tech` each begin with the last published matching post.
+
+Automated coverage must verify candidate-pool sizes, uniqueness, separation from Recent Posts, and preservation of the public RPC newest-first ordering. Run the frontend validation commands, then run `node --test test/docs-readiness.test.js` from the Admin CMS repository.
+
+## Original WordPress post-date regression
+
+- Import a WordPress post with `date_gmt` and confirm the saved CMS `published_at` matches that original timestamp rather than import time.
+- Edit the imported post through the CMS and confirm `published_at` remains unchanged; create a new CMS post and confirm it receives the current time.
+- Run `repair-wordpress-post-dates.mjs` without `--apply`; confirm `wouldUpdate` is reported and no CMS PATCH request is made.
+- Run it with `--apply`; confirm only matched slugs receive a changed `published_at`, no content/media/SEO/category fields change, and the revalidation result is reported.
+- Confirm `/blog`, `/telenor`, `/telecom`, `/global`, and `/tech` begin with the source site's latest matching post after revalidation.
+
+## Custom CMS Page layout and canonical-override regression
+
+- In **Pages**, choose **Add New Page** and confirm the Canonical URL override input has no automatic-path or explanatory text beneath it. Leave it empty for the generated public canonical, or enter a value only when deliberately changing the canonical.
+- Change the Slug to `example-help`, save the Page, and confirm no generated canonical value is stored in the CMS record.
+- Save with the default `index,follow`, then inspect the public page metadata: its canonical must be generated from the configured public origin and the page path. Save an override and confirm it takes priority; save an explicit robots setting and confirm it takes priority.
+- Confirm a custom CMS Page contains only the Privacy-style breadcrumb, H1, and CMS body. It must not contain a last-updated date, post metadata, a featured image, table of contents, ads, share controls, or a sidebar.
+- Confirm Blog and the named category archives still use their archive grid, sidebar, pagination, and newest-first ordering. Confirm a normal post detail page still has its post-only presentation.
+
+## Contact, legal-page, canonical, and robots regression
+
+## SEO, performance, and technical hardening regression
+
+- Set `CMS_SITE_DOMAIN=test.telenorquiztoday.com.pk`, then verify `/`, `/robots.txt`, `/sitemap_index.xml`, `/post-sitemap.xml`, `/page-sitemap.xml`, and `/category-sitemap.xml` publish only `https://telenorquiztoday.com.pk` crawler-facing URLs.
+- Inspect homepage and post JSON-LD. Organization and Article publisher logos, `url`, `@id`, breadcrumb URLs, images, and author URLs must be absolute URLs; no schema value may begin with `/assets/`.
+- Confirm CMS reads still resolve through `CMS_SITE_DOMAIN`, while repeated metadata/page reads reuse request-scoped adapters without changing public RPC names or payloads.
+- Confirm redirect lookup skips `/api/*`, `/_next/*`, `robots.txt`, `ads.txt`, favicon, XML sitemap routes, and file assets; normal redirect paths retain exact normalized `301` or `302` behavior.
+- Confirm response headers include `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy`. On staging only, set `CSP_REPORT_ONLY=true`, inspect browser CSP reports or console output, and do not enforce CSP until required Analytics and AdSense sources are confirmed.
+- Run `node --env-file=.env.local scripts/audit-cms-media.mjs --strict`. It is read-only and must report zero public indexed images with missing width/height metadata.
+- Run frontend tests, lint, a production build after local dev servers stop, `npm.cmd audit --omit=dev`, `git diff --check`, and `node --test test/docs-readiness.test.js`.
+
+### Recorded local recheck (2026-07-18)
+
+- Frontend tests passed 79 of 79; lint passed; Admin CMS documentation readiness passed 13 of 13.
+- Home, Blog, a post, fixed pages, category archives, author archive, and Editorial Policy returned `200`, exactly one H1, `index,follow`, and a `https://telenorquiztoday.com.pk` canonical.
+- The public media audit checked 114 image-bearing resources with zero missing dimensions.
+- The full local sitemap crawl exceeded the two-minute safe limit while the dev server was active. Repeat it from a production build or staging; no representative route failed.
+
+## Contact, legal-page, canonical, and robots regression
+
+- Confirm `/contact-us` has CMS text and static contact details but no non-functional form or client-side success message.
+- Confirm About, Contact, Privacy, Terms, Disclaimer, Editorial Policy, Corrections Policy, and custom CMS pages do not render a **Related pages** panel.
+- Confirm `/privacy` returns a permanent redirect to `/privacy-policy`; the canonical and sitemap URL remain `/privacy-policy`.
+- Confirm `/privacy-policy`, `/terms-of-service`, and `/disclaimer` render the shared full-width legal layout without sidebar, ads, sharing controls, or table of contents.
+- Apply `202607170002_default_index_follow_robots.sql`, then confirm existing blank/null Post, Page, and Template `robots_meta` values become `index,follow`, while an explicit `noindex,follow` choice remains unchanged.
+- If a historic custom Page already uses a reserved frontend route such as `/blog`, delete or rename it in the CMS after the migration. The migration deliberately skips it because the public archive owns that route.
+- In the CMS, confirm new Posts and Pages/Templates select `index,follow` by default. Leave Canonical URL override empty and confirm the public page emits its generated canonical; save an override and confirm it replaces that generated value.

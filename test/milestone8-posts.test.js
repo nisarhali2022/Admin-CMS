@@ -282,7 +282,7 @@ test('post service rejects inactive authors and missing media references', async
   )
 })
 
-test('updating a post saves as published without status field', async () => {
+test('updating a post preserves its original publication date', async () => {
   setValidEnv()
   const calls = []
 
@@ -322,5 +322,5 @@ test('updating a post saves as published without status field', async () => {
   assert.equal(result.status, undefined)
   assert.equal(patchCall.options.method, 'PATCH')
   assert.equal(body.status, undefined)
-  assert.ok(body.published_at)
+  assert.equal(body.published_at, undefined)
 })

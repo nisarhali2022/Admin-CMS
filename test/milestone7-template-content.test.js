@@ -75,6 +75,23 @@ test('template content validator accepts supported templates and rejects schedul
   )
 })
 
+test('Home rich text accepts long sanitized manual homepage content', () => {
+  const longRichText = `<p>${'Manual homepage content '.repeat(400)}<script>alert('unsafe')</script></p>`
+  const payload = validateTemplateContentPayload({
+    templateKey: 'home',
+    path: '/',
+    title: 'Home',
+    contentData: { heroText: longRichText },
+    seoTitle: 'Home SEO',
+    metaDescription: 'Home meta description',
+    authorId,
+    ogImageId: mediaId,
+  })
+
+  assert.ok(payload.contentData.heroText.length > 5000)
+  assert.doesNotMatch(payload.contentData.heroText, /<script/i)
+})
+
 test('template service validates media references before creating content', async () => {
   setValidEnv()
   const calls = []

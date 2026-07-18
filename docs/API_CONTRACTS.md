@@ -2,6 +2,13 @@
 
 All admin APIs are Next.js route handlers. All public reads are Supabase RPCs/views called by separate public websites.
 
+## Local SEO And Redirect Lookup Update (2026-07-16)
+
+- `get_public_redirect(domain text, from_path text)` is anon-safe and returns one active redirect as `{ fromPath, toUrl, redirectType }`, or `null` when no exact path matches.
+- `list_public_redirects(domain text)` remains available for compatibility, but public middleware should use the exact lookup RPC so it does not download every rule for each request.
+- Public content responses already provide optional `canonicalUrl`, `robotsMeta`, and resolved `ogImage` SEO fields. Public frontends must use those fields only when populated; otherwise they must retain their generated canonical, index/follow, and default social-image values.
+- `{date}` is supported in Home template rich HTML and Home SEO fields only. It resolves to the Karachi date at public render time.
+
 ## Admin API Rules
 
 All `/api/cms/...` routes must:
@@ -467,6 +474,11 @@ Required public functions/views:
 - `get_public_site_settings(domain)`
 - `list_public_redirects(domain)`
 - `cms_public_get_current_quiz()`
+- `list_public_posts_page(domain, category_slug, author_slug, search, limit_count, offset_count)`
+- `get_public_author(domain, author_slug)`
+- `list_public_content_index(domain)`
+
+`list_public_posts_page` returns `{ items, total, hasMore }`; it preserves the older list RPC for compatibility, adds title/body search and author filtering, and is limited to safe pagination bounds. Every list item includes `readingTimeMinutes`, calculated from the stored CMS article HTML. It does not include the full article body, so archive-card payloads remain small. `list_public_categories` includes `postCount`. `list_public_content_index` returns published template, custom-page, post, category, and author sitemap records only.
 
 Resolved public image object:
 
@@ -528,6 +540,14 @@ Do not return:
 - service-only IDs unless needed
 - revalidation secrets
 - inactive website data
+- unpublished or deleted content
+- non-public Storage paths
+
+## Homepage And Revalidation Contract Updates
+
+Home template saves validate rich HTML and repeatable quiz-information, step, and FAQ collections. `{date}` is accepted only by the public homepage rendering contract, not as a general content macro.
+
+The public app revalidation endpoint authenticates `x-cms-revalidation-secret` against server-only `CMS_REVALIDATION_SECRET`, revalidates supplied absolute paths plus the shared `cms` cache tag, and returns `401` for an incorrect secret. CMS webhook payloads may include `event`, `resourceType`, `resourceId`, and `paths`.
 
 ## Public Revalidation Webhook
 

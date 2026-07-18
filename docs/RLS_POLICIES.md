@@ -10,6 +10,12 @@ Use these settings:
 - Automatically expose new tables: no
 - Enable automatic RLS: yes
 
+## Local SEO And Redirect Lookup Update (2026-07-16)
+
+`get_public_redirect(domain text, from_path text)` is a `security definer` public RPC with a fixed `search_path`. It resolves only an active redirect for an active website and returns only source path, destination URL, and `301`/`302` status. Anon has execute permission on the function but no direct table access to `cms_redirects`.
+
+The `cms_redirects_public_lookup_idx` partial index covers active `(website_id, from_path)` lookups. Existing `list_public_redirects` remains read-only and compatible.
+
 Automatic RLS only applies to tables created after the trigger/setting is active. Existing tables still need RLS enabled manually.
 
 ## Access Model
@@ -69,6 +75,8 @@ Every public read must enforce:
 - website domain resolves to an active website
 - returned rows match the resolved `website_id`
 - inactive websites return no content
+- posts, pages, and templates are published and not deleted
+- categories and authors are not deleted; authors are active
 
 Resource-specific public visibility:
 
@@ -78,6 +86,12 @@ Resource-specific public visibility:
 - Site settings expose only safe public fields, including public AdSense fields.
 - Media rows are returned only when referenced by public-safe content, authors, or settings for the same website.
 - Import jobs are admin-only and never public.
+
+## Public Frontend RPC Hardening
+
+The additive frontend RPCs in `202607140002_public_frontend_rpcs.sql` are security-definer functions but grant `execute` only to `anon`. Each resolves `cms_public_website_id(domain)` first, so inactive or unknown domains receive empty/null data. The paginated posts RPC, author RPC, category counts, and sitemap content index additionally filter by public visibility; they must never return drafts, deleted records, secret settings, or `cms_media.storage_path`.
+
+The public Next.js app may contain only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. `SUPABASE_SERVICE_ROLE_KEY`, `CMS_ENCRYPTION_KEY`, and the CMS revalidation secret remain server-only.
 
 Safe public AdSense fields are:
 

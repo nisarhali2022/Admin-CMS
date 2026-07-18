@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test, afterEach } from 'node:test'
+import { triggerRevalidationForActiveWebsites } from 'cms-core/cms/services/revalidation'
 import { getGlobalQuiz, updateGlobalQuiz } from 'cms-core/quiz/state'
 import { normalizeQuizQuestions, validateQuizPayload } from 'cms-core/quiz/validators'
 
@@ -169,6 +170,85 @@ test('quiz state falls back to legacy id column before corrective migration is a
   assert.equal(quiz.quizId, '22222222-2222-4222-8222-222222222222')
   assert.equal(quiz.global, true)
   assert.ok(calls.some((call) => call.url.includes('select=id')))
+})
+
+test('global quiz revalidation notifies every active website and keeps failures visible', async () => {
+  setAdminEnv()
+  const calls = []
+  const activeWebsiteId = '33333333-3333-4333-8333-333333333333'
+  const inactiveWebsiteId = '44444444-4444-4444-8444-444444444444'
+
+  global.fetch = async (url, options = {}) => {
+    const stringUrl = String(url)
+    calls.push({ url: stringUrl, options })
+
+    if (stringUrl.includes('/rest/v1/cms_websites?select=')) {
+      return Response.json([
+        {
+          id: activeWebsiteId,
+          name: 'Public site',
+          slug: 'public-site',
+          primary_domain: 'site.example',
+          is_active: true,
+        },
+        {
+          id: inactiveWebsiteId,
+          name: 'Inactive site',
+          slug: 'inactive-site',
+          primary_domain: 'inactive.example',
+          is_active: false,
+        },
+      ])
+    }
+
+    if (stringUrl.includes('/rest/v1/cms_site_settings?select=')) {
+      assert.match(stringUrl, new RegExp(`website_id=eq\\.${activeWebsiteId}`))
+      return Response.json([
+        {
+          website_id: activeWebsiteId,
+          revalidation_url: 'https://site.example/api/revalidate',
+          revalidation_secret_encrypted: null,
+        },
+      ])
+    }
+
+    if (stringUrl === 'https://site.example/api/revalidate') {
+      const body = JSON.parse(options.body)
+      assert.deepEqual(body.paths, ['/', '/page-sitemap.xml', '/sitemap_index.xml'])
+      assert.equal(body.event, 'global_quiz.updated')
+      return Response.json({ revalidated: true })
+    }
+
+    throw new Error(`Unexpected URL ${stringUrl}`)
+  }
+
+  const result = await triggerRevalidationForActiveWebsites({
+    event: 'global_quiz.updated',
+    resourceType: 'global_quiz',
+    resourceId: 'quiz-id',
+    paths: ['/', '/page-sitemap.xml', '/sitemap_index.xml'],
+  })
+
+  assert.equal(result.attempted, true)
+  assert.equal(result.ok, true)
+  assert.equal(result.results.length, 1)
+  assert.equal(result.results[0].websiteId, activeWebsiteId)
+  assert.equal(result.results[0].websiteDomain, 'site.example')
+  assert.equal(
+    calls.filter((call) => call.url === 'https://site.example/api/revalidate').length,
+    1
+  )
+  assert.ok(calls.every((call) => !call.url.includes(inactiveWebsiteId)))
+})
+
+test('global quiz API saves the quiz before requesting homepage revalidation', async () => {
+  const source = await readFile('app/api/quiz/route.js', 'utf8')
+
+  assert.match(source, /const quiz = await updateGlobalQuiz/)
+  assert.match(source, /triggerRevalidationForActiveWebsites/)
+  assert.match(source, /event: 'global_quiz\.updated'/)
+  assert.match(source, /paths: \['\/', '\/page-sitemap\.xml', '\/sitemap_index\.xml'\]/)
+  assert.match(source, /cmsJson\(\{ quiz, revalidation \}\)/)
 })
 
 test('global quiz migrations create and simplify current-only quiz storage', async () => {

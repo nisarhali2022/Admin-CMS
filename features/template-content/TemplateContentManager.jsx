@@ -6,6 +6,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
+import ContentQualityPanel from '@/components/admin/ContentQualityPanel'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -29,11 +30,21 @@ const templateOptions = {
       ctaLabel: '',
       ctaHref: '',
       heroImage: { mediaId: null },
+      introHtml: '',
+      latestNewsTitle: 'Latest News',
+      quizHeadingTemplate: 'Today Telenor Answer {date}',
+      quizInfoSections: [],
+      conclusionHeading: 'Conclusion',
+      conclusionHtml: '',
+      stepsHeading: 'Steps to Participate',
+      steps: [],
+      faqHeading: 'FAQs - My Telenor Answers Today',
+      faqs: [],
     },
   },
   about: {
     label: 'About',
-    defaultPath: '/about',
+    defaultPath: '/about-us',
     defaultTitle: 'About Us',
     primaryContentField: 'bodyText',
     featuredImageField: 'mainImage',
@@ -46,7 +57,7 @@ const templateOptions = {
   },
   contact: {
     label: 'Contact',
-    defaultPath: '/contact',
+    defaultPath: '/contact-us',
     defaultTitle: 'Contact',
     primaryContentField: 'contactIntro',
     contentData: {
@@ -59,7 +70,7 @@ const templateOptions = {
   },
   privacy: {
     label: 'Privacy',
-    defaultPath: '/privacy',
+    defaultPath: '/privacy-policy',
     defaultTitle: 'Privacy Policy',
     primaryContentField: 'bodyText',
     contentData: { bodyText: '' },
@@ -91,7 +102,7 @@ const emptySeo = {
   metaDescription: '',
   authorId: '',
   canonicalUrl: '',
-  robotsMeta: '',
+  robotsMeta: 'index,follow',
   featuredImageId: '',
 }
 
@@ -340,7 +351,7 @@ function getEmptyCustomPageForm() {
     metaDescription: '',
     authorId: '',
     canonicalUrl: '',
-    robotsMeta: '',
+    robotsMeta: 'index,follow',
     featuredImageId: '',
     sitemapInclude: true,
   }
@@ -363,7 +374,7 @@ function toForm(template, fallbackAuthorId = '') {
     metaDescription: template.metaDescription || '',
     authorId: template.authorId || fallbackAuthorId,
     canonicalUrl: template.canonicalUrl || '',
-    robotsMeta: template.robotsMeta || '',
+    robotsMeta: template.robotsMeta || 'index,follow',
     featuredImageId: getFeaturedImageId(
       template.templateKey,
       contentData,
@@ -385,7 +396,7 @@ function customPageToForm(page, fallbackAuthorId = '') {
     metaDescription: page.metaDescription || '',
     authorId: page.authorId || fallbackAuthorId,
     canonicalUrl: page.canonicalUrl || '',
-    robotsMeta: page.robotsMeta || '',
+    robotsMeta: page.robotsMeta || 'index,follow',
     featuredImageId: page.featuredImageId || '',
     sitemapInclude: Boolean(page.sitemapInclude),
   }
@@ -716,7 +727,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
       metaDescription: form.metaDescription || null,
       authorId: form.authorId || null,
       canonicalUrl: form.canonicalUrl || null,
-      robotsMeta: form.robotsMeta || null,
+      robotsMeta: form.robotsMeta || 'index,follow',
       ogImageId: form.featuredImageId || null,
       sitemapInclude: form.sitemapInclude,
     }
@@ -732,7 +743,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
       metaDescription: form.metaDescription || null,
       authorId: form.authorId || null,
       canonicalUrl: form.canonicalUrl || null,
-      robotsMeta: form.robotsMeta || null,
+      robotsMeta: form.robotsMeta || 'index,follow',
       featuredImageId: form.featuredImageId || null,
       sitemapInclude: form.sitemapInclude,
     }
@@ -1201,6 +1212,8 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         <TiptapPageEditor
           value={form.contentText}
           onChange={updateContentText}
+          placeholder={form.templateKey === 'home' ? 'Start writing homepage content...' : undefined}
+          codeLabel={form.templateKey === 'home' ? 'HTML homepage content' : undefined}
           media={media}
           editorMode={editorMode}
           setEditorMode={setEditorMode}
@@ -1208,6 +1221,15 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
           sanitizeHtml={sanitizeEditorHtml}
           sanitizeUrl={sanitizeUrl}
           wordCount={getTextWordCount(form.contentText)}
+        />
+
+        <ContentQualityPanel
+          entityType={form.templateKey === 'home' ? 'home' : 'page'}
+          contentHtml={form.contentText}
+          seoTitle={form.seoTitle}
+          metaDescription={form.metaDescription}
+          focusKeyphrase={form.focusKeyphrase}
+          featuredImage={selectedFeatureImage}
         />
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -1292,7 +1314,7 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
               />
             </label>
             <label className="block text-[13px] font-medium text-[#1f2330]">
-              Canonical URL
+              Canonical URL override (optional)
               <input
                 type="text"
                 value={form.canonicalUrl}
@@ -1311,7 +1333,6 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
                 }
                 className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               >
-                <option value="">Default robots</option>
                 <option value="index,follow">index,follow</option>
                 <option value="noindex,follow">noindex,follow</option>
                 <option value="index,nofollow">index,nofollow</option>

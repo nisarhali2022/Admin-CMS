@@ -16,6 +16,20 @@ function decodeHtml(value) {
     .trim()
 }
 
+export function normalizeWordPressPublicationDate(value) {
+  const source = String(value || '').trim()
+  if (!source) return null
+
+  // WordPress `date_gmt` has no offset, but its value is explicitly UTC.
+  const utcValue =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(source)
+      ? `${source}Z`
+      : source
+  const timestamp = Date.parse(utcValue)
+
+  return Number.isNaN(timestamp) ? null : new Date(timestamp).toISOString()
+}
+
 function getAuthHeader(credentials = {}) {
   const { username, applicationPassword } = credentials || {}
   if (!username || !applicationPassword) return {}
@@ -159,7 +173,7 @@ export function normalizeWordPressItem(item) {
     title,
     contentHtml: stripRendered(item.content),
     status: item.status,
-    date: item.date_gmt || item.date,
+    date: normalizeWordPressPublicationDate(item.date_gmt || item.date),
     authorId: item.author,
     categoryIds: Array.isArray(item.categories) ? item.categories : [],
     featuredMediaId: item.featured_media || null,

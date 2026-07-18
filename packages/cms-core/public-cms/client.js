@@ -67,17 +67,48 @@ export function createPublicCmsClient(config) {
         offset_count: offset,
       })
     },
+    listPostsPage(domain, {
+      categorySlug = null,
+      authorSlug = null,
+      search = null,
+      limit = 20,
+      offset = 0,
+    } = {}) {
+      return rpc('list_public_posts_page', {
+        domain: normalizeDomain(domain),
+        category_slug: categorySlug,
+        author_slug: authorSlug,
+        search,
+        limit_count: limit,
+        offset_count: offset,
+      })
+    },
     listCategories(domain) {
       return rpc('list_public_categories', { domain: normalizeDomain(domain) })
     },
     listAuthors(domain) {
       return rpc('list_public_authors', { domain: normalizeDomain(domain) })
     },
+    getAuthor(domain, slug) {
+      return rpc('get_public_author', {
+        domain: normalizeDomain(domain),
+        author_slug: slug,
+      })
+    },
     getSiteSettings(domain) {
       return rpc('get_public_site_settings', { domain: normalizeDomain(domain) })
     },
     listRedirects(domain) {
       return rpc('list_public_redirects', { domain: normalizeDomain(domain) })
+    },
+    getRedirect(domain, fromPath) {
+      return rpc('get_public_redirect', {
+        domain: normalizeDomain(domain),
+        from_path: fromPath,
+      })
+    },
+    listContentIndex(domain) {
+      return rpc('list_public_content_index', { domain: normalizeDomain(domain) })
     },
     getCurrentQuiz() {
       return rpc('cms_public_get_current_quiz', {})

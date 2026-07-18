@@ -2,6 +2,15 @@
 
 This folder is the source of truth for the single-admin multi-website CMS.
 
+The 2026-07-16 local SEO/content-quality follow-up and six-hour SEO/midnight visible Home-date behavior are documented in the API contracts, data model, RLS, testing plan, implementation details, public-integration guide, change log, and milestone reviews.
+
+## Production cutover
+
+- `FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md` owns the Supabase-only public
+  deployment handoff and canonical-origin rules.
+- `public-site-integration/README.md` owns the global Quiz webhook contract.
+- `TESTING.md` owns the global Quiz freshness verification.
+
 Read the docs in this order:
 
 1. `PROJECT_PLAN.md`
@@ -20,6 +29,7 @@ Read the docs in this order:
 14. `FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md`
 15. `SETUP.md`
 16. `TESTING.md`
+17. `migration-baseline.md`
 
 ## Document Ownership
 
@@ -51,9 +61,21 @@ Read the docs in this order:
 
 `FRONTEND_WORDPRESS_TO_SUPABASE_MIGRATION.md` owns the reusable direct-cutover process for replacing WordPress REST reads in a public Next.js website with Supabase public RPC reads.
 
+Homepage and sidebar post-display behavior is documented in the frontend migration guide, public integration README, implementation details, and testing checklist. It uses a newest-30 candidate pool, two fixed newest Latest News cards plus four rotating cards, five newest Recent Posts, and five non-overlapping rotating Popular Posts.
+
+Original WordPress publication-date preservation and the repair utility are documented in the same public-integration, migration, implementation, and testing documents. `published_at` is the source publication date used by every newest-first public list.
+
+Public post-list cards receive a derived `readingTimeMinutes` value instead of full article HTML. This keeps archive, Home, search, and sidebar payloads small while preserving accurate per-post reading-time labels.
+
+Contact, legal-page, canonical URL, and robots-default behavior is documented in `IMPLEMENTATION_DETAILS.md`, `TESTING.md`, the public-site integration README, and the migration guide. Canonical overrides are optional; `index,follow` is the saved default for Posts, custom Pages, and fixed Templates.
+
+Custom CMS Pages use the Privacy-style legal-page layout rather than the blog-post layout, without a last-updated date. The frontend creates the full canonical URL from its configured public origin unless an explicit override is entered; the CMS editor keeps the override input uncluttered.
+
 `SETUP.md` owns required project setup for Supabase, Supabase Storage, Vercel, environment variables, and local development.
 
 `TESTING.md` owns acceptance tests, regression checks, and manual verification.
+
+`migration-baseline.md` owns the route, count, media, redirect, and rollback inventory used to approve the public cutover.
 
 ## Non-Negotiable Context
 
@@ -75,6 +97,8 @@ Read the docs in this order:
 - Tags, audit events, shared media, page builder, public draft preview tokens, draft/unpublish/trash/restore workflows, and revisions are not included in v1.
 
 ## Update Rule
+
+The reference frontend uses `https://telenorquiztoday.com.pk` as its single crawler-facing origin. `CMS_SITE_DOMAIN` remains a local CMS content-selection setting only; it must not appear in public canonicals, JSON-LD, robots, or sitemaps. See the migration guide and public-site integration README for caching, headers, CSP report-only, redirect exclusions, and image-dimension audit details.
 
 When implementation changes a contract, update the smallest owning doc first. If the change alters product scope or a locked decision, also update `PROJECT_PLAN.md` and `DECISIONS.md`.
 

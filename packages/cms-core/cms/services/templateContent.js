@@ -2,6 +2,7 @@ import { CmsValidationError } from '../http/errors.js'
 import { getAuthor } from '../repositories/authors.js'
 import { getMedia } from '../repositories/media.js'
 import { listPages } from '../repositories/pages.js'
+import { listCategories } from '../repositories/categories.js'
 import {
   createTemplateContent,
   getTemplateContent,
@@ -56,6 +57,54 @@ async function assertAuthorBelongsToWebsite(websiteId, authorId) {
 
 function normalizeTitle(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+const RESERVED_PUBLIC_ROUTE_SEGMENTS = new Set([
+  'api',
+  'admin',
+  'author',
+  'blog',
+  'search',
+  'tag',
+])
+
+function normalizePublicPath(value) {
+  const path = String(value || '').replace(/\/$/, '') || '/'
+  return path.startsWith('/') ? path : `/${path}`
+}
+
+async function assertPublicPathAvailable(websiteId, path, currentTemplateContentId = null) {
+  const [pages, templates, categories] = await Promise.all([
+    listPages(websiteId),
+    listTemplateContent(websiteId),
+    listCategories(websiteId),
+  ])
+  const normalizedPath = normalizePublicPath(path)
+  const firstSegment = normalizedPath.split('/').filter(Boolean)[0]
+  if (RESERVED_PUBLIC_ROUTE_SEGMENTS.has(firstSegment)) {
+    throw new CmsValidationError('This path is reserved by the public frontend.', {
+      code: 'RESERVED_PUBLIC_ROUTE',
+      details: { path: normalizedPath },
+    })
+  }
+  if (pages.some((page) => normalizePublicPath(page.path) === normalizedPath)) {
+    throw new CmsValidationError('A CMS page already uses this public path.', {
+      code: 'DUPLICATE_PUBLIC_ROUTE',
+      details: { path: normalizedPath },
+    })
+  }
+  if (templates.some((template) => template.id !== currentTemplateContentId && normalizePublicPath(template.path) === normalizedPath)) {
+    throw new CmsValidationError('A fixed template already uses this public path.', {
+      code: 'DUPLICATE_PUBLIC_ROUTE',
+      details: { path: normalizedPath },
+    })
+  }
+  if (categories.some((category) => `/${category.slug}` === normalizedPath)) {
+    throw new CmsValidationError('A category already uses this public path.', {
+      code: 'DUPLICATE_PUBLIC_ROUTE',
+      details: { path: normalizedPath },
+    })
+  }
 }
 
 async function assertUniquePageTitle(websiteId, title, currentTemplateContentId = null) {
@@ -140,6 +189,7 @@ export async function createTemplateContentForWebsite(websiteId, payload) {
   await assertMediaReferencesBelongToWebsite(websiteId, payload)
   await assertAuthorBelongsToWebsite(websiteId, payload.authorId)
   await assertUniquePageTitle(websiteId, payload.title)
+  await assertPublicPathAvailable(websiteId, payload.path)
 
   try {
     const result = await createTemplateContent(websiteId, payload)
@@ -170,6 +220,7 @@ export async function updateTemplateContentForWebsite(
   if (finalPayload.title) {
     await assertUniquePageTitle(websiteId, finalPayload.title, templateContentId)
   }
+  await assertPublicPathAvailable(websiteId, finalPayload.path, templateContentId)
 
   try {
     const result = await updateTemplateContent(websiteId, templateContentId, payload)

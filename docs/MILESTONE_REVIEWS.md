@@ -6,6 +6,133 @@ Update this file immediately after each milestone is completed and validated. Be
 
 This is not a CMS audit-log feature. It is development documentation for continuity between implementation steps.
 
+## Milestone 19: Production Cutover Preparation And Global Quiz Freshness
+
+- Status: Complete for repository implementation; CMS domain rename, Vercel
+  secrets/domain configuration, DNS, and deployment remain account-owner work.
+- Date completed: 2026-07-18.
+- Global Quiz saves now notify every active website webhook after persisting the
+  quiz. The public invalidation set is Home, page sitemap, and sitemap index;
+  webhook errors are reported without discarding the saved quiz.
+- Validation: focused Admin CMS quiz suite passed 26 tests, including active
+  website fan-out and API ordering checks.
+- Next release gate: production environment configuration, CMS domain rename,
+  Vercel `master` deployment, and domain/DNS smoke tests.
+
+## Header Current-Menu Button
+
+- Status: Complete.
+- Date completed: 2026-07-17.
+- The public header now shows the current desktop and mobile navigation destination as a filled selected button and includes `aria-current="page"`. Category article paths select their category; Home only selects at `/`.
+- Validation: focused header-navigation tests and frontend lint pass.
+
+## Accurate Public Post Reading-Time Labels
+
+- Status: Implemented in source; apply `202607170001_public_post_reading_time.sql` and refresh the local frontend to verify live cards.
+- Date implemented: 2026-07-17.
+- Root cause: the lightweight post-list RPC omits `bodyHtml`, while the frontend tried to calculate card reading time from that missing value and therefore used its `1 min read` fallback for every card.
+- Resolution: the safe public RPC now supplies only derived `readingTimeMinutes`; no extra article body data is exposed. Blog, category, search, Home, and sidebar cards use it, and detail pages retain their local full-body fallback.
+- Validation: frontend unit coverage, Admin CMS public-contract coverage, public RPC response inspection after migration application, lint, production build, diff check, and documentation readiness test.
+
+## True WordPress Publication-Date Ordering
+
+- Status: Complete in source; the selected site's repair utility must be run and checked locally.
+- Date implemented: 2026-07-17.
+- Root cause: imported posts used migration-time timestamps, so the correctly newest-first public RPC could still display older-looking articles first.
+- Resolution: preserve source WordPress dates during future imports, preserve dates during later CMS edits, and repair existing records by source slug with a dry-run-first script.
+- Validation: importer and repair-service coverage, public order guard, exact repair report, revalidation result, and local Blog/category visual checks.
+
+## Homepage and Sidebar Post Display
+
+- Status: Complete.
+- Date completed: 2026-07-16.
+- Latest News has a 30-post newest-first candidate pool and renders six unique rotating cards after full homepage refresh.
+- Recent Posts keeps the newest five posts in strict public RPC order. Popular Posts replaces More Posts and renders five unique non-overlapping rotating posts from the remaining candidate pool.
+- Blog, Telenor, Telecom, Global, and Tech preserve the public RPC newest-first order; no archive, pagination, SEO, quiz, URL, or public RPC contract changed.
+- Validation required for handoff: frontend unit tests, lint, production build, diff check, Admin CMS documentation readiness test, and a local visual refresh check.
+
+## Six-Hour SEO Date And Midnight Visible Home Date
+
+- Status: Implemented in source; apply the targeted Home-token migration and complete local verification.
+- Date implemented: 2026-07-16.
+- Visible Home H1 and daily quiz H2 now share the current Karachi date. Home metadata, WebPage JSON-LD, `/page-sitemap.xml`, and `/sitemap_index.xml` use a six-hour-ahead SEO date.
+- Added `202607160002_home_visible_date_tokens.sql` for `test.telenorquiztoday.com.pk`; it replaces only the two literal heading dates with `{date}`.
+- Validation required: date-boundary unit tests; protected early/midnight cron responses; Home/quiz/six-news-card/TOC smoke check; lint, tests, build, diff check, and docs-readiness test.
+
+## Local CMS Content Quality, SEO, Sitemap, And Redirect Performance Follow-up
+
+- Status: Implemented; Supabase migration application and final local browser verification pending.
+- Date implemented: 2026-07-16.
+- Implemented: Home `{date}` rendering in manual rich HTML; CMS canonical/robots/OG metadata handling; advisory Post/Page/Template content checks; canonical sitemap filtering; exact anon redirect lookup; and a migration that repairs target CMS records without rewriting editorial body text.
+- Files/modules changed: public frontend Home/SEO/sitemap/middleware helpers and tests; Admin CMS quality helper/panel, template defaults, public client, migration, tests, and documentation.
+- Required next operation: apply `setup-provisioning/supabase/migrations/202607160001_local_seo_quality_and_redirect_lookup.sql` in the existing Supabase project, then run the listed frontend/Admin CMS checks.
+- Content safety: only the Home date token and missing fixed-page metadata are updated; imported post and page body writing is not rewritten.
+- The Home date update is scoped to the local CMS domain `test.telenorquiztoday.com.pk` and replaces only the H1 date text with `{date}`.
+
+## WordPress-To-Supabase Public Frontend Cutover
+
+- Status: Implementation complete; staging/production activation pending.
+- Date completed: 2026-07-14.
+- Scope completed: editable Home content and validation, public frontend RPC additions, RLS-safe public filtering, route-collision guards, local public `lib/cms/` helper facade, CMS-driven public routes/SEO/sitemaps/robots/ads/redirects/revalidation, and WordPress runtime removal in the reference frontend.
+- Files/modules changed: `packages/cms-core/cms/schemas/templateContent.js`, `packages/cms-core/cms/validators/templateContent.js`, `features/template-content/TemplateContentManager.jsx`, CMS services/public client, migrations `202607140001` through `202607140003`, `setup-provisioning/scripts/seed-telenor-home-content.mjs`, public frontend `app/`, `components/`, `lib/cms/`, `lib/sitemap.js`, `middleware.js`, tests, and the owning documentation set.
+- Tests and validation run: Admin CMS `npm.cmd test` and `npm.cmd run lint`; frontend `npm.cmd test` (41 passing), `npm.cmd run lint`, and `npm.cmd run build` (successful production build); no-WordPress source scan; documentation readiness test pending final documentation sync.
+- Known caveats: the seed script is dry-run by default and refuses active websites; real WordPress import/count reconciliation, Supabase migration application, staging browser comparison, DNS/activation, and production deployment require explicit operational approval.
+- Readiness for next milestone: Ready for staging only after migration baseline is populated and reviewed.
+
+### Route Guard Migration Compatibility Correction
+
+- Status: Complete.
+- Cause: existing imported custom pages can use a public frontend-reserved path, so a fully validated check constraint cannot be added to an already populated database.
+- Resolution: migration `202607140003_route_guards.sql` now adds conditional `NOT VALID` constraints. Existing rows remain available for review; inserts and updates are protected alongside CMS service collision validation.
+
+### Staging Seed Environment Compatibility
+
+- Status: Complete.
+- Resolution: `seed-telenor-home-content.mjs` now accepts either `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, while requiring `SUPABASE_SERVICE_ROLE_KEY` and explicit `CMS_SITE_DOMAIN` before it can perform even a dry run.
+
+### Frontend AdSense Client-Boundary Correction
+
+- Status: Complete.
+- Cause: server-rendered route components rendered AdSense wrappers that invoked the client-only `useAdSenseSettings()` hook.
+- Resolution: `AdBanner` and `AdInArticle` are explicit Client Components. The regression test verifies both directives; frontend tests (41), lint, whitespace validation, and local homepage/blog/search/robots/sitemap checks pass. Fixed/custom pages and category routes remain correctly unavailable until CMS content is imported or provisioned; `ads.txt` remains unavailable while AdSense is disabled.
+
+### Migration Website WordPress Import
+
+- Status: Complete and locally verified after website activation.
+- Result: 107 posts, 7 pages, 7 categories, 1 author, and 137 image assets imported with no errors or warnings. The source `/blog` Page was correctly skipped because it conflicts with the frontend archive route.
+- Follow-up: two source MP4 files were not imported because the media importer supports image types only. Keep their original URLs or upload/host video replacements separately. Homepage rich-content seeding remains deferred.
+
+### Legacy Fixed-Page Import Path Correction
+
+- Status: Complete and locally verified.
+- Cause: WordPress page slug `contact-us` was imported as a custom page while the public frontend resolves that URL through the fixed Contact template.
+- Resolution: the importer now maps legacy fixed-page URLs to their templates and uses those URLs as canonical template paths. Migration `202607150001_preserve_fixed_page_legacy_paths.sql` promotes already-imported `/about-us`, `/contact-us`, and `/privacy-policy` custom pages safely.
+- Validation: `/contact-us` returns HTTP 200 and the page sitemap has exactly one `/contact-us` entry. Admin CMS tests (93), lint, and whitespace validation pass.
+
+### WordPress Imported Content Publishing Correction
+
+- Status: Complete and locally verified.
+- Cause: an earlier publish-only migration removed draft state, but a later public-RPC migration reintroduced `status = 'published'` filters without restoring a publish workflow. Imported posts therefore received the schema default `draft` and were hidden.
+- Resolution: `202607150003_reconcile_publish_only_content.sql` restores the intended architecture. It repairs legacy fixed pages, rebuilds public RPCs without status predicates, then drops content status columns from Posts, Pages, and Templates. The importer and repositories no longer send or serialize a content status.
+- Validation: WordPress import tests (15), Admin CMS tests (93), lint, documentation readiness (6), and whitespace validation pass. Local public validation confirms the blog lists imported posts, an imported post route returns HTTP 200 with body content, and `post-sitemap.xml` has 108 entries.
+- Follow-up: Homepage rich-content seeding remains deliberately deferred. `/about-us` and `/privacy-policy` remain unavailable because those source pages were not imported.
+
+### Sitemap Domain Correction
+
+- Status: Complete and locally verified.
+- Cause: the blog archive entry in `post-sitemap.xml` used `SITE_CONFIG.siteUrl`, while CMS-derived sitemap entries used the configured request domain.
+- Resolution: the post sitemap now uses the shared CMS-domain origin for every entry.
+- Validation: all 108 post sitemap URLs use `https://test.telenorquiztoday.com.pk/` during local validation.
+
+### Home Template Seed Readiness
+
+- Status: Source implementation and read-only validation complete; database write pending explicit operator action.
+- Resolution: the Home seed creates the fixed Home template if it is absent and leaves all manually authored Home content empty. It sets the required author, featured image, and SEO contract values only. The Home visual editor is explicitly labeled as homepage content and renders its `Hero Text` rich HTML field on the public root route. The separate Homepage sections controls were removed; the daily quiz heading and cards remain automatic from the global Quiz CMS record.
+- The Home rich-text field supports up to 100,000 characters and is sanitized on the server. Other template field length limits remain unchanged.
+- Resolution: the public Home route preserves all manual rich-text headings and paragraphs. It detects the existing `Today Telenor Answer …` heading, renders the separately managed global Quiz CMS cards immediately after it, renders six Latest News cards next, then renders the remaining manual content.
+- Validation: the seed script passes `node --check`; its read-only Supabase run identifies `test.telenorquiztoday.com.pk`, finds its active author and featured image, and confirms that the existing Home template will receive an empty manual-content payload. Frontend lint, production build, all 45 frontend tests, Admin CMS lint, and all 95 Admin CMS tests (including long rich-text sanitization) pass.
+- Follow-up: temporarily deactivate the website, run the script with `--apply`, reactivate it, then confirm the local route keeps the manually authored `Today Telenor Answer …` heading directly above the current Quiz CMS cards and six Latest News cards.
+
 ## Current Supersession Notes
 
 Older review entries intentionally remain as historical records. When they mention optional post categories, `/blog/{postSlug}` detail URLs, body-block-first post editing, draft/unpublish/trash/restore workflows, media trash filters, media date filters, media search submit buttons, or fixed-template Add Page behavior, they are superseded by the later correction entries:
@@ -1068,6 +1195,45 @@ Use this structure for every completed milestone:
   - Authenticated browser QA with live admin data should confirm the centered dropdown and right-aligned actions behave well on desktop and narrow screens.
 - Follow-up items:
   - Adjust individual feature-page spacing only if manual QA finds crowding after the shared style change.
+- Readiness for next milestone: Ready.
+
+## Milestone 7 Follow-up: Homepage visual parity and navigation
+
+- Status: Complete
+- Date completed: 2026-07-16
+- Milestone goal: Match the approved homepage content hierarchy while retaining manual CMS content and the separate global daily-quiz workflow.
+- What was implemented:
+  - Added a responsive H1–H4 hierarchy, 15px homepage reading text, navy headings, orange links/list markers, and responsive image/table alignment for editor-authored Home HTML.
+  - Restored a collapsed, keyboard-accessible Table of Contents between the introduction and the quiz heading.
+  - Added stable, duplicate-safe anchors to rendered editor headings.
+  - Kept the quiz data in the separate global Quiz CMS and placed it directly below the manual `Today Telenor Answer...` heading.
+  - Retained six dynamic Latest News cards after the quiz and hid only the duplicate imported legacy Latest News heading/link at render time.
+- Files/modules changed:
+  - Frontend `app/page.jsx`
+  - Frontend `lib/homeContent.js`
+  - Frontend `components/posts/TableOfContents.jsx`
+  - Frontend `styles/globals.css`
+  - Frontend homepage/content/font tests
+- Tests and validation run:
+  - `npm.cmd test` — 49 passing
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check`
+- Known caveats:
+  - The Table of Contents lists headings present in the editor content; adding a new H1–H4 in the Home editor automatically adds it after the next revalidation/render.
+- Readiness for next milestone: Ready.
+
+## Milestone 12 follow-up: Legacy runtime verification
+
+- Status: Complete
+- Date completed: 2026-07-16
+- Milestone goal: Ensure the public frontend cannot regain a WordPress runtime dependency after the Supabase cutover.
+- What was implemented:
+  - Added `test/noWordpressRuntime.test.js`, which scans frontend runtime source/config paths for legacy CMS clients, REST endpoint names, admin environment names, and package references.
+  - Removed the remaining non-test legacy-name reference from frontend source comments.
+- Tests and validation run:
+  - `npm.cmd test` — 50 passing
+  - `rg -n -i "wordpress|wp-json|wp_admin|wp-admin" app components lib scripts package.json test next.config.js` — no runtime matches
 - Readiness for next milestone: Ready.
 
 ## Website Deletion Correction
@@ -2752,3 +2918,110 @@ Use this structure for every completed milestone:
 - Follow-up items:
   - Re-run the import reset/retry flow for the affected inactive website, then start a fresh import to replace the earlier partial result.
 - Readiness for next milestone: Ready.
+
+## Milestone 6 follow-up: Local domain resolution
+
+- Status: Complete
+- Date completed: 2026-07-16
+- Milestone goal: Ensure local previews resolve the configured Supabase website independently of which loopback URL is used.
+- What was implemented:
+  - Added the shared `lib/cmsDomain.js` resolver.
+  - Updated the public CMS helper and redirect middleware to treat `localhost`, `127.0.0.1`, and IPv6 loopback as local development hosts that use `CMS_SITE_DOMAIN`.
+  - Added unit coverage for local, IPv6, preview, and production-host resolution.
+- Tests and validation run:
+  - `npm.cmd test` â€” 52 passing
+  - `npm.cmd run lint`
+- Local smoke test at `http://127.0.0.1:3000`: manual Home content, Table of Contents, five quiz cards, and one Latest News section rendered.
+- Readiness for next milestone: Ready.
+
+## Milestone 8 local smoke test
+
+- Status: Complete
+- Date completed: 2026-07-16
+- Verified locally against imported Supabase content:
+  - `/blog` archive and numbered pagination
+  - `/telenor` category archive
+  - `/telenor/telenor-sms-packages` post detail
+  - `/search?q=telenor` search results
+  - `/author/muhammad-shabbar` author archive
+  - `/about-us` fixed template
+- Route protection results:
+  - `/blog?page=999` returned HTTP 404.
+  - `/telecom/telenor-sms-packages` returned HTTP 308 with `Location: /telenor/telenor-sms-packages`.
+- Readiness for next milestone: Ready.
+
+## Milestone 10 follow-up: ads.txt enablement safety
+
+- Status: Complete
+- Date completed: 2026-07-16
+- The public ads.txt route now returns publisher data only when the CMS AdSense setting is explicitly enabled and an ads.txt value is configured.
+- Validation:
+  - `robots.txt`, sitemap index, and post sitemap returned HTTP 200 locally.
+  - CMS currently has AdSense disabled and no publisher/ads.txt values; `/ads.txt` returned HTTP 404 as intended.
+  - `npm.cmd test` — 52 passing; lint passed.
+- Readiness for next milestone: Ready.
+
+## Milestone 11 local authorization check
+
+- Status: Complete
+- Date completed: 2026-07-16
+- Invalid local revalidation request result: HTTP 401, as required.
+- A non-empty `CMS_REVALIDATION_SECRET` is configured in the frontend local `.env.local` file; its value is not documented.
+- Saved the matching secret and `http://127.0.0.1:3000/api/revalidate` in **Settings → Revalidation webhook** for `test.telenorquiztoday.com.pk`. The Admin CMS encrypts the stored secret before sending the request.
+- Receiver validation passed locally: a matching request returned HTTP 200 with `revalidated: true`; an unauthenticated request returned HTTP 401.
+- End-to-end validation passed: the CMS settings update triggered its saved webhook and received HTTP 200 from the frontend.
+- Readiness for next milestone: Ready.
+
+## Milestone 13 final local validation
+
+- Status: Complete
+- Date checked: 2026-07-16
+- Passed:
+  - Frontend tests: 52 passing.
+  - Admin CMS tests: 95 passing.
+  - Frontend and Admin CMS lint: passing.
+  - Frontend production build: passing.
+  - Admin CMS production build: passing in the normal local environment (75 seconds total).
+  - `git diff --check`: passing in both projects (line-ending warnings only).
+- Note: the restricted validation sandbox timed out before compiling the Admin CMS, but the normal local build completed successfully; this is not an application-code failure.
+- Readiness for next milestone: local migration validation is complete.
+
+## Milestone 18: SEO, performance, and technical hardening
+
+- Status: Complete for local implementation; staging CSP/CWV measurement remains a deployment-time check.
+- Date completed: 2026-07-18.
+- Set `https://telenorquiztoday.com.pk` as the only crawler-facing origin while retaining `CMS_SITE_DOMAIN` for local CMS RPC resolution.
+- Made JSON-LD publisher logos absolute, added request-scoped singular CMS read caching, retained safe exact redirect lookups with tested exclusions, and added Referrer/Permissions headers plus optional CSP report-only mode.
+- Added a read-only indexed-image-dimension audit. Local result: 114 image-bearing resources checked; zero missing width/height values.
+- Validation: frontend focused hardening tests passed; live local canonical, robots, sitemap, schema, and header checks passed. Full production build and staging Core Web Vitals remain pending until the active local dev servers stop and a deployment exists.
+- Recheck: frontend tests passed 79 of 79, lint and documentation readiness passed, and representative Home, Blog, post, fixed-page, category, author, and Editorial Policy checks all returned `200`, one H1, `index,follow`, and production canonicals. The local dev server did not complete a full sitemap crawl inside the two-minute safe limit.
+- Readiness for next milestone: Ready for local final validation; require staging CSP report-only and Core Web Vitals review before production release.
+
+## Milestone 17: Latest News fixed newest cards
+
+- Status: Complete
+- Date completed: 2026-07-18
+- Latest News keeps the two newest published posts in cards 1 and 2, then uses four unique random cards from the remaining newest-30 pool.
+- Validation: focused selection tests confirm the first two cards stay fixed across random selections, the remaining cards are unique, and a short candidate pool still renders safely.
+- Readiness for next milestone: Ready.
+
+## Milestone 16: Custom Page layout and canonical preview
+
+- Status: Implementation complete
+- Date completed: 2026-07-18
+- Custom CMS Pages now use the same clean legal-content presentation as Privacy Policy, with CMS body text but no last-updated date or post-only UI.
+- The Page/Template editor keeps a blank optional canonical override field without generated help or an automatic route preview. New Pages/Templates keep `index,follow` selected.
+- Editorial Policy and Corrections Policy share the legal-page renderer; category archives and post detail pages retain their distinct layouts.
+- Validation: frontend tests passed (73); Admin CMS tests passed (112); frontend and Admin CMS lint passed; frontend production build passed; `git diff --check` passed with Windows line-ending warnings only; and documentation readiness passed (12 tests). The Admin CMS production build exceeded the restricted environment's four-minute command limit before compilation output, so re-run it in the normal local terminal before release.
+- Readiness for next milestone: Ready.
+
+## Milestone 15: Contact, legal pages, and SEO defaults
+
+- Status: Implementation complete; database migration pending
+- Date completed: 2026-07-17
+- Removed the non-functional Contact form and all public **Related pages** panels.
+- Privacy Policy, Terms of Service, and Disclaimer now use the same CMS-backed legal-page presentation; `/privacy` redirects permanently to `/privacy-policy`.
+- New and existing Posts, custom Pages, and fixed Templates use `index,follow` by default. Blank canonical fields remain generated frontend defaults and may be explicitly overridden in the CMS.
+- Historic custom Pages on reserved frontend paths are skipped by the robots migration to avoid route-guard failures; operators must remove or rename those unreachable records.
+- Validation: frontend/Admin CMS regression tests, lint, frontend build, diff check, and documentation readiness tests are recorded with this milestone after the final local run. The Admin CMS build can time out in this restricted environment before compilation output; it should be re-run in the normal local terminal.
+- Readiness for next milestone: Ready after the SQL migration is applied.

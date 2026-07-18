@@ -10,6 +10,13 @@ All normal CMS resources are scoped by `website_id`. Use UUID primary keys, `cre
 - Delete means permanent delete after admin confirmation.
 - Slugs are lowercase, URL-safe, and unique within each website where applicable.
 - Use `jsonb` for template `content_data`, legacy post `body_blocks`, SEO extras, sitemap settings, and site content/config values.
+
+## Local SEO And Sitemap Maintenance (2026-07-16)
+
+- Fixed template paths use `/about-us`, `/contact-us`, and `/privacy-policy` as their canonical values; `/about`, `/contact`, and `/privacy` remain frontend redirects only.
+- CMS pages at `/telenor-quiz-today` and `/404-page` are kept out of the sitemap and use `noindex,follow`.
+- Blank public fixed-template social images can reuse the Home template's existing `og_image_id`. Custom Pages use `featured_image_id` as their public social-image fallback; existing chosen images are never replaced.
+- Active redirects have a partial `(website_id, from_path)` lookup index for exact public redirect reads.
 - Validate JSON shape in app validators before saving.
 - Image references inside JSON should store `mediaId` as the primary reference. Public URLs are derived from `cms_media`.
 
@@ -149,6 +156,12 @@ Behavior:
 - `Add Page` creates rows here and never consumes fixed template slots.
 - Public custom page reads use `get_public_page(domain, path)`.
 - WordPress pages that do not map to known fixed templates import here.
+
+### Home Template Content Contract
+
+The `home` `cms_template_content.content_data` object supports `introHtml`, `latestNewsTitle`, `quizHeadingTemplate`, `quizInfoSections`, `conclusionHeading`, `conclusionHtml`, `stepsHeading`, `steps`, `faqHeading`, and `faqs` in addition to the existing hero/CTA fields. HTML fields are sanitized server-side. Section and step keys must be unique, URL-safe identifiers. The only supported runtime template token is `{date}` and it is rendered by the homepage only for the quiz heading and homepage SEO fields.
+
+Public path ownership is shared across templates, custom pages, and categories. CMS services reject a path collision and reserve `api`, `admin`, `author`, `blog`, `search`, and `tag` for the frontend. Migration `202607140003_route_guards.sql` adds the same reserved-route floor at the database boundary.
 
 ### `cms_categories`
 

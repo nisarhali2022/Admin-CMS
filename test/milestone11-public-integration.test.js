@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile, readdir } from 'node:fs/promises'
 import { afterEach, test } from 'node:test'
 
 import {
@@ -34,10 +35,14 @@ test('public CMS client calls documented Supabase RPCs with anon credentials', a
   await client.getPage('example.com', '/about-us')
   await client.getPost('example.com', 'hello')
   await client.listPosts('example.com', { categorySlug: 'news', search: 'sim' })
+  await client.listPostsPage('example.com', { categorySlug: 'news', authorSlug: 'editor' })
   await client.listCategories('example.com')
   await client.listAuthors('example.com')
+  await client.getAuthor('example.com', 'editor')
   await client.getSiteSettings('example.com')
   await client.listRedirects('example.com')
+  await client.getRedirect('example.com', '/old-path')
+  await client.listContentIndex('example.com')
   await client.getCurrentQuiz()
 
   assert.ok(calls.every((call) => call.options.method === 'POST'))
@@ -46,8 +51,26 @@ test('public CMS client calls documented Supabase RPCs with anon credentials', a
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/get_public_site_by_domain')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/get_public_page')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/list_public_redirects')))
+  assert.ok(calls.some((call) => call.url.endsWith('/rpc/get_public_redirect')))
+  assert.ok(calls.some((call) => call.url.endsWith('/rpc/list_public_posts_page')))
+  assert.ok(calls.some((call) => call.url.endsWith('/rpc/get_public_author')))
+  assert.ok(calls.some((call) => call.url.endsWith('/rpc/list_public_content_index')))
   assert.ok(calls.some((call) => call.url.endsWith('/rpc/cms_public_get_current_quiz')))
   assert.deepEqual(JSON.parse(calls[0].options.body), { domain: 'example.com' })
+})
+
+test('public post-list RPC provides reading time without exposing post bodies', async () => {
+  const migrationDir = 'setup-provisioning/supabase/migrations'
+  const migrationName = (await readdir(migrationDir))
+    .find((file) => file.includes('public_post_reading_time'))
+  assert.ok(migrationName)
+
+  const sql = await readFile(`${migrationDir}/${migrationName}`, 'utf8')
+  assert.match(sql, /create or replace function public\.list_public_posts_page/)
+  assert.match(sql, /'readingTimeMinutes'/)
+  assert.match(sql, /regexp_split_to_array/)
+  assert.match(sql, /coalesce\(p\.body_html, ''\)/)
+  assert.match(sql, /grant execute on function public\.list_public_posts_page\(text, text, text, text, integer, integer\) to anon/)
 })
 
 test('AdSense helpers render only active valid public settings and gate ads.txt', () => {

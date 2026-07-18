@@ -1,4 +1,5 @@
 import { CmsValidationError } from '../http/errors.js'
+import sanitizeHtml from 'sanitize-html'
 import {
   SUPPORTED_TEMPLATE_KEYS,
   TEMPLATE_CONTENT_SCHEMAS,
@@ -139,7 +140,12 @@ function validateContentData(templateKey, contentData) {
     contentData && typeof contentData === 'object' && !Array.isArray(contentData)
       ? contentData
       : getDefaultTemplateContentData(templateKey)
-  const allowedFields = new Set([...schema.textFields, ...schema.imageFields])
+  const collectionFields = schema.collectionFields || {}
+  const allowedFields = new Set([
+    ...schema.textFields,
+    ...schema.imageFields,
+    ...Object.keys(collectionFields),
+  ])
   const normalized = {}
 
   for (const key of Object.keys(input)) {
@@ -152,7 +158,21 @@ function validateContentData(templateKey, contentData) {
   }
 
   for (const field of schema.textFields) {
-    normalized[field] = normalizeOptionalText(input[field], field, 5000) || ''
+    const isHomeRichText = templateKey === 'home' && field === 'heroText'
+    const maxLength = isHomeRichText ? 100000 : 5000
+    const value = normalizeOptionalText(input[field], field, maxLength) || ''
+    normalized[field] = field.endsWith('Html') || isHomeRichText
+      ? sanitizeHtml(value, {
+          allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'iframe']),
+          allowedAttributes: {
+            a: ['href', 'target', 'rel'],
+            img: ['src', 'alt', 'width', 'data-media-id'],
+            iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder', 'loading', 'title'],
+            '*': ['class'],
+          },
+          allowedSchemes: ['http', 'https', 'mailto'],
+        })
+      : value
   }
 
   for (const field of schema.imageFields) {
@@ -161,6 +181,70 @@ function validateContentData(templateKey, contentData) {
       imageValue && typeof imageValue === 'object' ? imageValue.mediaId : null
 
     normalized[field] = { mediaId: mediaId ? assertMediaId(mediaId) : null }
+  }
+
+  if (templateKey === 'home') {
+    const quizInfoSections = Array.isArray(input.quizInfoSections) ? input.quizInfoSections : []
+    const steps = Array.isArray(input.steps) ? input.steps : []
+    const faqs = Array.isArray(input.faqs) ? input.faqs : []
+
+    const normalizeKey = (value, field, index) => {
+      const key = normalizeRequiredText(value, `${field} ${index + 1} key`, 80)
+      if (!/^[a-z0-9][a-z0-9-]*$/i.test(key)) {
+        throw new CmsValidationError(`${field} keys may use letters, numbers, and hyphens only.`, {
+          code: 'INVALID_HOME_COLLECTION_KEY',
+        })
+      }
+      return key
+    }
+    const assertUniqueKeys = (items, field) => {
+      const keys = new Set()
+      for (const item of items) {
+        if (keys.has(item.key)) {
+          throw new CmsValidationError(`${field} keys must be unique.`, {
+            code: 'DUPLICATE_HOME_COLLECTION_KEY',
+          })
+        }
+        keys.add(item.key)
+      }
+    }
+    const sanitizeBody = (value, field) => sanitizeHtml(
+      normalizeRequiredText(value, field, 5000),
+      {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'iframe']),
+        allowedAttributes: {
+          a: ['href', 'target', 'rel'],
+          img: ['src', 'alt', 'width', 'data-media-id'],
+          iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder', 'loading', 'title'],
+          '*': ['class'],
+        },
+        allowedSchemes: ['http', 'https', 'mailto'],
+      }
+    )
+
+    if (quizInfoSections.length > 12 || steps.length > 10 || faqs.length > 20) {
+      throw new CmsValidationError('Homepage collections exceed their supported limit.', {
+        code: 'HOME_COLLECTION_LIMIT_EXCEEDED',
+      })
+    }
+
+    normalized.quizInfoSections = quizInfoSections.map((item, index) => ({
+      key: normalizeKey(item?.key, 'Quiz information section', index),
+      heading: normalizeRequiredText(item?.heading, `Quiz information section ${index + 1} heading`, 180),
+      bodyHtml: sanitizeBody(item?.bodyHtml, `Quiz information section ${index + 1} body`),
+    }))
+    normalized.steps = steps.map((item, index) => ({
+      key: normalizeKey(item?.key, 'Step', index),
+      title: normalizeRequiredText(item?.title, `Step ${index + 1} title`, 180),
+      bodyHtml: sanitizeBody(item?.bodyHtml, `Step ${index + 1} body`),
+    }))
+    normalized.faqs = faqs.map((item, index) => ({
+      question: normalizeRequiredText(item?.question, `FAQ ${index + 1} question`, 300),
+      answerHtml: sanitizeBody(item?.answerHtml, `FAQ ${index + 1} answer`),
+    }))
+
+    assertUniqueKeys(normalized.quizInfoSections, 'Quiz information section')
+    assertUniqueKeys(normalized.steps, 'Step')
   }
 
   return normalized

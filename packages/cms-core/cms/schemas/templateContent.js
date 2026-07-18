@@ -3,26 +3,43 @@ export const TEMPLATE_CONTENT_SCHEMAS = {
     label: 'Home',
     defaultPath: '/',
     defaultTitle: 'Home',
-    textFields: ['heroTitle', 'heroText', 'ctaLabel', 'ctaHref'],
+    textFields: [
+      'heroTitle',
+      'heroText',
+      'ctaLabel',
+      'ctaHref',
+      'introHtml',
+      'latestNewsTitle',
+      'quizHeadingTemplate',
+      'conclusionHeading',
+      'conclusionHtml',
+      'stepsHeading',
+      'faqHeading',
+    ],
     imageFields: ['heroImage'],
+    collectionFields: {
+      quizInfoSections: [],
+      steps: [],
+      faqs: [],
+    },
   },
   about: {
     label: 'About',
-    defaultPath: '/about',
+    defaultPath: '/about-us',
     defaultTitle: 'About Us',
     textFields: ['introTitle', 'introText', 'bodyText'],
     imageFields: ['mainImage'],
   },
   contact: {
     label: 'Contact',
-    defaultPath: '/contact',
+    defaultPath: '/contact-us',
     defaultTitle: 'Contact',
     textFields: ['contactIntro', 'phone', 'email', 'address', 'mapUrl'],
     imageFields: [],
   },
   privacy: {
     label: 'Privacy',
-    defaultPath: '/privacy',
+    defaultPath: '/privacy-policy',
     defaultTitle: 'Privacy Policy',
     textFields: ['bodyText'],
     imageFields: [],
@@ -57,6 +74,10 @@ export function getDefaultTemplateContentData(templateKey) {
 
   for (const field of schema.imageFields) {
     data[field] = { mediaId: null }
+  }
+
+  for (const [field, defaultValue] of Object.entries(schema.collectionFields || {})) {
+    data[field] = structuredClone(defaultValue)
   }
 
   return data

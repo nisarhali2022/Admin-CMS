@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Eye, RefreshCw } from 'lucide-react'
 import { MessageAlert } from '@/components/admin/admin-ui'
+import ContentQualityPanel from '@/components/admin/ContentQualityPanel'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,7 +25,7 @@ const emptyForm = {
   seoTitle: '',
   metaDescription: '',
   canonicalUrl: '',
-  robotsMeta: '',
+  robotsMeta: 'index,follow',
   sitemapInclude: true,
 }
 
@@ -299,7 +300,7 @@ function toForm(post) {
     seoTitle: post.seoTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
-    robotsMeta: post.robotsMeta || '',
+    robotsMeta: post.robotsMeta || 'index,follow',
     sitemapInclude: Boolean(post.sitemapInclude),
   }
 }
@@ -387,6 +388,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
   const [editorMode, setEditorMode] = useState('visual')
   const [isFeatureImagePickerOpen, setIsFeatureImagePickerOpen] = useState(false)
   const [mediaSearchQuery, setMediaSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPostIds, setSelectedPostIds] = useState([])
   const [bulkAction, setBulkAction] = useState('')
@@ -404,10 +406,12 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
   )
   const filteredPosts = useMemo(
     () =>
-      posts.filter((post) =>
-        postMatchesSearch(post, searchQuery, authorsById, categoriesById)
+      posts.filter(
+        (post) =>
+          (!categoryFilter || post.categoryId === categoryFilter) &&
+          postMatchesSearch(post, searchQuery, authorsById, categoriesById)
       ),
-    [authorsById, categoriesById, posts, searchQuery]
+    [authorsById, categoriesById, categoryFilter, posts, searchQuery]
   )
   const visiblePostIds = useMemo(
     () => filteredPosts.map((post) => post.id).filter(Boolean),
@@ -420,6 +424,10 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
   const allVisiblePostsSelected =
     visiblePostIds.length > 0 &&
     visiblePostIds.every((postId) => selectedPostIds.includes(postId))
+
+  useEffect(() => {
+    setSelectedPostIds([])
+  }, [categoryFilter])
 
   const selectedFeatureImage = useMemo(
     () => media.find((item) => item.id === form.featuredImageId) || null,
@@ -541,7 +549,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
       seoTitle: form.seoTitle || null,
       metaDescription: form.metaDescription || null,
       canonicalUrl: form.canonicalUrl || null,
-      robotsMeta: form.robotsMeta || null,
+      robotsMeta: form.robotsMeta || 'index,follow',
       ogImageId: form.featuredImageId || null,
       sitemapInclude: form.sitemapInclude,
     }
@@ -745,14 +753,29 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
           >
             Add Post
           </button>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
-            aria-label="Search posts"
-            placeholder="Search posts"
-          />
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+              aria-label="Filter posts by category"
+              className="h-8 rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
+            >
+              <option value="">All categories</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="h-8 w-72 max-w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 text-[13px] outline-none focus:border-[#3858e9] focus:ring-1 focus:ring-[#3858e9]"
+              aria-label="Search posts"
+              placeholder="Search posts"
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#50575e]">
@@ -964,6 +987,15 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
           codeLabel="HTML post content"
         />
 
+        <ContentQualityPanel
+          entityType="post"
+          contentHtml={form.bodyHtml}
+          seoTitle={form.seoTitle}
+          metaDescription={form.metaDescription}
+          focusKeyphrase={form.focusKeyphrase}
+          featuredImage={selectedFeatureImage}
+        />
+
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="border border-[#c3c4c7] bg-white">
             <div className="border-b border-[#dcdcde] bg-[#f6f7f7] px-4 py-3">
@@ -1063,7 +1095,7 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
               </select>
             </label>
             <label className="block text-[13px] font-medium text-[#1f2330]">
-              Canonical URL
+              Canonical URL override (optional)
               <input
                 type="text"
                 value={form.canonicalUrl}
@@ -1072,6 +1104,9 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                 }
                 className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               />
+              <span className="mt-1 block font-normal text-[#50575e]">
+                Leave blank to use the public URL generated from this website domain and post permalink.
+              </span>
             </label>
             <label className="block text-[13px] font-medium text-[#1f2330]">
               Robots meta
@@ -1082,7 +1117,6 @@ export default function PostsManager({ websiteId, selectedWebsite = null }) {
                 }
                 className="mt-2 w-full rounded-[3px] border border-[#8c8f94] bg-white px-2 py-2 outline-none"
               >
-                <option value="">Default robots</option>
                 <option value="index,follow">index,follow</option>
                 <option value="noindex,follow">noindex,follow</option>
                 <option value="index,nofollow">index,nofollow</option>

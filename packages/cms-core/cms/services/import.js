@@ -37,6 +37,7 @@ const TEMPLATE_BY_SLUG = new Map([
   ['about', 'about'],
   ['about-us', 'about'],
   ['contact', 'contact'],
+  ['contact-us', 'contact'],
   ['privacy', 'privacy'],
   ['privacy-policy', 'privacy'],
   ['terms', 'terms'],
@@ -657,6 +658,14 @@ export async function importWordPressForWebsite(websiteId, payload) {
             ))
 
       try {
+        if (!post.date) {
+          report.warnings.push({
+            code: 'WORDPRESS_POST_DATE_MISSING',
+            postId: post.id,
+            slug: post.slug,
+            message: 'The WordPress post has no valid publication date. The CMS import date will be used.',
+          })
+        }
         const bodyHtml = sanitizeImportedContentHtml({
           html: post.contentHtml,
           wordpressBaseUrl: payload.wordpressBaseUrl,
@@ -680,6 +689,7 @@ export async function importWordPressForWebsite(websiteId, payload) {
             robotsMeta: null,
             ogImageId: featuredMedia?.id || null,
             sitemapInclude: true,
+            publishedAt: post.date,
           }
         )
         report.counts.posts += 1

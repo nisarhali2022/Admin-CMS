@@ -12,6 +12,16 @@ After cutover:
 - The CMS manages content; the public Next.js app renders it.
 - A rollback means redeploying the prior frontend release. Do not add a live WordPress fallback path.
 
+## Local SEO And Performance Follow-up (2026-07-16)
+
+- Resolve `{date}` in the manual Home H1 and daily quiz H2 with the current Karachi date before extracting the quiz heading and table of contents. Do not rewrite the remaining editor content.
+- Use the Karachi date six hours ahead only for Home metadata, Open Graph/Twitter metadata, WebPage JSON-LD, and the Home sitemap freshness timestamp. From 6:00 PM until midnight PKT, this intentionally differs from the visible H1/H2 date.
+- Apply `202607160002_home_visible_date_tokens.sql` once for `test.telenorquiztoday.com.pk`; it replaces only the existing literal dates in those two headings with `{date}`.
+- Pass saved CMS canonical URL, robots meta, and OG image into Next.js metadata only when present; otherwise use the normal generated values.
+- Generate sitemaps from canonical fixed paths only. Exclude redirect aliases, `/telenor-quiz-today`, and `/404-page`.
+- Use `get_public_redirect(domain, from_path)` in middleware for one exact anon-safe redirect lookup. Retain `list_public_redirects` only for compatibility.
+- Keep `next/image`, AVIF/WebP, lazy content images, `next/font`, and lazy analytics/AdSense loading. Real Core Web Vitals need a deployed URL and are not measured from local development.
+
 This guide applies to each public website independently. The Admin CMS and `setup-provisioning/` app are not the visitor-facing website and must not be used as public content APIs.
 
 ## Architecture And Security Boundary
@@ -20,13 +30,13 @@ This guide applies to each public website independently. The Admin CMS and `setu
 WordPress REST API --one-time import--> setup-provisioning --> Supabase
                                                            |
                                                            v
-Public Next.js website --> cms-core/public-cms --> Supabase public RPCs
+Public Next.js website --> local lib/cms helpers --> Supabase public RPCs
                                                            |
                                                            v
                                                 Supabase Storage public images
 ```
 
-The frontend must use only the public RPC contract through `cms-core/public-cms`.
+The frontend must use only the public RPC contract through local server-side helpers under `lib/cms/`.
 
 Do:
 
@@ -43,6 +53,12 @@ Do not:
 - query `cms_*` tables directly from the browser or public app;
 - upload, delete, or list Supabase Storage objects from the public frontend;
 - keep WordPress REST calls, WordPress image hosts, or WordPress runtime credentials after cutover.
+
+For legacy fixed-page URLs, import `/about-us`, `/contact-us`, and `/privacy-policy` into the matching fixed template records, rather than as custom pages. The frontend resolves these URLs through `about`, `contact`, and `privacy` templates.
+
+CMS content is publish-only: Posts, Pages, and Templates do not have an editable or hidden draft status. For an older database where later public RPCs reintroduced draft filters, apply `202607150003_reconcile_publish_only_content.sql` and verify public post and sitemap data after restarting the frontend.
+
+Use the resolved CMS request domain for every sitemap entry, including fixed archive URLs such as `/blog`; do not build one sitemap URL from a hard-coded production host.
 
 ## Before Changing The Frontend
 
@@ -91,15 +107,10 @@ Use the real request host in production. Strip protocol, port, path, and a leadi
 
 ## Public CMS Client
 
-Use the shared public client in a server-side frontend module, for example `src/lib/cms/public.js`:
+Use a local server-side frontend module, for example `lib/cms/index.js`. Do not use a bare `cms-core/public-cms` import in the public app:
 
 ```js
-import { createPublicCmsClient } from 'cms-core/public-cms'
-
-export const publicCms = createPublicCmsClient({
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-})
+export { getHomeTemplate, getPosts, getSiteSettings } from './index.js'
 ```
 
 The client uses Supabase REST RPC calls and returns only public-safe data for active websites. It does not expose admin-only fields, import jobs, revalidation secrets, or storage management operations.
@@ -129,7 +140,7 @@ Do not cache by only slug or only path. Include the resolved domain in every cac
 | Redirect rules | `listRedirects(domain)` | Redirect matching source paths before page rendering. |
 | Daily quiz | `getCurrentQuiz()` | Render the global quiz; it has no website/domain scope. |
 
-The current public RPC input and output shapes are owned by [API_CONTRACTS.md](D:/telenor/admin-cms/admin-cms/docs/API_CONTRACTS.md). Reuse the client instead of duplicating raw RPC URLs in page components.
+The current public RPC input and output shapes are owned by [API_CONTRACTS.md](API_CONTRACTS.md). Reuse the local helper instead of duplicating raw RPC URLs in page components.
 
 ## App Router Route Migration
 
@@ -226,7 +237,7 @@ Do not scrape WordPress Yoast HTML at runtime. Imported Yoast values are already
 
 ### Robots And Sitemap
 
-Build `/robots.txt` from safe site settings. Build `/sitemap.xml` with `getPublicContentUrls` from `cms-core/public-cms` after collecting the site's published templates, custom Pages, and posts.
+Build `/robots.txt` from safe site settings. Build sitemaps with `list_public_content_index(domain)` after collecting the site's published templates, custom Pages, posts, categories, and authors.
 
 Current public contract checkpoint: it fetches individual template/custom Page records but does not provide a public list RPC for all templates or all custom Pages. For a complete sitemap, choose one of these before cutover:
 
@@ -237,7 +248,7 @@ Do not ship a sitemap that silently omits custom Pages.
 
 ### AdSense And `ads.txt`
 
-Read safe AdSense settings through `getSiteSettings(domain)`. Use `shouldRenderAdsense`, `getAdsenseScriptSrc`, and `getAdsTxtContent` from `cms-core/public-cms`.
+Read safe AdSense settings through the local `getSiteSettings()` helper. Render only its safe `adsense` fields.
 
 - Render the AdSense script only when `enabled` is true and `publisherId` is valid.
 - Return `404` for `/ads.txt` when AdSense is inactive or no ads.txt text exists.
@@ -298,7 +309,7 @@ If a critical rendering, SEO, or routing issue is found, redeploy the prior Word
 
 - [ ] No frontend WordPress REST API calls remain.
 - [ ] No WordPress runtime environment variables or credentials remain.
-- [ ] All public reads use `cms-core/public-cms` and public Supabase RPCs.
+- [ ] All public reads use local `lib/cms/` helpers and public Supabase RPCs.
 - [ ] The public frontend never receives service-role credentials.
 - [ ] The website resolves content by its active Supabase domain record.
 - [ ] Fixed templates, custom Pages, posts, categories, authors, images, redirects, settings, and quiz render correctly.
@@ -311,8 +322,102 @@ If a critical rendering, SEO, or routing issue is found, redeploy the prior Word
 
 ## Related Documents
 
-- [Public Website Integration](D:/telenor/admin-cms/admin-cms/docs/public-site-integration/README.md)
-- [API Contracts](D:/telenor/admin-cms/admin-cms/docs/API_CONTRACTS.md)
-- [Architecture](D:/telenor/admin-cms/admin-cms/docs/ARCHITECTURE.md)
-- [RLS Policies](D:/telenor/admin-cms/admin-cms/docs/RLS_POLICIES.md)
-- [Setup](D:/telenor/admin-cms/admin-cms/docs/SETUP.md)
+- [Public Website Integration](public-site-integration/README.md)
+- [API Contracts](API_CONTRACTS.md)
+- [Architecture](ARCHITECTURE.md)
+- [RLS Policies](RLS_POLICIES.md)
+- [Setup](SETUP.md)
+
+## 2026-07-16 Homepage rendering note
+
+### Local domain behavior
+
+Set `CMS_SITE_DOMAIN` only in local or preview environment files. The public helper and redirect middleware use it for `localhost`, `127.0.0.1`, IPv6 loopback, and `.vercel.app` preview hosts. On a real custom domain, the request host selects the Supabase website record.
+
+The Home template's rich text remains manually authored in the CMS page editor. The public frontend renders it in this fixed order:
+
+1. Manual introduction.
+2. Collapsible Table of Contents generated from H1–H4 editor headings.
+3. The manual `Today Telenor Answer...` heading.
+4. The daily card set from the separate global Quiz CMS.
+5. Six Supabase-backed Latest News cards.
+6. The remaining manual Home content.
+
+### Homepage and sidebar post selection
+
+The reference frontend obtains the 30 newest published posts using the existing public post RPC order (`published_at` descending, then `created_at` descending). It uses that cached pool as follows:
+
+1. **Latest News** keeps the two newest posts in cards 1 and 2, then selects four unique posts from the remaining newest-30 pool in the browser after each full homepage refresh.
+2. **Recent Posts** shows the first five posts in exact newest-first order in the sidebar.
+3. **Popular Posts** selects five unique posts from the remaining newest-30 pool, so it cannot repeat Recent Posts. The label is a display name only; it is not analytics-based popularity.
+
+Blog and category archive pages continue to render the RPC order unchanged, so Blog, Telenor, Telecom, Global, and Tech begin with their most recently published post.
+
+### Reading-time labels on cards
+
+The paginated public post RPC intentionally omits full article HTML so archive and widget requests stay lightweight. It instead returns `readingTimeMinutes`, calculated from saved CMS post content at 200 words per minute. Use that value for every Blog, category, search, Home, and sidebar post-card label. Keep the client-side word-count helper only as a fallback for a full post-detail result or an older CMS response.
+
+### Preserving original WordPress publication dates
+
+The public post RPC orders by `published_at DESC` and then `created_at DESC`. A WordPress import must therefore preserve each source post's `date_gmt` (falling back to `date`) in `cms_posts.published_at`. New CMS posts use their creation time; an edit of an existing CMS post preserves its original publication date.
+
+For an earlier import that used import-time dates, run the safe repair utility from the Admin CMS root:
+
+```powershell
+node --env-file=.env.local setup-provisioning/scripts/repair-wordpress-post-dates.mjs --domain test.telenorquiztoday.com.pk --wordpress-url https://wp.telenorquiztoday.com.pk
+node --env-file=.env.local setup-provisioning/scripts/repair-wordpress-post-dates.mjs --domain test.telenorquiztoday.com.pk --wordpress-url https://wp.telenorquiztoday.com.pk --apply
+```
+
+The first command is read-only. The `--apply` command updates only matching post slugs and only their publication timestamps, then requests public revalidation for Home, Blog, and affected category archives.
+
+### Custom CMS Pages and optional canonical overrides
+
+Custom CMS Pages are informational website pages, not posts. Render them with the same full-width legal-page presentation used by Privacy Policy: breadcrumb, H1, sanitized CMS HTML, and a last-updated date. Do not add Article metadata, author/meta, featured image, table of contents, ads, sharing controls, or a sidebar to that branch.
+
+Keep category archives and post detail routes separate so their existing presentations remain unchanged. When the CMS Canonical URL override is empty, generate the public canonical from the frontend's configured site origin and the custom Page route. A populated canonical field is an intentional override only.
+
+### Contact, legal pages, canonical URLs, and robots defaults
+
+### Production public origin and technical hardening
+
+For this reference site, `https://telenorquiztoday.com.pk` is the only public SEO origin. Keep `CMS_SITE_DOMAIN=test.telenorquiztoday.com.pk` for local CMS lookup only; it must never appear in canonical tags, JSON-LD, `robots.txt`, sitemap indexes, or child sitemaps.
+
+Use the frontend `SITE_CONFIG.siteUrl` for every crawler-facing URL. Public Supabase RPCs continue resolving content from `CMS_SITE_DOMAIN`. Organization and Article publisher logos in JSON-LD must be absolute URLs.
+
+The frontend caches singular domain-scoped public reads with `React.cache()` for one server render and keeps the existing five-minute Next fetch cache. Redirect middleware intentionally retains the exact public redirect RPC and excludes APIs, static files, sitemap routes, `robots.txt`, and `ads.txt` before lookup.
+
+For staging CSP observation only, set `CSP_REPORT_ONLY=true` at build time. This adds a report-only policy for the site, Supabase, Google Analytics, and AdSense; do not enforce it until staging checks show no required source is blocked.
+
+#### Final local validation snapshot (2026-07-18)
+
+- Frontend regression tests passed: 79 of 79.
+- Lint, documentation readiness, and `git diff --check` passed; line-ending notices are informational only.
+- Local checks confirmed Home, Blog, a post, fixed pages, category archives, author archive, and Editorial Policy each return `200`, one H1, `index,follow`, and a production-origin canonical URL.
+- The read-only public media audit checked 114 image-bearing resources and found zero missing width/height values.
+- A complete sitemap crawl should run after a production build or on staging. The local dev server did not complete every route within the two-minute safe limit.
+
+### Production cutover handoff
+
+Deploy the Telenor reference frontend from `nisarhali2022/telenor-quiz-today`
+branch `master` to `https://telenorquiztoday.com.pk`, with `www` permanently
+redirecting to the root domain. Rename the tested CMS website domain from
+`test.telenorquiztoday.com.pk` to `telenorquiztoday.com.pk`, retain its
+content, and save `https://telenorquiztoday.com.pk/api/revalidate` as its
+website webhook.
+
+Vercel Production requires `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `CMS_SITE_DOMAIN`,
+`CMS_REVALIDATION_SECRET`, and `CRON_SECRET`. The public frontend receives no
+service-role credential and has no WordPress runtime environment variable. A
+global Quiz save revalidates every active configured website's Home, page
+sitemap, and sitemap index.
+
+### Contact, legal pages, canonical URLs, and robots defaults
+
+- The public Contact page is informational only. It keeps CMS body content and the published contact details, but does not display a form that cannot deliver messages.
+- The former **Related pages** navigation is removed from every public page.
+- `/privacy-policy`, `/terms-of-service`, and `/disclaimer` use the same CMS-backed legal-page presentation. `/privacy` permanently redirects to `/privacy-policy`.
+- Public metadata always includes a generated canonical URL when the CMS Canonical URL override is blank. The override is only for intentional canonical changes.
+- New Posts, custom Pages, and fixed Templates save `index,follow` by default. The migration `202607170002_default_index_follow_robots.sql` brings existing blank values to the same default across all CMS websites without overwriting explicit choices; historic reserved-page rows such as `/blog` are skipped and should be removed or renamed.
+
+The homepage renderer applies its own responsive H1–H4 scale, body copy, link, list, image, and table styling. Editors should use semantic headings instead of inline font-size overrides. If imported legacy content begins with an extra `Latest News` heading and its Explore link, that duplicate is suppressed in public rendering only; the CMS editor record is not changed.

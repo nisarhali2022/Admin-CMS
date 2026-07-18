@@ -4,9 +4,24 @@ This file documents the current implemented project after Milestones 1-13. Use i
 
 For product scope, read `PROJECT_PLAN.md`. For completed milestone history, read `MILESTONE_REVIEWS.md`. For exact API/data contracts, read `API_CONTRACTS.md` and `DATA_MODEL.md`.
 
+## Global quiz revalidation follow-up (2026-07-18)
+
+Unlike website-scoped content, `cms_global_quiz` affects every active public
+website. `app/api/quiz` now saves the quiz and then uses
+`triggerRevalidationForActiveWebsites`. Each active website receives its own
+webhook request with `global_quiz.updated` and the homepage, page sitemap, and
+sitemap-index paths. The result reports one entry per active website so an
+administrator can see a failed endpoint without losing the quiz save.
+
 ## Current Implementation Status
 
 Implemented:
+
+- Home manual HTML resolves `{date}` in its H1 and daily quiz H2 with the visible Karachi date before the table of contents and quiz split are rendered. Home metadata, WebPage JSON-LD, and the Home sitemap freshness timestamp use a Karachi date six hours ahead.
+- Public metadata honors optional CMS canonical URL, robots meta, and OG image values while retaining generated defaults when fields are blank.
+- Public sitemap generation canonicalizes fixed-page aliases, removes duplicate entries, and excludes legacy home/404 CMS paths.
+- Public redirect middleware performs one anon-safe exact redirect lookup rather than retrieving the full redirect list.
+- Posts and Page/Template editors show a non-blocking content-quality panel for image alt text, links, headings, SEO field quality, focus keyphrase, and Home date placeholder use.
 
 - Single-admin login with signed admin session cookie.
 - Server-side env validation.
@@ -29,6 +44,15 @@ Implemented:
 - Global quiz admin page and API, separate from website-scoped CMS data.
 - Milestone review documentation flow.
 - Automated tests covering each milestone.
+- Home template rich content validation, including sanitized HTML and keyed repeatable sections.
+- Public post pagination, author, category-count, and sitemap-index RPCs.
+- Reference public site migration in a local `lib/cms/` facade with domain-scoped five-minute cache tags.
+- CMS-backed homepage/quiz, pages, posts, categories, authors, redirects, robots, sitemaps, ads.txt, and AdSense behavior in the reference frontend.
+- Client-only AdSense settings context is consumed only by explicit Client Components, preserving Server Component rendering for public routes.
+- Public route guards for templates, custom pages, and categories.
+- WordPress imports preserve legacy fixed-page routes (`/about-us`, `/contact-us`, and `/privacy-policy`) as fixed template paths. Migration `202607150001_preserve_fixed_page_legacy_paths.sql` repairs those routes for websites imported before this correction.
+- Content records are publish-only: Posts, Pages, and Templates have no content status field. Migration `202607150003_reconcile_publish_only_content.sql` reconciles older schemas/public RPCs that reintroduced draft-status predicates and also repairs historic fixed-page imports.
+- Sitemap URLs resolve through the CMS request-domain helper, including the `/blog` archive entry, so local/preview sitemap hosts cannot leak the production domain.
 
 Deferred or caveated:
 
@@ -36,6 +60,13 @@ Deferred or caveated:
 - Quiz persistence is Supabase-backed in `cms_global_quiz`.
 - Setup/provisioning workflows, including WordPress import, are outside the main CMS app.
 - Production release still needs manual browser QA against real Supabase data.
+- The new migrations are intentionally unexecuted until the selected migration environment is ready; compare `docs/migration-baseline.md` before activation.
+- The Home seed script accepts either `SUPABASE_URL` or the existing `NEXT_PUBLIC_SUPABASE_URL`, plus server-only `SUPABASE_SERVICE_ROLE_KEY` and `CMS_SITE_DOMAIN`. It is dry-run by default, refuses an active website, and can create the missing fixed Home template during explicit `--apply` execution.
+- Local frontend validation confirms CMS-backed homepage, blog, search, robots, and sitemap routes. Fixed/custom pages and category routes return 404 until their content is imported or provisioned; `ads.txt` returns 404 while CMS AdSense is disabled.
+
+## WordPress-To-Supabase Reference Implementation
+
+The reference public application keeps adapters in `lib/cms/index.js`, revalidation validation in `lib/cms/revalidation.js`, CMS-driven sitemap rendering in `lib/sitemap.js`, and redirect resolution in `middleware.js`. It uses the anon RPC endpoint only; its WordPress clients, old quiz admin routes, tag archive route, static ads.txt, and WordPress maintenance scripts were removed. The frontend passes `npm.cmd test`, `npm.cmd run lint`, and `npm.cmd run build` before staging configuration is applied.
 
 ## Runtime Architecture
 
@@ -521,3 +552,69 @@ These are not blockers for the current admin CMS rebuild, but they matter before
 - Final UX polish for rich editors and media picking.
 - Deployment target and environment variable setup.
 - Manual QA with real data and real domains.
+
+## Local CMS domain resolver — 2026-07-16
+
+- `lib/cmsDomain.js` centralizes hostname normalization and local/preview fallback behavior.
+- `lib/cms/index.js` uses it before every public Supabase RPC, while `middleware.js` uses the same result before loading redirect rules.
+- With `CMS_SITE_DOMAIN` set, `localhost`, `127.0.0.1`, and IPv6 loopback all resolve the selected local website; real custom domains continue to select by their request host.
+
+## Homepage editor rendering follow-up — 2026-07-16
+
+- `app/page.jsx` splits Home editor HTML around the manual `Today Telenor Answer...` heading, so the global Quiz CMS cards remain below that heading and before the six-card Latest News grid.
+- `lib/homeContent.js` adds duplicate-safe anchors to editor H1–H4 elements and returns matching Table-of-Contents data. It also suppresses only the leading imported legacy Latest News heading/Explore-link pair because the dynamic grid supplies that UI.
+- `components/posts/TableOfContents.jsx` is a collapsed, keyboard-accessible control styled to match the public homepage panel.
+- `styles/globals.css` contains the scoped `.homepage-content` design system: responsive H1–H4 sizes, 15px reading text, navy headings, orange links/list markers, and responsive image/table rules. These rules do not alter normal post or page editor output.
+
+## Homepage and sidebar post display follow-up — 2026-07-16
+
+- `app/page.jsx` loads the newest 30 public post cards but still passes `limit={6}` to `LatestNewsGrid`.
+- `LatestNewsGrid` keeps a deterministic server render, then retains the two newest cards in positions 1 and 2 and selects four unique cards from the remaining newest-30 pool after client hydration. This provides a fresh lower four-card selection on a full browser refresh without a hydration warning.
+- `Sidebar.jsx` keeps records 1–5 as newest-first Recent Posts and supplies records 6–30 to `PopularPosts`.
+- `PopularPosts.jsx` is client-side for the same hydration-safe rotation. It displays five unique cards under the label **Popular Posts**; it does not claim analytics popularity.
+- The frontend deliberately does not sort archive responses. The public `list_public_posts_page` RPC remains responsible for `published_at DESC NULLS LAST, created_at DESC`, which keeps Blog and category archives newest-first.
+
+## WordPress publication-date preservation follow-up — 2026-07-17
+
+- `normalizeWordPressItem` normalizes the source `date_gmt` (or `date`) to a UTC ISO timestamp.
+- Imported posts pass that timestamp into the repository, so `cms_posts.published_at` reflects the original WordPress publication date.
+- Normal CMS post edits no longer overwrite `published_at`; newly created CMS posts still receive the current time.
+- `setup-provisioning/scripts/repair-wordpress-post-dates.mjs` repairs already imported dates by matching source and CMS records by slug. It is dry-run by default, updates only `published_at` with `--apply`, and invokes the selected website's existing revalidation webhook.
+
+## Public post-card reading-time follow-up â€” 2026-07-17
+
+- `202607170001_public_post_reading_time.sql` adds `readingTimeMinutes` to the existing safe, paginated `list_public_posts_page` response. It counts visible CMS article words at 200 words per minute without returning `bodyHtml` to archive, Home, search, or sidebar cards.
+- The reference frontend preserves that response in `lib/cms/index.js` and `PostMeta.jsx` prefers it over the local word-count fallback. Detail pages continue to calculate from their already available full post body if a list value is absent.
+
+## Header current-menu state follow-up â€” 2026-07-17
+
+- `HeaderNavigation.jsx` is a small client component that obtains the route path with `usePathname()` and gives the matching desktop and mobile menu link a filled primary button style plus `aria-current="page"`.
+- Category post routes keep their category menu selected; Home remains selected only for `/`. Contact and About links are unchanged.
+
+## Custom CMS Page presentation and canonical-override follow-up (2026-07-18)
+
+- The dynamic custom-Page branch now reuses the full-width `LegalPage` renderer. A custom Page contains breadcrumb navigation, its H1, and CMS-sanitized rich text; it deliberately has no last-updated date, post author/meta, featured image, table of contents, ads, share controls, or sidebar.
+- Category archives remain in their existing branch, so Blog, Telenor, Telecom, Global, and Tech retain their archive grid, sidebar, and pagination behavior.
+- Custom Page metadata is website metadata rather than Article metadata. It keeps the CMS canonical and robots overrides, with the generated public route as the default canonical when no override is saved.
+- The Page/Template editor keeps only the optional canonical override input. It does not display generated-canonical help or a route preview; the public frontend still creates the default canonical tag whenever the override is empty. `index,follow` remains the selected editor default.
+- Editorial Policy and Corrections Policy now reuse the same shared legal-page renderer for a consistent legal-content presentation.
+
+## Contact, legal-page, and SEO-default follow-up (2026-07-17)
+
+## SEO, performance, and technical hardening follow-up (2026-07-18)
+
+- `SITE_CONFIG.siteUrl` is the public source of truth for sitemap XML, sitemap indexes, and the default `robots.txt` sitemap line. `getCmsDomain()` remains limited to resolving the selected website for safe public Supabase RPC reads.
+- Organization and Article JSON-LD logo values are absolute production URLs. Existing schema types and CMS canonical overrides remain unchanged.
+- Singular CMS reads use request-scoped `React.cache()` helpers by domain and resource identifier, while the existing five-minute Next fetch cache retains cross-request caching.
+- Redirect exclusions are isolated in `lib/redirects.js` and keep APIs, assets, Next internals, `robots.txt`, `ads.txt`, and sitemap routes out of redirect RPC lookups.
+- Response headers now include `Referrer-Policy: strict-origin-when-cross-origin` and a restrictive `Permissions-Policy`. `CSP_REPORT_ONLY=true` enables a staging-only report-only CSP; enforcement is intentionally deferred.
+- `scripts/audit-cms-media.mjs` is read-only and reports sitemap-indexed public image records with missing dimensions. It found no missing dimensions for the selected Telenor test website during local validation.
+
+## Contact, legal-page, and SEO-default follow-up (2026-07-17)
+
+- The public Contact page no longer renders the former client-only form because it only reset fields and did not deliver a message. CMS contact body content and the static contact-details panel remain available.
+- The shared `TrustPageLinks` / **Related pages** panel was removed from all public page renderers.
+- Privacy Policy, Terms of Service, and Disclaimer now use one full-width legal-page renderer with breadcrumb, CMS HTML, normalized links/images, and a last-updated date. They deliberately have no sidebar, ads, table of contents, sharing controls, or related-page panel.
+- `/privacy` permanently redirects to `/privacy-policy`, preventing a duplicate privacy URL from being indexed.
+- Empty canonical URL fields remain deliberate: the frontend generates the canonical from the configured public site URL and route. A saved canonical URL is an explicit override only.
+- `202607170002_default_index_follow_robots.sql` sets blank/null `robots_meta` to `index,follow` in posts, valid custom pages, and templates for every CMS website without changing explicit robots values or any canonical URL. It skips historic reserved-page rows so a stale `/blog` Page cannot block the migration.

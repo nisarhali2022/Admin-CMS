@@ -23,6 +23,11 @@ function toDatabasePayload(payload) {
   }
 }
 
+function resolvePublishedAt(value) {
+  const timestamp = Date.parse(String(value || ''))
+  return Number.isNaN(timestamp) ? new Date().toISOString() : new Date(timestamp).toISOString()
+}
+
 export async function listPosts(websiteId) {
   const rows = await supabaseAdminRequest(
     `cms_posts?select=${POST_SELECT}&website_id=eq.${encodeURIComponent(websiteId)}&order=created_at.desc`
@@ -43,7 +48,7 @@ export async function createPost(websiteId, payload) {
   const body = {
     website_id: websiteId,
     ...toDatabasePayload(payload),
-    published_at: new Date().toISOString(),
+    published_at: resolvePublishedAt(payload.publishedAt),
   }
 
   const rows = await supabaseAdminRequest('cms_posts', {
@@ -60,7 +65,6 @@ export async function createPost(websiteId, payload) {
 
 export async function updatePost(websiteId, postId, payload) {
   const body = toDatabasePayload(payload)
-  body.published_at = new Date().toISOString()
 
   const rows = await supabaseAdminRequest(
     `cms_posts?website_id=eq.${encodeURIComponent(websiteId)}&id=eq.${encodeURIComponent(postId)}`,

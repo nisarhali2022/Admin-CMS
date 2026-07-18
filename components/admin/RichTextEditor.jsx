@@ -47,6 +47,16 @@ const IMAGE_SIZE_PRESETS = [
   { label: 'L', accessibleLabel: 'Large image, full width', width: null },
 ]
 
+function getActiveBlock(editor) {
+  if (!editor || editor.isDestroyed) return 'paragraph'
+
+  for (const level of [1, 2, 3, 4]) {
+    if (editor.isActive('heading', { level })) return `h${level}`
+  }
+
+  return 'paragraph'
+}
+
 function sanitizeImageWidth(value, maxWidth = MAX_IMAGE_WIDTH) {
   const number = Number.parseInt(value, 10)
   if (!Number.isFinite(number) || number <= 0) return null
@@ -229,6 +239,7 @@ export default function RichTextEditor({
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false)
   const [mediaSearchQuery, setMediaSearchQuery] = useState('')
   const [codeDraft, setCodeDraft] = useState(value || '')
+  const [activeBlock, setActiveBlock] = useState('paragraph')
 
   const filteredMedia = useMemo(() => {
     const query = mediaSearchQuery.trim().toLowerCase()
@@ -284,7 +295,11 @@ export default function RichTextEditor({
     },
     onUpdate: ({ editor: currentEditor }) => {
       onChange(sanitizeHtml(currentEditor.getHTML()))
+      setActiveBlock(getActiveBlock(currentEditor))
     },
+    onCreate: ({ editor: currentEditor }) => setActiveBlock(getActiveBlock(currentEditor)),
+    onSelectionUpdate: ({ editor: currentEditor }) =>
+      setActiveBlock(getActiveBlock(currentEditor)),
   })
 
   useEffect(() => {
@@ -295,6 +310,7 @@ export default function RichTextEditor({
     if (editor.getHTML() !== nextHtml) {
       editor.commands.setContent(nextHtml, false)
     }
+    setActiveBlock(getActiveBlock(editor))
   }, [editor, editorMode, value])
 
   useEffect(() => {
@@ -312,14 +328,16 @@ export default function RichTextEditor({
     if (!editor) return
     if (value === 'paragraph') {
       editor.chain().focus().setParagraph().run()
+      setActiveBlock('paragraph')
       return
     }
 
     editor
       .chain()
       .focus()
-      .toggleHeading({ level: Number(value.replace('h', '')) })
+      .setHeading({ level: Number(value.replace('h', '')) })
       .run()
+    setActiveBlock(value)
   }
 
   function addLink() {
@@ -447,8 +465,9 @@ export default function RichTextEditor({
           <div className="flex flex-wrap items-center gap-1 border-b border-[#dcdcde] bg-white px-2 py-2">
             <select
               className="h-8 rounded-[3px] border border-[#c3c4c7] bg-white px-2 text-[13px]"
-              defaultValue="paragraph"
+              value={activeBlock}
               onChange={(event) => changeBlock(event.target.value)}
+              disabled={!editor}
             >
               <option value="paragraph">Paragraph</option>
               <option value="h1">Heading 1</option>

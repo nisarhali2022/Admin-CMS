@@ -473,6 +473,11 @@ test('post manager uses Pages-style table and Tiptap editor', async () => {
   assert.doesNotMatch(posts, /submitSearch/)
   assert.doesNotMatch(posts, /searchInput/)
   assert.match(posts, /setSearchQuery\(event\.target\.value\)/)
+  assert.match(posts, /const \[categoryFilter, setCategoryFilter\] = useState\(''\)/)
+  assert.match(posts, /aria-label="Filter posts by category"/)
+  assert.match(posts, /All categories/)
+  assert.match(posts, /post\.categoryId === categoryFilter/)
+  assert.match(posts, /setSelectedPostIds\(\[\]\)[\s\S]*\[categoryFilter\]/)
   assert.match(posts, /Bulk actions/)
   assert.match(posts, /Delete selected/)
   assert.match(posts, /bulkDeletePosts/)
@@ -542,6 +547,18 @@ test('post manager uses Pages-style table and Tiptap editor', async () => {
   assert.match(postExcerptMigration, /drop column if exists excerpt/)
   assert.match(postExcerptMigration, /create or replace function public\.get_public_post/)
   assert.match(postExcerptMigration, /create or replace function public\.list_public_posts/)
+})
+
+test('shared rich-text editor keeps its block selector in sync with the cursor', async () => {
+  const richTextEditor = await readFile('components/admin/RichTextEditor.jsx', 'utf8')
+
+  assert.match(richTextEditor, /const \[activeBlock, setActiveBlock\] = useState\('paragraph'\)/)
+  assert.match(richTextEditor, /onSelectionUpdate/)
+  assert.match(richTextEditor, /value=\{activeBlock\}/)
+  assert.doesNotMatch(richTextEditor, /defaultValue="paragraph"/)
+  assert.match(richTextEditor, /\.setHeading\(\{ level: Number\(value\.replace\('h', ''\)\) \}\)/)
+  assert.doesNotMatch(richTextEditor, /\.toggleHeading\(\{ level: Number\(value\.replace\('h', ''\)\) \}\)/)
+  assert.match(richTextEditor, /editor\.isActive\('heading', \{ level \}\)/)
 })
 
 test('category manager uses WordPress-style taxonomy layout', async () => {

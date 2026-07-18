@@ -265,6 +265,38 @@ test('WordPress import relaxes SEO and feature-image requirements', async () => 
   assert.match(importer, /authorId: author\.id/)
 })
 
+test('WordPress import preserves legacy fixed-page URLs', async () => {
+  const importer = await readFile('packages/cms-core/cms/services/import.js', 'utf8')
+  const templates = await readFile('packages/cms-core/cms/schemas/templateContent.js', 'utf8')
+  const migration = await readFile(
+    'setup-provisioning/supabase/migrations/202607150001_preserve_fixed_page_legacy_paths.sql',
+    'utf8'
+  )
+
+  assert.match(importer, /\['contact-us', 'contact'\]/)
+  assert.match(templates, /about:[\s\S]*defaultPath: '\/about-us'/)
+  assert.match(templates, /contact:[\s\S]*defaultPath: '\/contact-us'/)
+  assert.match(templates, /privacy:[\s\S]*defaultPath: '\/privacy-policy'/)
+  assert.match(migration, /when '\/contact-us' then 'contact'/)
+  assert.match(migration, /set deleted_at = now\(\)/)
+})
+
+test('publish-only reconciliation removes historic draft state', async () => {
+  const importer = await readFile('packages/cms-core/cms/services/import.js', 'utf8')
+  const postsRepository = await readFile('packages/cms-core/cms/repositories/posts.js', 'utf8')
+  const reconciliationMigration = await readFile(
+    'setup-provisioning/supabase/migrations/202607150003_reconcile_publish_only_content.sql',
+    'utf8'
+  )
+
+  assert.doesNotMatch(importer, /status: 'published'/)
+  assert.doesNotMatch(postsRepository, /Object\.hasOwn\(payload, 'status'\)/)
+  assert.match(reconciliationMigration, /^with legacy_fixed_pages as \(/m)
+  assert.match(reconciliationMigration, /create or replace function public\.list_public_posts_page/)
+  assert.match(reconciliationMigration, /drop column if exists status/)
+  assert.doesNotMatch(reconciliationMigration, /p\.status = 'published'/)
+})
+
 test('WordPress normalization prioritizes Yoast SEO fields and leaves missing metadata empty', () => {
   const normalized = normalizeWordPressItem({
     id: 1,
@@ -601,9 +633,11 @@ test('WordPress import creates fallback author, saves posts, and clears temporar
   assert.ok(
     importJobBodies.some((body) => body.report?.progress?.phase === 'posts')
   )
-  assert.equal(postBody.author_id, authorId)
-  assert.equal(postBody.category_id, categoryId)
-  assert.equal(postBody.featured_image_id, null)
+    assert.equal(postBody.author_id, authorId)
+    assert.equal(postBody.category_id, categoryId)
+    assert.equal(postBody.featured_image_id, null)
+    assert.equal(postBody.status, undefined)
+  assert.equal(postBody.published_at, '2026-07-01T00:00:00.000Z')
   assert.equal(postBody.og_image_id, null)
   assert.equal(postBody.focus_keyphrase, 'daily quiz, quiz answers')
   assert.equal(postBody.seo_title, 'Yoast Post SEO Title')
