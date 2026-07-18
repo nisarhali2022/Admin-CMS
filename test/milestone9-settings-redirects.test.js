@@ -239,4 +239,31 @@ test('revalidation webhook failure is returned without throwing', async () => {
   assert.equal(result.attempted, true)
   assert.equal(result.ok, false)
   assert.match(result.error, /network down/)
+  assert.equal(result.reason, 'Could not reach the revalidation webhook.')
+})
+
+test('revalidation webhook reports safe diagnostics for non-success statuses', async () => {
+  setValidEnv()
+
+  global.fetch = async (url) => {
+    if (String(url).includes('/rest/v1/cms_site_settings')) {
+      return Response.json([
+        settingsRow({
+          revalidation_url: 'https://site.example/api/revalidate',
+          revalidation_secret_encrypted: encryptSecret('secret'),
+        }),
+      ])
+    }
+
+    return new Response(null, { status: 401 })
+  }
+
+  const result = await triggerRevalidation({
+    websiteId,
+    event: 'settings.updated',
+  })
+
+  assert.equal(result.ok, false)
+  assert.equal(result.status, 401)
+  assert.equal(result.reason, 'Webhook rejected the configured secret (HTTP 401).')
 })

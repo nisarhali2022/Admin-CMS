@@ -30,6 +30,12 @@ function getApiMessage(result, fallback) {
   return result?.error || result?.message || fallback
 }
 
+function getRevalidationFailureMessage(revalidation) {
+  return revalidation?.reason
+    ? `Settings saved, but revalidation failed: ${revalidation.reason}`
+    : 'Settings saved, but revalidation failed. Verify the webhook URL and secret.'
+}
+
 function stringifyJson(value) {
   return JSON.stringify(value || {}, null, 2)
 }
@@ -156,7 +162,7 @@ export default function SettingsManager({ websiteId }) {
       setForm(toForm(result.settings))
       setMessage(
         result.revalidation?.ok === false
-          ? 'Settings saved, but revalidation failed.'
+          ? getRevalidationFailureMessage(result.revalidation)
           : 'Settings saved.'
       )
     } finally {

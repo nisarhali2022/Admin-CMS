@@ -670,6 +670,8 @@ test('settings manager uses full-width organized sections', async () => {
   assert.match(settings, /Robots and sitemap/)
   assert.match(settings, /AdSense/)
   assert.match(settings, /Revalidation webhook/)
+  assert.match(settings, /getRevalidationFailureMessage/)
+  assert.match(settings, /Verify the webhook URL and secret/)
   assert.match(settings, /max-w-6xl/)
   assert.doesNotMatch(settings, /TabsContent/)
   assert.doesNotMatch(settings, /TabsList/)

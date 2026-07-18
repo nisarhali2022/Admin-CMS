@@ -2,6 +2,19 @@ import { decryptSecret } from '../crypto/secrets.js'
 import { getRawSettings } from '../repositories/settings.js'
 import { listWebsites } from '../repositories/websites.js'
 
+function getWebhookFailureReason(status) {
+  if (status === 401 || status === 403) {
+    return `Webhook rejected the configured secret (HTTP ${status}).`
+  }
+  if (status === 404) {
+    return 'Webhook URL was not found (HTTP 404).'
+  }
+  if (status === 405) {
+    return 'Webhook does not accept POST requests (HTTP 405).'
+  }
+  return `Webhook returned HTTP ${status}.`
+}
+
 export async function triggerRevalidation(event = {}) {
   if (!event.websiteId) {
     return {
@@ -60,6 +73,7 @@ export async function triggerRevalidation(event = {}) {
       skipped: false,
       ok: response.ok,
       status: response.status,
+      ...(response.ok ? {} : { reason: getWebhookFailureReason(response.status) }),
       event: event.event,
     }
   } catch (error) {
@@ -69,6 +83,7 @@ export async function triggerRevalidation(event = {}) {
       ok: false,
       status: null,
       error: error?.message || 'Revalidation webhook failed.',
+      reason: 'Could not reach the revalidation webhook.',
       event: event.event,
     }
   }
