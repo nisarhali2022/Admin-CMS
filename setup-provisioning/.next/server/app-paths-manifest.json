@@ -1,5 +1,4 @@
 {
-  "/api/cms/websites/route": "app/api/cms/websites/route.js",
-  "/api/cms/import/route": "app/api/cms/import/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/(admin)/admin/add-website/page": "app/(admin)/admin/add-website/page.js"
 }

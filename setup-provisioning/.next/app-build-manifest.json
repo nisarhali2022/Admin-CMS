@@ -16,6 +16,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(admin)/admin/add-website/page.js"
     ],
+    "/api/admin/session/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/admin/session/route.js"
+    ],
     "/api/cms/websites/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -30,6 +35,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/cms/websites/[id]/route.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }
