@@ -4,14 +4,24 @@ import {
   getMedia,
   getMediaUsage,
   hardDeleteMediaRow,
+  listMedia,
+  updateMediaVariants,
 } from '../repositories/media.js'
 import { getWebsite } from '../repositories/websites.js'
-import { optimizeImageToWebp } from '../../storage/imageOptimizer.js'
+import { getSettings } from '../repositories/settings.js'
+import {
+  createResponsiveImageVariants,
+  getRequiredResponsiveImageVariantNames,
+  optimizeImageToWebp,
+} from '../../storage/imageOptimizer.js'
 import {
   deleteMediaObject,
+  downloadMediaObject,
+  getPublicMediaUrl,
   listMediaObjectsUnderPrefix,
   uploadPublicMediaObject,
 } from '../../storage/supabaseStorage.js'
+import { triggerRevalidation } from './revalidation.js'
 
 function getMediaStoragePrefix(websiteId, now = new Date()) {
   const year = String(now.getUTCFullYear())
@@ -102,6 +112,117 @@ function getAltTextFromFilename(filename) {
   return name.replace(/\.[^.]+$/, '') || null
 }
 
+export function getResponsiveVariantStoragePath(storagePath, variantName) {
+  const normalizedPath = String(storagePath || '')
+  if (!normalizedPath.endsWith('.webp')) {
+    throw new CmsValidationError('Media variants require a WebP source image.', {
+      code: 'INVALID_MEDIA_VARIANT_SOURCE',
+    })
+  }
+
+  return normalizedPath.replace(/\.webp$/i, `--responsive-${variantName}.webp`)
+}
+
+async function isResponsiveImageVariantsEnabled(websiteId) {
+  const settings = await getSettings(websiteId)
+  return settings?.siteConfig?.responsiveImageVariants === true
+}
+
+async function uploadResponsiveImageVariants({ storagePath, bytes, existingVariants = {} }) {
+  const generated = await createResponsiveImageVariants(bytes)
+  const missingNames = Object.keys(generated).filter((name) => !existingVariants?.[name]?.url)
+  const uploadedPaths = []
+  const variants = { ...existingVariants }
+
+  try {
+    for (const name of missingNames) {
+      const variant = generated[name]
+      const variantStoragePath = getResponsiveVariantStoragePath(storagePath, name)
+      const uploaded = await uploadOrReuseResponsiveMediaObject({
+        storagePath: variantStoragePath,
+        bytes: variant.bytes,
+      })
+      if (uploaded.created) uploadedPaths.push(variantStoragePath)
+      variants[name] = {
+        storagePath: uploaded.storagePath,
+        url: uploaded.publicUrl,
+        width: variant.width,
+        height: variant.height,
+        mimeType: variant.mimeType,
+        fileSize: variant.fileSize,
+      }
+    }
+  } catch (error) {
+    await Promise.all(uploadedPaths.map((path) => deleteMediaObject(path).catch(() => null)))
+    throw error
+  }
+
+  return { variants, uploadedPaths }
+}
+
+async function uploadOrReuseResponsiveMediaObject({ storagePath, bytes }) {
+  try {
+    return { ...(await uploadPublicMediaObject({ storagePath, bytes })), created: true }
+  } catch (error) {
+    if (!isStorageNameCollision(error)) throw error
+
+    // A previous interrupted batch may have uploaded this immutable variant
+    // before its database row was updated. Reuse that deterministic object.
+    await downloadMediaObject(storagePath)
+    return {
+      storagePath,
+      publicUrl: getPublicMediaUrl(storagePath),
+      created: false,
+    }
+  }
+}
+
+async function createMediaWithVariants({
+  websiteId,
+  originalFilename,
+  optimized,
+  altText,
+  caption,
+  source,
+}) {
+  const uploaded = await uploadOptimizedMediaObject({
+    websiteId,
+    originalFilename,
+    bytes: optimized.bytes,
+  })
+  const { storagePath, publicUrl } = uploaded
+  let uploadedVariantPaths = []
+
+  try {
+    const variantsEnabled = await isResponsiveImageVariantsEnabled(websiteId)
+    const { variants, uploadedPaths } = variantsEnabled
+      ? await uploadResponsiveImageVariants({ storagePath, bytes: optimized.bytes })
+      : { variants: {}, uploadedPaths: [] }
+    uploadedVariantPaths = uploadedPaths
+
+    return await createMedia({
+      websiteId,
+      originalFilename,
+      storagePath,
+      publicUrl,
+      altText,
+      caption,
+      width: optimized.width,
+      height: optimized.height,
+      mimeType: optimized.mimeType,
+      fileSize: optimized.fileSize,
+      variants,
+      source,
+    })
+  } catch (error) {
+    await Promise.all([
+      ...uploadedVariantPaths,
+      storagePath,
+    ].map((path) => deleteMediaObject(path).catch(() => null)))
+    throw error
+  }
+}
+
 async function assertWebsiteExists(websiteId) {
   const website = await getWebsite(websiteId)
 
@@ -117,31 +238,14 @@ export async function uploadMedia({ websiteId, file, altText, caption }) {
 
   const originalFilename = getOriginalFilename(file)
   const optimized = await optimizeImageToWebp(file)
-  const uploaded = await uploadOptimizedMediaObject({
+  return createMediaWithVariants({
     websiteId,
     originalFilename,
-    bytes: optimized.bytes,
+    optimized,
+    altText: altText || getAltTextFromFilename(originalFilename),
+    caption,
+    source: 'upload',
   })
-  const { storagePath, publicUrl } = uploaded
-
-  try {
-    return await createMedia({
-      websiteId,
-      originalFilename,
-      storagePath,
-      publicUrl,
-      altText: altText || getAltTextFromFilename(originalFilename),
-      caption,
-      width: optimized.width,
-      height: optimized.height,
-      mimeType: optimized.mimeType,
-      fileSize: optimized.fileSize,
-      source: 'upload',
-    })
-  } catch (error) {
-    await deleteMediaObject(storagePath).catch(() => null)
-    throw error
-  }
 }
 
 function getFilenameFromUrl(url) {
@@ -181,30 +285,84 @@ export async function uploadImportedMedia({
     arrayBuffer: async () => bytes,
   }
   const optimized = await optimizeImageToWebp(file)
-  const uploaded = await uploadOptimizedMediaObject({
+  return createMediaWithVariants({
     websiteId,
     originalFilename: filename,
-    bytes: optimized.bytes,
+    optimized,
+    altText: altText || getAltTextFromFilename(filename),
+    caption,
+    source: 'wordpress_import',
   })
-  const { storagePath, publicUrl } = uploaded
+}
 
-  try {
-    return await createMedia({
-      websiteId,
-      originalFilename: filename,
-      storagePath,
-      publicUrl,
-      altText: altText || getAltTextFromFilename(filename),
-      caption,
-      width: optimized.width,
-      height: optimized.height,
-      mimeType: optimized.mimeType,
-      fileSize: optimized.fileSize,
-      source: 'wordpress_import',
+function getMissingResponsiveVariantNames(media) {
+  const requiredNames = getRequiredResponsiveImageVariantNames(media?.width)
+  return requiredNames.filter((name) => !media?.variants?.[name]?.url)
+}
+
+export async function backfillResponsiveMediaVariants({ websiteId, limit = 5 }) {
+  await assertWebsiteExists(websiteId)
+
+  if (!(await isResponsiveImageVariantsEnabled(websiteId))) {
+    throw new CmsValidationError('Enable responsive image variants in Settings before backfilling media.', {
+      code: 'RESPONSIVE_IMAGE_VARIANTS_DISABLED',
     })
-  } catch (error) {
-    await deleteMediaObject(storagePath).catch(() => null)
-    throw error
+  }
+
+  const safeLimit = Math.min(Math.max(Number(limit) || 5, 1), 10)
+  const media = await listMedia(websiteId)
+  const pending = media.filter((item) => getMissingResponsiveVariantNames(item).length > 0)
+  const batch = pending.slice(0, safeLimit)
+  const failures = []
+  let updatedCount = 0
+
+  for (const item of batch) {
+    let uploadedPaths = []
+    try {
+      const bytes = await downloadMediaObject(item.storagePath)
+      const missingNames = getMissingResponsiveVariantNames(item)
+      const generated = await createResponsiveImageVariants(bytes, { variantNames: missingNames })
+      const variants = { ...(item.variants || {}) }
+
+      for (const name of missingNames) {
+        const variant = generated[name]
+        if (!variant) continue
+        const variantStoragePath = getResponsiveVariantStoragePath(item.storagePath, name)
+        const uploaded = await uploadOrReuseResponsiveMediaObject({ storagePath: variantStoragePath, bytes: variant.bytes })
+        if (uploaded.created) uploadedPaths.push(variantStoragePath)
+        variants[name] = {
+          storagePath: uploaded.storagePath,
+          url: uploaded.publicUrl,
+          width: variant.width,
+          height: variant.height,
+          mimeType: variant.mimeType,
+          fileSize: variant.fileSize,
+        }
+      }
+
+      await updateMediaVariants(websiteId, item.id, variants)
+      updatedCount += 1
+    } catch (error) {
+      await Promise.all(uploadedPaths.map((path) => deleteMediaObject(path).catch(() => null)))
+      failures.push({ mediaId: item.id, message: error?.message || 'Unable to generate variants.' })
+    }
+  }
+
+  const revalidation = updatedCount > 0
+    ? await triggerRevalidation({
+      websiteId,
+      event: 'media.variants.updated',
+      resourceType: 'media',
+      paths: ['/', '/blog', '/sitemap_index.xml'],
+    })
+    : null
+
+  return {
+    processedCount: batch.length,
+    updatedCount,
+    remainingCount: Math.max(pending.length - batch.length + failures.length, 0),
+    failures,
+    revalidation,
   }
 }
 
@@ -226,7 +384,10 @@ export async function permanentlyDeleteMedia({ websiteId, mediaId }) {
     })
   }
 
-  await deleteMediaObject(media.storagePath)
+  const variantPaths = Object.values(media.variants || {})
+    .map((variant) => variant?.storagePath)
+    .filter(Boolean)
+  await Promise.all([...variantPaths, media.storagePath].map((path) => deleteMediaObject(path)))
   await hardDeleteMediaRow(websiteId, mediaId)
 
   return { deleted: true, mediaId }

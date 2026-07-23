@@ -2,7 +2,7 @@ import { serializeMedia, serializeMediaList } from '../serializers/media.js'
 import { supabaseAdminRequest, supabaseAdminRpc } from '../../supabase/adminRest.js'
 
 const MEDIA_SELECT =
-  'id,website_id,original_filename,storage_path,public_url,alt_text,caption,width,height,mime_type,file_size,source,created_at,updated_at'
+  'id,website_id,original_filename,storage_path,public_url,alt_text,caption,width,height,mime_type,file_size,variants,source,created_at,updated_at'
 
 export async function listMedia(websiteId) {
   const rows = await supabaseAdminRequest(
@@ -38,6 +38,7 @@ export async function createMedia(row) {
       height: row.height,
       mime_type: row.mimeType,
       file_size: row.fileSize,
+      variants: row.variants || {},
       source: row.source,
     },
   })
@@ -83,6 +84,22 @@ export async function updateMediaStorageLocation(
         storage_path: storagePath,
         public_url: publicUrl,
       },
+    }
+  )
+
+  return serializeMedia(rows?.[0])
+}
+
+export async function updateMediaVariants(websiteId, mediaId, variants) {
+  const rows = await supabaseAdminRequest(
+    `cms_media?website_id=eq.${encodeURIComponent(websiteId)}&id=eq.${encodeURIComponent(mediaId)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: { variants },
     }
   )
 

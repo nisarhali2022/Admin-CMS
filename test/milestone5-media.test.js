@@ -3,7 +3,13 @@ import { readFile, readdir } from 'node:fs/promises'
 import { afterEach, test } from 'node:test'
 import sharp from 'sharp'
 
-import { MAX_IMAGE_WIDTH, optimizeImageToWebp } from 'cms-core/storage/imageOptimizer'
+import {
+  MAX_IMAGE_WIDTH,
+  RESPONSIVE_IMAGE_VARIANT_WIDTHS,
+  createResponsiveImageVariants,
+  getRequiredResponsiveImageVariantNames,
+  optimizeImageToWebp,
+} from 'cms-core/storage/imageOptimizer'
 import {
   MEDIA_CACHE_CONTROL_SECONDS,
   deleteMediaObjectsForWebsite,
@@ -16,6 +22,7 @@ import { uploadMedia } from 'cms-core/cms/services/media'
 import {
   getMediaStoragePath,
   getReadableMediaFilename,
+  getResponsiveVariantStoragePath,
   isReadableMediaStoragePath,
 } from 'cms-core/cms/services/media'
 
@@ -118,6 +125,57 @@ test('sharp optimizer resizes only images wider than 1200px', async () => {
   assert.equal(large.height, 600)
   assert.equal((await sharp(large.bytes).metadata()).format, 'webp')
   assert.match(optimizer, /withoutEnlargement:\s*true/)
+})
+
+test('responsive variants are WebP, preserve aspect ratio, and never enlarge an image', async () => {
+  const original = await optimizeImageToWebp(await createPngFileWithDimensions(800, 400))
+  const variants = await createResponsiveImageVariants(original.bytes)
+  const smallOriginal = await optimizeImageToWebp(await createPngFileWithDimensions(300, 150))
+  const smallVariants = await createResponsiveImageVariants(smallOriginal.bytes)
+
+  assert.deepEqual(getRequiredResponsiveImageVariantNames(800), ['thumbnail', 'card', 'mobile'])
+  assert.deepEqual(getRequiredResponsiveImageVariantNames(300), ['thumbnail'])
+  assert.equal(RESPONSIVE_IMAGE_VARIANT_WIDTHS.thumbnail, 160)
+  assert.equal(variants.thumbnail.width, 160)
+  assert.equal(variants.thumbnail.height, 80)
+  assert.equal(variants.card.width, 400)
+  assert.equal(variants.card.height, 200)
+  assert.equal(variants.mobile.width, 640)
+  assert.equal(variants.mobile.height, 320)
+  assert.equal((await sharp(variants.card.bytes).metadata()).format, 'webp')
+  assert.equal(smallVariants.thumbnail.width, 160)
+  assert.equal(smallVariants.card, undefined)
+})
+
+test('responsive variant paths are deterministic and remain within the original media folder', () => {
+  const path = 'websites/11111111-1111-4111-8111-111111111111/media/2026/07/example.webp'
+
+  assert.equal(
+    getResponsiveVariantStoragePath(path, 'card'),
+    'websites/11111111-1111-4111-8111-111111111111/media/2026/07/example--responsive-card.webp'
+  )
+})
+
+test('responsive media variants are a website setting with an admin-only resumable backfill route', async () => {
+  const [service, route, settings, migration] = await Promise.all([
+    readFile('packages/cms-core/cms/services/media.js', 'utf8'),
+    readFile('app/api/cms/media/variants/backfill/route.js', 'utf8'),
+    readFile('features/settings/SettingsManager.jsx', 'utf8'),
+    readMigration('responsive_media_variants'),
+  ])
+
+  assert.match(service, /siteConfig\?\.responsiveImageVariants === true/)
+  assert.match(service, /backfillResponsiveMediaVariants/)
+  assert.match(service, /triggerRevalidation/)
+  assert.match(route, /requireAdminSessionResponse/)
+  assert.match(route, /backfillResponsiveMediaVariants/)
+  assert.match(settings, /Generate responsive media variants for this website/)
+  assert.match(
+    await readFile('features/media/MediaLibrary.jsx', 'utf8'),
+    /for \(let batch = 0; batch < 100; batch \+= 1\)/
+  )
+  assert.match(migration, /add column if not exists variants jsonb/)
+  assert.match(migration, /'variants', coalesce\(m\.variants/)
 })
 
 test('storage helper builds public URLs and uploads immutable WebP objects', async () => {

@@ -13,6 +13,7 @@ export function serializeMedia(row) {
     height: row.height ?? null,
     mimeType: row.mimeType || row.mime_type,
     fileSize: row.fileSize || row.file_size,
+    variants: row.variants || {},
     source: row.source,
     createdAt: row.createdAt || row.created_at,
     updatedAt: row.updatedAt || row.updated_at,

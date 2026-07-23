@@ -519,13 +519,14 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
   const pageRows = useMemo(() => {
     const templateRows = templates.map((template) => {
       const author = template.authorId ? authorsById.get(template.authorId) : null
+      const isHomeTemplate = template.templateKey === 'home'
 
       return {
         kind: 'template',
         key: `template:${template.id}`,
         id: template.id,
         templateKey: template.templateKey,
-        title: template.title,
+        title: isHomeTemplate ? templateOptions.home.defaultTitle : template.title,
         path: template.path,
         focusKeyphrase: template.focusKeyphrase || '',
         seoTitle: template.seoTitle || '',
@@ -669,6 +670,14 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
     setMessage('')
   }
 
+  function addHomePage() {
+    setSelectedId(null)
+    setSelectedKind('template')
+    setForm(getDefaultForm('home', firstActiveAuthorId))
+    setScreen('add')
+    setMessage('')
+  }
+
   function updateContentText(value) {
     const nextValue = sanitizeEditorHtml(value)
     const field = templateOptions[form.templateKey]?.primaryContentField
@@ -760,8 +769,15 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
     if (focusError) return focusError
 
     const nextTitle = normalizeTitle(form.title)
+    // The fixed home template owns /. A legacy custom /home page may remain
+    // during migration, so its matching title must not block this template.
+    if (form.templateKey === 'home') return ''
+
     const duplicateTitle = pageRows.find((page) => {
       if (selectedId && page.id === selectedId && page.kind === selectedKind) return false
+      if (form.templateKey === 'home' && page.kind === 'custom' && page.path === '/home') {
+        return false
+      }
       return normalizeTitle(page.title) === nextTitle
     })
 
@@ -772,13 +788,15 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
 
   async function saveTemplate(event) {
     event.preventDefault()
-    const isCustomPage = selectedKind === 'custom' || screen === 'add'
-    const validationMessage = validatePageForm()
+    const isCustomPage = selectedKind === 'custom'
+    const nextPath = normalizeEditorPath(form.path, form.title, form.templateKey)
+    // / is reserved for the fixed Home template. A retained /home legacy
+    // custom page must not prevent that Front Page from being saved.
+    const validationMessage = nextPath === '/' ? '' : validatePageForm()
     if (validationMessage) {
       setMessage(validationMessage)
       return
     }
-    const nextPath = normalizeEditorPath(form.path, form.title, form.templateKey)
 
     if (isCustomPage && nextPath === '/') {
       setMessage('/ is reserved for the fixed Home page.')
@@ -810,7 +828,9 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         ? selectedId
           ? `/api/cms/pages/${selectedId}?websiteId=${websiteId}`
           : `/api/cms/pages?websiteId=${websiteId}`
-        : `/api/cms/template-content/${selectedId}?websiteId=${websiteId}`
+        : selectedId
+          ? `/api/cms/template-content/${selectedId}?websiteId=${websiteId}`
+          : `/api/cms/template-content?websiteId=${websiteId}`
       const response = await fetch(url, {
         method: selectedId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1002,13 +1022,24 @@ export default function TemplateContentManager({ websiteId, selectedWebsite = nu
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={addPage}
-            className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
-          >
-            Add Page
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {!templates.some((template) => template.templateKey === 'home') ? (
+              <button
+                type="button"
+                onClick={addHomePage}
+                className="rounded-[3px] border border-[#3858e9] bg-[#3858e9] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#2746c8]"
+              >
+                Create Front Page
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={addPage}
+              className="rounded-[3px] border border-[#3858e9] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3858e9] hover:bg-[#f0f3ff]"
+            >
+              Add Page
+            </button>
+          </div>
           <input
             type="search"
             value={searchQuery}

@@ -17,6 +17,7 @@ const emptyForm = {
   sitemapSettingsText: '{}',
   seoDefaultsText: '{}',
   siteConfigText: '{}',
+  responsiveImageVariants: false,
   adsenseEnabled: false,
   adsensePublisherId: '',
   adsenseAutoAdsEnabled: true,
@@ -58,6 +59,7 @@ function toForm(settings) {
     sitemapSettingsText: stringifyJson(settings?.sitemapSettings),
     seoDefaultsText: stringifyJson(settings?.seoDefaults),
     siteConfigText: stringifyJson(settings?.siteConfig),
+    responsiveImageVariants: settings?.siteConfig?.responsiveImageVariants === true,
     adsenseEnabled: Boolean(settings?.adsenseSettings?.enabled),
     adsensePublisherId: settings?.adsenseSettings?.publisherId || '',
     adsenseAutoAdsEnabled:
@@ -112,6 +114,7 @@ export default function SettingsManager({ websiteId }) {
     if (seo.error) return { error: seo.error }
     const siteConfig = parseJsonObject(form.siteConfigText, 'Site config')
     if (siteConfig.error) return { error: siteConfig.error }
+    siteConfig.parsed.responsiveImageVariants = form.responsiveImageVariants
 
     return {
       payload: {
@@ -224,6 +227,20 @@ export default function SettingsManager({ websiteId }) {
                 className="min-h-56 font-mono text-sm"
               />
             </Field>
+            <label className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium lg:col-span-2">
+              <input
+                type="checkbox"
+                checked={form.responsiveImageVariants}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    responsiveImageVariants: event.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-input"
+              />
+              Generate responsive media variants for this website
+            </label>
           </div>
         </AdminPanel>
 

@@ -10,6 +10,17 @@ const ACCEPTED_IMAGE_TYPES = new Set([
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 export const MAX_IMAGE_WIDTH = 1200
+export const RESPONSIVE_IMAGE_VARIANT_WIDTHS = {
+  thumbnail: 160,
+  card: 400,
+  mobile: 640,
+}
+
+const RESPONSIVE_IMAGE_VARIANT_QUALITIES = {
+  thumbnail: 70,
+  card: 74,
+  mobile: 76,
+}
 
 export class ImageValidationError extends Error {
   constructor(message, { code = 'INVALID_IMAGE' } = {}) {
@@ -70,4 +81,47 @@ export async function optimizeImageToWebp(file) {
     mimeType: 'image/webp',
     fileSize: output.byteLength,
   }
+}
+
+export function getRequiredResponsiveImageVariantNames(width) {
+  const sourceWidth = Number(width)
+  if (!Number.isFinite(sourceWidth) || sourceWidth <= 0) return []
+
+  return Object.entries(RESPONSIVE_IMAGE_VARIANT_WIDTHS)
+    .filter(([, targetWidth]) => sourceWidth > targetWidth)
+    .map(([name]) => name)
+}
+
+export async function createResponsiveImageVariants(bytes, { variantNames } = {}) {
+  const input = Buffer.from(bytes)
+  const metadata = await sharp(input, { animated: false, failOn: 'error' }).metadata()
+  const requiredNames = getRequiredResponsiveImageVariantNames(metadata.width)
+  const requestedNames = Array.isArray(variantNames)
+    ? requiredNames.filter((name) => variantNames.includes(name))
+    : requiredNames
+
+  const variants = {}
+  for (const name of requestedNames) {
+    const output = await sharp(input, { animated: false, failOn: 'error' })
+      .resize({
+        width: RESPONSIVE_IMAGE_VARIANT_WIDTHS[name],
+        withoutEnlargement: true,
+      })
+      .webp({
+        quality: RESPONSIVE_IMAGE_VARIANT_QUALITIES[name],
+        effort: 5,
+      })
+      .toBuffer()
+    const outputMetadata = await sharp(output).metadata()
+
+    variants[name] = {
+      bytes: output,
+      width: outputMetadata.width || null,
+      height: outputMetadata.height || null,
+      mimeType: 'image/webp',
+      fileSize: output.byteLength,
+    }
+  }
+
+  return variants
 }

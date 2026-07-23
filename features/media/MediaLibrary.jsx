@@ -91,6 +91,7 @@ export default function MediaLibrary({ websiteId }) {
   const [media, setMedia] = useState([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [backfilling, setBackfilling] = useState(false)
   const [message, setMessage] = useState('')
   const [file, setFile] = useState(null)
   const [altText, setAltText] = useState('')
@@ -298,6 +299,58 @@ export default function MediaLibrary({ websiteId }) {
     }
   }
 
+  async function backfillResponsiveVariants() {
+    setBackfilling(true)
+    setMessage('')
+
+    try {
+      let totalUpdated = 0
+      let remainingCount = 0
+      let failures = []
+
+      for (let batch = 0; batch < 100; batch += 1) {
+        const response = await fetch(
+          `/api/cms/media/variants/backfill?websiteId=${websiteId}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ limit: 5 }),
+          }
+        )
+        const result = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          setMessage(getApiMessage(result, 'Unable to generate responsive variants.'))
+          return
+        }
+
+        const report = result.backfill || {}
+        const updatedCount = Number(report.updatedCount || 0)
+        totalUpdated += updatedCount
+        remainingCount = Number(report.remainingCount || 0)
+        failures = Array.isArray(report.failures) ? report.failures : []
+
+        if (remainingCount === 0) break
+        if (updatedCount === 0) {
+          setMessage(
+            `${totalUpdated} media item(s) updated. ${remainingCount} could not be completed: ${failures[0]?.message || 'check the media and try again.'}`
+          )
+          await loadMedia()
+          return
+        }
+      }
+
+      await loadMedia()
+      setMessage(
+        remainingCount > 0
+          ? `${totalUpdated} media item(s) updated. ${remainingCount} still need variants; run this again to continue.`
+          : `${totalUpdated} media item(s) updated. All responsive variants are ready.`
+      )
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
   async function loadUsage(mediaId) {
     setMessage('')
 
@@ -405,6 +458,7 @@ export default function MediaLibrary({ websiteId }) {
     return items.map((item) => {
       const draft = editing[item.id]
       const itemUsage = usage[item.id]
+      const variants = Object.entries(item.variants || {})
 
       return (
         <Fragment key={item.id}>
@@ -446,6 +500,25 @@ export default function MediaLibrary({ websiteId }) {
                       Uploaded as: {item.originalFilename}
                     </p>
                   ) : null}
+                  <details className="mt-2 text-[#50575e]">
+                    <summary className="cursor-pointer font-medium text-[#005cbb]">
+                      Responsive variants ({variants.length})
+                    </summary>
+                    {variants.length > 0 ? (
+                      <ul className="mt-1 space-y-1">
+                        {variants.map(([name, variant]) => (
+                          <li key={name}>
+                            {name}: {formatDimensions(variant.width, variant.height)} - {formatFileSize(variant.fileSize)}{' '}
+                            <a href={variant.url} target="_blank" rel="noreferrer" className="text-[#005cbb] hover:text-[#003f85]">
+                              View
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1">No generated variants yet.</p>
+                    )}
+                  </details>
                 </div>
               </div>
             </td>
@@ -615,16 +688,28 @@ export default function MediaLibrary({ websiteId }) {
         title="Media library"
         description="Upload optimized WebP images and manage alt text, captions, usage, and permanent delete checks."
         action={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={loadMedia}
-            disabled={loading}
-          >
-            <RefreshCw className={loading ? 'animate-spin' : ''} />
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={backfillResponsiveVariants}
+              disabled={backfilling || loading}
+            >
+              <RefreshCw className={backfilling ? 'animate-spin' : ''} />
+              {backfilling ? 'Generating...' : 'Generate missing variants'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={loadMedia}
+              disabled={loading || backfilling}
+            >
+              <RefreshCw className={loading ? 'animate-spin' : ''} />
+              {loading ? 'Loading...' : 'Refresh'}
+            </Button>
+          </div>
         }
       />
 
