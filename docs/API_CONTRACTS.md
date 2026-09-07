@@ -436,13 +436,13 @@ Quiz is global and is not scoped by `websiteId`.
 
 - requires admin session
 - returns the current global quiz from `cms_global_quiz`
-- if no row exists yet, returns an empty 5-question scaffold for the admin UI
+- if no row exists yet, returns the minimum empty five-question scaffold for the admin UI
 
 `PATCH /api/quiz`
 
 - requires admin session
 - writes through server-only Supabase service-role code
-- accepts exactly 5 questions and optional published status
+- accepts 5 to 10 questions and optional published status
 - validates 4 non-empty options per question
 - validates that each answer matches one option
 - replaces the current global quiz data

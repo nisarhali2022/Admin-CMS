@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { Minus, Plus, RefreshCw } from 'lucide-react'
 
+const MIN_QUESTIONS = 5
+const MAX_QUESTIONS = 10
 const EMPTY_QUESTION = { question: '', options: ['', '', '', ''], answer: '' }
-const EMPTY_QUESTIONS = Array.from({ length: 5 }, () => ({
-  ...EMPTY_QUESTION,
-  options: [...EMPTY_QUESTION.options],
-}))
+const EMPTY_QUESTIONS = Array.from({ length: MIN_QUESTIONS }, createEmptyQuestion)
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'Asia/Karachi',
   year: 'numeric',
@@ -23,6 +22,13 @@ function cloneQuestions(questions = EMPTY_QUESTIONS) {
       : ['', '', '', ''],
     answer: item.answer || '',
   }))
+}
+
+function createEmptyQuestion() {
+  return {
+    ...EMPTY_QUESTION,
+    options: [...EMPTY_QUESTION.options],
+  }
 }
 
 function getEmptyForm() {
@@ -123,7 +129,38 @@ export default function QuizManager() {
     }))
   }
 
+  function addQuestion() {
+    setForm((current) => {
+      if (current.questions.length >= MAX_QUESTIONS) return current
+
+      return {
+        ...current,
+        questions: [...current.questions, createEmptyQuestion()],
+      }
+    })
+    setMessage(null)
+  }
+
+  function removeLastQuestion() {
+    setForm((current) => {
+      if (current.questions.length <= MIN_QUESTIONS) return current
+
+      return {
+        ...current,
+        questions: current.questions.slice(0, -1),
+      }
+    })
+    setMessage(null)
+  }
+
   function validateClientQuiz() {
+    if (
+      form.questions.length < MIN_QUESTIONS ||
+      form.questions.length > MAX_QUESTIONS
+    ) {
+      return `Quiz must have between ${MIN_QUESTIONS} and ${MAX_QUESTIONS} questions.`
+    }
+
     for (let index = 0; index < form.questions.length; index += 1) {
       const question = form.questions[index]
 
@@ -326,12 +363,40 @@ export default function QuizManager() {
           </div>
         ) : null}
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-white p-1"
+            aria-label="Quiz question controls"
+          >
+            <button
+              type="button"
+              onClick={removeLastQuestion}
+              disabled={form.questions.length <= MIN_QUESTIONS}
+              aria-label="Remove last question"
+              title="Remove last question"
+              className="inline-flex h-9 w-9 items-center justify-center rounded text-text-secondary transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="min-w-28 px-1 text-center text-sm font-semibold text-text-primary">
+              {form.questions.length} / {MAX_QUESTIONS} questions
+            </span>
+            <button
+              type="button"
+              onClick={addQuestion}
+              disabled={form.questions.length >= MAX_QUESTIONS}
+              aria-label="Add question"
+              title="Add question"
+              className="inline-flex h-9 w-9 items-center justify-center rounded text-text-secondary transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
           <button
             type="button"
             onClick={saveQuiz}
             disabled={saving}
-            className="flex-1 rounded-lg bg-[#d54e21] py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#b93f17] disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-w-40 flex-1 rounded-lg bg-[#d54e21] py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#b93f17] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? 'Saving...' : 'Save Quiz'}
           </button>

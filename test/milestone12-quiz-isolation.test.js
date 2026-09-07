@@ -15,8 +15,8 @@ function setAdminEnv() {
   process.env.CMS_ENCRYPTION_KEY = Buffer.alloc(32, 1).toString('base64')
 }
 
-function sampleQuestions() {
-  return Array.from({ length: 5 }, (_, index) => ({
+function sampleQuestions(count = 5) {
+  return Array.from({ length: count }, (_, index) => ({
     question: `Question ${index + 1}?`,
     options: ['Alpha', 'Beta', 'Gamma', 'Delta'].map(
       (option) => `${option} ${index + 1}`,
@@ -30,10 +30,18 @@ afterEach(() => {
   process.env = { ...originalEnv }
 })
 
-test('quiz validation requires exactly 5 complete questions', () => {
+test('quiz validation accepts 5 to 10 complete questions', () => {
+  assert.equal(normalizeQuizQuestions(sampleQuestions()).length, 5)
+  assert.equal(normalizeQuizQuestions(sampleQuestions(10)).length, 10)
+
   assert.throws(
     () => normalizeQuizQuestions(sampleQuestions().slice(0, 4)),
-    /exactly 5 questions/,
+    /between 5 and 10 questions/,
+  )
+
+  assert.throws(
+    () => normalizeQuizQuestions(sampleQuestions(11)),
+    /between 5 and 10 questions/,
   )
 
   assert.throws(
@@ -72,6 +80,15 @@ test('quiz UI keeps option typing separate from answer selection', async () => {
   assert.match(source, /function setAnswer\(questionIndex, option\)/)
   assert.match(source, /onClick=\{\(\) => setAnswer\(questionIndex, option\)\}/)
   assert.match(source, /question\.answer\.trim\(\) !== ''/)
+  assert.match(source, /const MIN_QUESTIONS = 5/)
+  assert.match(source, /const MAX_QUESTIONS = 10/)
+  assert.match(source, /function addQuestion\(\)/)
+  assert.match(source, /function removeLastQuestion\(\)/)
+  assert.match(source, /aria-label="Add question"/)
+  assert.match(source, /aria-label="Remove last question"/)
+  assert.match(source, /\{form\.questions\.length\} \/ \{MAX_QUESTIONS\} questions/)
+  assert.match(source, /form\.questions\.length >= MAX_QUESTIONS/)
+  assert.match(source, /form\.questions\.length <= MIN_QUESTIONS/)
 })
 
 test('quiz state reads and writes Supabase-backed global quiz without website scope', async () => {
@@ -264,11 +281,17 @@ test('global quiz migrations create and simplify current-only quiz storage', asy
     'setup-provisioning/supabase/migrations/202607050009_fix_quiz_function_permissions.sql',
     'utf8',
   )
+  const flexibleQuestionsSql = await readFile(
+    'setup-provisioning/supabase/migrations/202609080001_flexible_global_quiz_questions.sql',
+    'utf8',
+  )
 
   assert.match(createSql, /create table public\.cms_global_quiz/)
   assert.doesNotMatch(`${createSql}\n${simplifySql}`, /website_id/)
   assert.match(createSql, /questions jsonb not null/)
   assert.match(createSql, /cms_global_quiz_questions_valid/)
+  assert.match(createSql, /jsonb_array_length\(input_questions\) < 5/)
+  assert.match(createSql, /jsonb_array_length\(input_questions\) > 10/)
   assert.match(simplifySql, /rename column id to quiz_id/)
   assert.match(simplifySql, /drop column if exists title/)
   assert.match(simplifySql, /drop column if exists slug/)
@@ -283,4 +306,8 @@ test('global quiz migrations create and simplify current-only quiz storage', asy
   assert.match(createSql, /grant execute on function public\.cms_global_quiz_questions_valid\(jsonb\) to service_role/)
   assert.match(permissionsSql, /grant execute on function public\.cms_global_quiz_questions_valid\(jsonb\) to service_role/)
   assert.match(createSql, /grant select, insert, update, delete on table public\.cms_global_quiz to service_role/)
+  assert.match(flexibleQuestionsSql, /drop constraint if exists cms_global_quiz_questions_valid_check/)
+  assert.match(flexibleQuestionsSql, /jsonb_array_length\(input_questions\) < 5/)
+  assert.match(flexibleQuestionsSql, /jsonb_array_length\(input_questions\) > 10/)
+  assert.match(flexibleQuestionsSql, /notify pgrst, 'reload schema'/)
 })

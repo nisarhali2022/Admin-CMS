@@ -10,7 +10,9 @@ declare
   valid_option_count integer;
   matching_option_count integer;
 begin
-  if jsonb_typeof(input_questions) <> 'array' or jsonb_array_length(input_questions) <> 5 then
+  if jsonb_typeof(input_questions) <> 'array'
+    or jsonb_array_length(input_questions) < 5
+    or jsonb_array_length(input_questions) > 10 then
     return false;
   end if;
 

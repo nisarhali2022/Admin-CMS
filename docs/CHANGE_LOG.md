@@ -1,5 +1,11 @@
 # CMS Rebuild Change Log
 
+## 2026-09-08 - Flexible Global Quiz Questions
+
+- Changed the global quiz contract from exactly five questions to 5–10 questions.
+- Added bottom-of-editor plus/minus controls with five-question minimum and ten-question maximum safeguards.
+- Added a setup/provisioning corrective migration for the Supabase quiz constraint and documented that public websites must render the complete returned question array.
+
 ## 2026-07-18 - Production Cutover And Global Quiz Freshness
 
 - Saving the global quiz now revalidates every active website with a configured

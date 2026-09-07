@@ -432,6 +432,7 @@ Behavior:
 - One global quiz update applies to all websites.
 - Stores only current quiz questions, publish state, and update timestamp in `cms_global_quiz`.
 - Public websites read the published quiz through `cms_public_get_current_quiz()`.
+- Quiz validation accepts 5 to 10 ordered questions; public websites render every returned question in order.
 - Quiz table does not store title, slug, description, visible date, SEO date, or page metadata.
 - Homepage/page SEO is managed by website template/settings data.
 

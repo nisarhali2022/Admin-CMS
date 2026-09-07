@@ -262,7 +262,7 @@ Do not update redirect hit counts from the public frontend in v1.
 
 ### Global Quiz
 
-Call `getCurrentQuiz()` without a website domain. Render it in each website's existing quiz/homepage component only when the returned quiz is published and complete. Do not store a separate copy of quiz data in the frontend.
+Call `getCurrentQuiz()` without a website domain. Render it in each website's existing quiz/homepage component only when the returned quiz is published and complete. Render every returned question in order: the global quiz supports 5 to 10 questions, not a fixed five-card layout. Do not store a separate copy of quiz data in the frontend.
 
 ## Revalidation Endpoint
 

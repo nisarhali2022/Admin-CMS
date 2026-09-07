@@ -1,17 +1,30 @@
 import { CmsValidationError } from '../cms/http/errors.js'
 
-export const EMPTY_QUIZ_QUESTIONS = Array.from({ length: 5 }, () => ({
+export const MIN_QUIZ_QUESTIONS = 5
+export const MAX_QUIZ_QUESTIONS = 10
+
+export const EMPTY_QUIZ_QUESTIONS = Array.from({ length: MIN_QUIZ_QUESTIONS }, () => ({
   question: '',
   options: ['', '', '', ''],
   answer: '',
 }))
 
 export function normalizeQuizQuestions(questions) {
-  if (!Array.isArray(questions) || questions.length !== 5) {
-    throw new CmsValidationError('Quiz must have exactly 5 questions.', {
-      code: 'QUIZ_QUESTION_COUNT',
-      details: { expected: 5 },
-    })
+  if (
+    !Array.isArray(questions) ||
+    questions.length < MIN_QUIZ_QUESTIONS ||
+    questions.length > MAX_QUIZ_QUESTIONS
+  ) {
+    throw new CmsValidationError(
+      `Quiz must have between ${MIN_QUIZ_QUESTIONS} and ${MAX_QUIZ_QUESTIONS} questions.`,
+      {
+        code: 'QUIZ_QUESTION_COUNT',
+        details: {
+          minimum: MIN_QUIZ_QUESTIONS,
+          maximum: MAX_QUIZ_QUESTIONS,
+        },
+      },
+    )
   }
 
   return questions.map((item, index) => {

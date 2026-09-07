@@ -326,6 +326,8 @@ Test:
 - quiz code stays isolated from CMS website-scoped modules
 - quiz storage contains only current quiz questions, publish state, and update timestamp
 - quiz table does not store title, slug, description, visible date, SEO date, or page metadata
+- quiz editor starts with 5 questions, accepts 6 and 10 questions, and rejects 4 or 11 questions
+- public quiz rendering iterates over every returned question in stored order rather than assuming five cards
 - homepage/page SEO remains in website template/settings data
 
 ## Homepage visual content and Table of Contents

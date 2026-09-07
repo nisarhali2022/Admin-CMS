@@ -314,6 +314,7 @@ Website deactivation is separate from resource deletion.
 1. Admin opens `/admin/quiz`.
 2. Website selection is not required.
 3. Admin updates quiz.
+   The editor starts with five questions and can add up to ten; removing a question removes only the final unsaved question.
 4. One quiz update applies globally.
 
 Expected behavior:

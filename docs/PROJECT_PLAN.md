@@ -511,7 +511,7 @@ V1 behavior:
 - Admin visits `/admin/quiz` without selecting a website.
 - Website selection must not filter quiz targets.
 - One quiz update applies to all websites.
-- Admin edits one global 5-question quiz.
+- Admin edits one global quiz with 5 to 10 questions.
 - Quiz data is stored in Supabase in a global table with no `website_id`.
 - Public websites read the current published quiz from Supabase.
 - Quiz code stays isolated from website-scoped CMS modules.

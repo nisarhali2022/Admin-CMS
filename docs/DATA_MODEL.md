@@ -443,7 +443,7 @@ Stores the current global quiz. This table is not website-scoped and must not in
 | Column | Type | Required | Notes |
 |---|---|---:|---|
 | `quiz_id` | uuid | yes | primary key |
-| `questions` | jsonb | yes | exactly 5 question objects |
+| `questions` | jsonb | yes | 5 to 10 question objects |
 | `is_published` | boolean | yes | public visibility |
 | `updated_at` | timestamptz | yes | updated on change |
 
@@ -463,7 +463,7 @@ Behavior:
 - The table stores only the current quiz, not quiz history or page metadata.
 - Public websites read only the latest published quiz through `cms_public_get_current_quiz()`.
 - Admin writes use server-only service-role code.
-- Validation requires exactly 5 questions, 4 non-empty options per question, and an answer that matches an option.
+- Validation requires 5 to 10 questions, 4 non-empty options per question, and an answer that matches an option.
 - Homepage/page SEO is managed by website template/settings data, not by the quiz table.
 
 ## Removed From V1

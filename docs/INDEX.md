@@ -87,6 +87,7 @@ Custom CMS Pages use the Privacy-style legal-page layout rather than the blog-po
 - Template content and blog posts do not support future scheduling in v1.
 - Quiz remains global and separate from selected website context.
 - Quiz storage contains only current quiz questions, publish state, and update timestamp.
+- Quiz accepts 5 to 10 ordered questions; public website quiz components render the complete returned array.
 - Quiz SEO/page metadata belongs to website template/settings data, not the quiz table.
 - Public websites are separate apps and keep their own layouts/themes.
 - Public websites read public-safe CMS data from Supabase through public read-only RPCs/views.

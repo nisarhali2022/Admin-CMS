@@ -138,7 +138,7 @@ Quiz is global and is not resolved by website domain.
 const quiz = await cms.getCurrentQuiz()
 ```
 
-The helper calls `cms_public_get_current_quiz()` with Supabase anon credentials. It returns only the latest published quiz from `cms_global_quiz`.
+The helper calls `cms_public_get_current_quiz()` with Supabase anon credentials. It returns only the latest published quiz from `cms_global_quiz`. Render every returned question in its stored order; the quiz contains 5 to 10 questions and public code must not assume exactly five cards.
 
 ### Quiz publication revalidation
 

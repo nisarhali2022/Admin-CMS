@@ -6,6 +6,13 @@ Update this file immediately after each milestone is completed and validated. Be
 
 This is not a CMS audit-log feature. It is development documentation for continuity between implementation steps.
 
+## 2026-09-08 Correction: Flexible Global Quiz Questions
+
+- Status: Complete in source; apply `202609080001_flexible_global_quiz_questions.sql` before saving a quiz with more than five questions.
+- The global quiz now accepts 5 to 10 ordered questions. The admin starts with five and provides guarded plus/minus controls that add or remove only the last form question.
+- The public RPC remains global and returns the whole `questions` array. Public websites must render every returned item rather than assuming five quiz cards.
+- This supersedes the earlier fixed-five-question editor and contract wording below; existing five-question rows remain valid.
+
 ## Milestone 19: Production Cutover Preparation And Global Quiz Freshness
 
 - Status: Complete for repository implementation; CMS domain rename, Vercel
@@ -992,7 +999,7 @@ Use this structure for every completed milestone:
   - `lib/public-cms/client.js`
   - `test/milestone12-quiz-isolation.test.js`
 - Inputs/outputs added or changed:
-  - Input: exactly 5 questions with 4 options each, plus optional published flag.
+  - Input: exactly 5 questions with 4 options each, plus optional published flag. Superseded by the 2026-09-08 flexible quiz correction below.
   - Output: Supabase-backed global quiz payload with `quizId`, questions, `updatedAt`, `global: true`, and `websiteScoped: false`.
   - Public output: current published quiz through `cms_public_get_current_quiz()` with no page SEO/date metadata.
 - Security and architecture checks:
